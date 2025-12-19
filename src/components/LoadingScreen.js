@@ -16,10 +16,10 @@ const LoadingScreen = ({ onFinish }) => {
       setShowContent(true);
     }, 500);
 
-    // Finish loading after 2.5 seconds
+    // Finish loading after 5 seconds
     const finishTimer = setTimeout(() => {
       onFinish();
-    }, 2500);
+    }, 5000);
 
     return () => {
       clearTimeout(timer);
@@ -36,7 +36,7 @@ const LoadingScreen = ({ onFinish }) => {
         </View>
 
         {/* App Name */}
-        <Text style={styles.appName}>Expense Tracker</Text>
+        <Text style={styles.appName}>Kharcha</Text>
         <Text style={styles.appTagline}>Track Your Finances</Text>
 
         {/* Loading Indicator */}
@@ -53,7 +53,7 @@ const LoadingScreen = ({ onFinish }) => {
             <View style={styles.contactContainer}>
               <Ionicons name="call-outline" size={16} color="#666" />
               <Text style={styles.contactText}>
-                Need a similar app? WhatsApp/Call: +91 9876543210
+                Need a similar app? WhatsApp/Call: +91 6397520221
               </Text>
             </View>
             <View style={styles.flagContainer}>

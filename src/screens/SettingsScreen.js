@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,24 +8,59 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { loadEntries } from '../utils/storage';
 import { exportToExcel, exportToJSON } from '../utils/exportUtils';
+import { shareApp, shareViaWhatsApp, shareViaSMS } from '../utils/shareUtils';
+import AppFooter from '../components/AppFooter';
+
+const CollapsibleSection = ({ title, icon, children, defaultExpanded = false }) => {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+
+  return (
+    <View style={styles.collapsibleSection}>
+      <TouchableOpacity
+        style={styles.collapsibleHeader}
+        onPress={() => setExpanded(!expanded)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.collapsibleHeaderLeft}>
+          <Ionicons name={icon} size={20} color="#1976d2" />
+          <Text style={styles.collapsibleTitle}>{title}</Text>
+        </View>
+        <Ionicons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={20}
+          color="#666"
+        />
+      </TouchableOpacity>
+      {expanded && <View style={styles.collapsibleContent}>{children}</View>}
+    </View>
+  );
+};
 
 const SettingsScreen = () => {
   const [entries, setEntries] = useState([]);
   const [exporting, setExporting] = useState(false);
   const [entryCount, setEntryCount] = useState(0);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     const allEntries = await loadEntries();
     setEntries(allEntries);
     setEntryCount(allEntries.length);
-  };
+  }, []);
+
+  // Reload data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleExportExcel = async () => {
     if (entries.length === 0) {
@@ -63,6 +98,28 @@ const SettingsScreen = () => {
     }
   };
 
+  const handleShareApp = () => {
+    Alert.alert(
+      'Share Kharcha',
+      'Choose how you want to share the app',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'WhatsApp',
+          onPress: shareViaWhatsApp,
+        },
+        {
+          text: 'SMS',
+          onPress: shareViaSMS,
+        },
+        {
+          text: 'Other',
+          onPress: shareApp,
+        },
+      ]
+    );
+  };
+
   const SettingCard = ({ icon, title, description, onPress, disabled = false }) => (
     <TouchableOpacity
       style={[styles.settingCard, disabled && styles.settingCardDisabled]}
@@ -98,56 +155,76 @@ const SettingsScreen = () => {
         </View>
       </View>
 
-      {/* Export Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Data Export</Text>
-        <Text style={styles.sectionDescription}>
-          Export your expense data as Excel or JSON file
-        </Text>
-
-        <SettingCard
-          icon="document-outline"
-          title="Export to Excel"
-          description="Download data as .xlsx file"
-          onPress={handleExportExcel}
-          disabled={entryCount === 0}
-        />
-
-        <SettingCard
-          icon="code-outline"
-          title="Export to JSON"
-          description="Download data as .json file"
-          onPress={handleExportJSON}
-          disabled={entryCount === 0}
-        />
-      </View>
-
-      {/* App Info & About */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>About App</Text>
-        
-        {/* App Details */}
-        <View style={styles.infoCard}>
-          <View style={styles.appHeader}>
-            <View style={styles.appLogoContainer}>
-              <Ionicons name="wallet" size={32} color="#1976d2" />
-            </View>
-            <View style={styles.appHeaderText}>
-              <Text style={styles.infoText}>Expense Tracker</Text>
-              <Text style={styles.infoVersion}>Version 1.0.0</Text>
-            </View>
-          </View>
-          <Text style={styles.infoDescription}>
-            A simple, clean expense and income tracker app. Track your daily expenses and income effortlessly. All your data is stored locally on your device - completely offline and secure.
-          </Text>
+      {/* Share App Section */}
+      <CollapsibleSection title="Share App" icon="share-social-outline" defaultExpanded={true}>
+        <View style={styles.sectionContent}>
+          <SettingCard
+            icon="logo-whatsapp"
+            title="Share via WhatsApp"
+            description="Share Kharcha with friends and family"
+            onPress={shareViaWhatsApp}
+          />
+          <SettingCard
+            icon="chatbubble-outline"
+            title="Share via SMS"
+            description="Send app details via text message"
+            onPress={shareViaSMS}
+          />
+          <SettingCard
+            icon="share-outline"
+            title="Share via Other"
+            description="Share using any available app"
+            onPress={shareApp}
+          />
         </View>
+      </CollapsibleSection>
 
-        {/* How to Use */}
-        <View style={styles.infoCard}>
-          <View style={styles.sectionHeaderRow}>
-            <Ionicons name="book-outline" size={20} color="#1976d2" />
-            <Text style={styles.subsectionTitle}>How to Use</Text>
+      {/* Export Section */}
+      <CollapsibleSection title="Data Export" icon="download-outline">
+        <View style={styles.sectionContent}>
+          <Text style={styles.sectionDescription}>
+            Export your expense data as Excel or JSON file
+          </Text>
+          <SettingCard
+            icon="document-outline"
+            title="Export to Excel"
+            description="Download data as .csv file"
+            onPress={handleExportExcel}
+            disabled={entryCount === 0}
+          />
+          <SettingCard
+            icon="code-outline"
+            title="Export to JSON"
+            description="Download data as .json file"
+            onPress={handleExportJSON}
+            disabled={entryCount === 0}
+          />
+        </View>
+      </CollapsibleSection>
+
+      {/* App Info Section */}
+      <CollapsibleSection title="About App" icon="information-circle-outline">
+        <View style={styles.sectionContent}>
+          <View style={styles.infoCard}>
+            <View style={styles.appHeader}>
+              <View style={styles.appLogoContainer}>
+                <Ionicons name="wallet" size={32} color="#1976d2" />
+              </View>
+              <View style={styles.appHeaderText}>
+                <Text style={styles.infoText}>Kharcha</Text>
+                <Text style={styles.infoVersion}>Version 1.0.0</Text>
+              </View>
+            </View>
+            <Text style={styles.infoDescription}>
+              A simple, clean expense and income tracker app. Track your daily expenses and income effortlessly. All your data is stored locally on your device - completely offline and secure.
+            </Text>
           </View>
+        </View>
+      </CollapsibleSection>
+
+      {/* How to Use Section */}
+      <CollapsibleSection title="How to Use" icon="book-outline">
+        <View style={styles.sectionContent}>
           <View style={styles.instructionItem}>
             <View style={styles.instructionNumber}>
               <Text style={styles.instructionNumberText}>1</Text>
@@ -177,7 +254,7 @@ const SettingsScreen = () => {
               <Text style={styles.instructionNumberText}>4</Text>
             </View>
             <Text style={styles.instructionText}>
-              Check <Text style={styles.boldText}>Summary</Text> tab for weekly, monthly, quarterly, or yearly reports with charts
+              Check <Text style={styles.boldText}>Summary</Text> tab for reports with charts
             </Text>
           </View>
           <View style={styles.instructionItem}>
@@ -189,13 +266,11 @@ const SettingsScreen = () => {
             </Text>
           </View>
         </View>
+      </CollapsibleSection>
 
-        {/* Features */}
-        <View style={styles.infoCard}>
-          <View style={styles.sectionHeaderRow}>
-            <Ionicons name="star-outline" size={20} color="#1976d2" />
-            <Text style={styles.subsectionTitle}>Features</Text>
-          </View>
+      {/* Features Section */}
+      <CollapsibleSection title="Features" icon="star-outline">
+        <View style={styles.sectionContent}>
           <View style={styles.featureList}>
             <View style={styles.featureItem}>
               <Ionicons name="checkmark-circle" size={18} color="#388e3c" />
@@ -223,13 +298,11 @@ const SettingsScreen = () => {
             </View>
           </View>
         </View>
+      </CollapsibleSection>
 
-        {/* Developer Contact */}
-        <View style={styles.infoCard}>
-          <View style={styles.sectionHeaderRow}>
-            <Ionicons name="person-outline" size={20} color="#1976d2" />
-            <Text style={styles.subsectionTitle}>Developer</Text>
-          </View>
+      {/* Developer Contact Section */}
+      <CollapsibleSection title="Developer" icon="person-outline">
+        <View style={styles.sectionContent}>
           <View style={styles.developerCard}>
             <View style={styles.developerHeader}>
               <Text style={styles.flagEmoji}>🇮🇳</Text>
@@ -243,7 +316,7 @@ const SettingsScreen = () => {
                 onPress={() => {
                   Alert.alert(
                     'Contact Developer',
-                    'WhatsApp/Call: +91 9876543210\n\nWant to create a similar app or have a custom idea? Feel free to reach out!',
+                    'WhatsApp/Call: +91 6397520221\n\nWant to create a similar app or have a custom idea? Feel free to reach out!',
                     [{ text: 'OK' }]
                   );
                 }}
@@ -257,7 +330,10 @@ const SettingsScreen = () => {
             </View>
           </View>
         </View>
-      </View>
+      </CollapsibleSection>
+
+      {/* Footer */}
+      <AppFooter />
 
       {exporting && (
         <View style={styles.loadingOverlay}>
@@ -274,7 +350,7 @@ const SettingsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#ffffff',
   },
   header: {
     flexDirection: 'row',
@@ -313,28 +389,51 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 4,
   },
-  section: {
-    marginTop: 8,
-    paddingHorizontal: 16,
+  collapsibleSection: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+    overflow: 'hidden',
   },
-  sectionTitle: {
-    fontSize: 18,
+  collapsibleHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
+  collapsibleHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  collapsibleTitle: {
+    fontSize: 16,
     fontWeight: '700',
     color: '#1a1a1a',
-    marginBottom: 4,
+  },
+  collapsibleContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  sectionContent: {
+    paddingTop: 8,
   },
   sectionDescription: {
     fontSize: 14,
     color: '#666',
     marginBottom: 12,
+    paddingHorizontal: 4,
   },
   settingCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 12,
+    backgroundColor: '#f8f9fa',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: '#e9ecef',
   },
@@ -342,40 +441,40 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   settingIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#f0f7ff',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#e3f2fd',
   },
   settingContent: {
     flex: 1,
   },
   settingTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#1a1a1a',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   settingDescription: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#666',
   },
   infoCard: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 16,
-    marginTop: 8,
-    marginBottom: 12,
+    backgroundColor: '#f8f9fa',
+    padding: 16,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e9ecef',
   },
   appHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   appLogoContainer: {
     width: 56,
@@ -406,17 +505,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     lineHeight: 22,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  subsectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1a1a1a',
-    marginLeft: 8,
   },
   instructionItem: {
     flexDirection: 'row',
@@ -546,4 +634,3 @@ const styles = StyleSheet.create({
 });
 
 export default SettingsScreen;
-

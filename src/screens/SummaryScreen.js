@@ -7,12 +7,18 @@ import {
   ScrollView,
   RefreshControl,
   Dimensions,
+  Platform,
+  Modal,
+  Alert,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { LineChart, BarChart } from 'react-native-chart-kit';
-import { filterEntriesByPeriod, calculateTotals } from '../utils/dateUtils';
+import { filterEntriesByPeriod, filterEntriesByDateRange, calculateTotals, formatDateWithMonthName, formatDate } from '../utils/dateUtils';
 import { loadEntries } from '../utils/storage';
 import { prepareExpenseIncomeChart, prepareMonthlyChart } from '../utils/chartUtils';
+import AppFooter from '../components/AppFooter';
 
 const PERIODS = ['today', 'weekly', 'monthly', 'quarterly', 'yearly'];
 const screenWidth = Dimensions.get('window').width;
@@ -23,34 +29,83 @@ const SummaryScreen = () => {
   const [filteredEntries, setFilteredEntries] = useState([]);
   const [totals, setTotals] = useState({ expense: 0, income: 0, balance: 0 });
   const [refreshing, setRefreshing] = useState(false);
-  const [chartType, setChartType] = useState('bar'); // 'bar' or 'line'
+  const [chartType, setChartType] = useState('bar');
+  const [isCustomDateRange, setIsCustomDateRange] = useState(false);
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date());
 
   const loadData = useCallback(async () => {
     const allEntries = await loadEntries();
     setEntries(allEntries);
-    updateFilteredData(allEntries, selectedPeriod);
-  }, [selectedPeriod]);
+    updateFilteredData(allEntries);
+  }, [selectedPeriod, isCustomDateRange, startDate, endDate]);
 
-  const updateFilteredData = (allEntries, period) => {
-    const filtered = filterEntriesByPeriod(allEntries, period);
+  const updateFilteredData = (allEntries) => {
+    let filtered;
+    if (isCustomDateRange) {
+      filtered = filterEntriesByDateRange(allEntries, startDate, endDate);
+    } else {
+      filtered = filterEntriesByPeriod(allEntries, selectedPeriod);
+    }
     setFilteredEntries(filtered);
     const periodTotals = calculateTotals(filtered);
     setTotals(periodTotals);
   };
+
+  // Reload data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
   useEffect(() => {
-    updateFilteredData(entries, selectedPeriod);
-  }, [selectedPeriod, entries]);
+    updateFilteredData(entries);
+  }, [selectedPeriod, isCustomDateRange, startDate, endDate, entries]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
   }, [loadData]);
+
+  const handleCustomDateRange = () => {
+    setIsCustomDateRange(true);
+    setSelectedPeriod(null);
+  };
+
+  const handlePeriodSelect = (period) => {
+    setSelectedPeriod(period);
+    setIsCustomDateRange(false);
+  };
+
+  const handleStartDateChange = (event, selectedDate) => {
+    setShowStartDatePicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      if (selectedDate > endDate) {
+        Alert.alert('Invalid Date', 'Start date cannot be after end date');
+        return;
+      }
+      setStartDate(selectedDate);
+    }
+  };
+
+  const handleEndDateChange = (event, selectedDate) => {
+    setShowEndDatePicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      if (selectedDate < startDate) {
+        Alert.alert('Invalid Date', 'End date cannot be before start date');
+        return;
+      }
+      setEndDate(selectedDate);
+    }
+  };
 
   const getPeriodLabel = (period) => {
     const labels = {
@@ -91,10 +146,10 @@ const SummaryScreen = () => {
     },
   };
 
-  const expenseIncomeData = prepareExpenseIncomeChart(entries, selectedPeriod);
+  const expenseIncomeData = prepareExpenseIncomeChart(entries, selectedPeriod || 'monthly');
   const monthlyData = prepareMonthlyChart(entries);
 
-  // Prepare line chart data (combine expense and income for line chart)
+  // Prepare line chart data
   const expenseIncomeLineData = expenseIncomeData && expenseIncomeData.datasets && expenseIncomeData.datasets[0] ? {
     labels: expenseIncomeData.labels || [],
     datasets: [
@@ -104,7 +159,6 @@ const SummaryScreen = () => {
     ],
   } : { labels: ['Expense', 'Income'], datasets: [{ data: [0, 0] }] };
 
-  // For monthly line chart, combine expense and income
   const monthlyLineData = monthlyData && monthlyData.labels && monthlyData.labels.length > 0 && monthlyData.datasets && monthlyData.datasets[0] ? {
     labels: monthlyData.labels,
     datasets: [
@@ -131,29 +185,100 @@ const SummaryScreen = () => {
               key={period}
               style={[
                 styles.periodButton,
-                selectedPeriod === period && styles.periodButtonActive,
+                selectedPeriod === period && !isCustomDateRange && styles.periodButtonActive,
               ]}
-              onPress={() => setSelectedPeriod(period)}
+              onPress={() => handlePeriodSelect(period)}
               activeOpacity={0.7}
             >
               <Ionicons
                 name={getPeriodIcon(period)}
                 size={16}
-                color={selectedPeriod === period ? '#fff' : '#666'}
+                color={selectedPeriod === period && !isCustomDateRange ? '#fff' : '#666'}
                 style={styles.periodIcon}
               />
               <Text
                 style={[
                   styles.periodButtonText,
-                  selectedPeriod === period && styles.periodButtonTextActive,
+                  selectedPeriod === period && !isCustomDateRange && styles.periodButtonTextActive,
                 ]}
               >
                 {getPeriodLabel(period)}
               </Text>
             </TouchableOpacity>
           ))}
+          <TouchableOpacity
+            style={[
+              styles.periodButton,
+              styles.customDateButton,
+              isCustomDateRange && styles.periodButtonActive,
+            ]}
+            onPress={handleCustomDateRange}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name="calendar"
+              size={16}
+              color={isCustomDateRange ? '#fff' : '#666'}
+              style={styles.periodIcon}
+            />
+            <Text
+              style={[
+                styles.periodButtonText,
+                isCustomDateRange && styles.periodButtonTextActive,
+              ]}
+            >
+              Custom
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
       </View>
+
+      {/* Custom Date Range Picker */}
+      {isCustomDateRange && (
+        <View style={styles.customDateContainer}>
+          <View style={styles.datePickerRow}>
+            <TouchableOpacity
+              style={styles.datePickerButton}
+              onPress={() => setShowStartDatePicker(true)}
+            >
+              <Ionicons name="calendar-outline" size={18} color="#1976d2" />
+              <View style={styles.datePickerTextContainer}>
+                <Text style={styles.datePickerLabel}>Start Date</Text>
+                <Text style={styles.datePickerValue}>{formatDateWithMonthName(formatDate(startDate))}</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.datePickerButton}
+              onPress={() => setShowEndDatePicker(true)}
+            >
+              <Ionicons name="calendar-outline" size={18} color="#1976d2" />
+              <View style={styles.datePickerTextContainer}>
+                <Text style={styles.datePickerLabel}>End Date</Text>
+                <Text style={styles.datePickerValue}>{formatDateWithMonthName(formatDate(endDate))}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+          {showStartDatePicker && (
+            <DateTimePicker
+              value={startDate}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={handleStartDateChange}
+              maximumDate={endDate}
+            />
+          )}
+          {showEndDatePicker && (
+            <DateTimePicker
+              value={endDate}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={handleEndDateChange}
+              minimumDate={startDate}
+              maximumDate={new Date()}
+            />
+          )}
+        </View>
+      )}
 
       {/* Totals Display */}
       <View style={styles.totalsSection}>
@@ -348,6 +473,9 @@ const SummaryScreen = () => {
           </View>
         </View>
       </View>
+
+      {/* Footer */}
+      <AppFooter />
     </ScrollView>
   );
 };
@@ -355,7 +483,7 @@ const SummaryScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#ffffff',
   },
   periodContainer: {
     backgroundColor: '#fff',
@@ -381,6 +509,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#1976d2',
     borderColor: '#1976d2',
   },
+  customDateButton: {
+    borderWidth: 2,
+    borderStyle: 'dashed',
+  },
   periodIcon: {
     marginRight: 6,
   },
@@ -391,6 +523,40 @@ const styles = StyleSheet.create({
   },
   periodButtonTextActive: {
     color: '#fff',
+  },
+  customDateContainer: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+  },
+  datePickerRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  datePickerButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+    gap: 10,
+  },
+  datePickerTextContainer: {
+    flex: 1,
+  },
+  datePickerLabel: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 4,
+  },
+  datePickerValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1a1a1a',
   },
   totalsSection: {
     backgroundColor: '#fff',

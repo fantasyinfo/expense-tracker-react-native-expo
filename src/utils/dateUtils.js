@@ -20,6 +20,21 @@ export const formatDateDisplay = (dateString) => {
 };
 
 /**
+ * Format date with month name (e.g., "19 December 2025")
+ */
+export const formatDateWithMonthName = (dateString) => {
+  const date = parseDate(dateString);
+  const day = date.getDate();
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  const month = monthNames[date.getMonth()];
+  const year = date.getFullYear();
+  return `${day} ${month} ${year}`;
+};
+
+/**
  * Parse YYYY-MM-DD string to Date object
  */
 export const parseDate = (dateString) => {
@@ -82,6 +97,17 @@ export const getPeriodDates = (period, referenceDate = new Date()) => {
  */
 export const filterEntriesByPeriod = (entries, period, referenceDate) => {
   const { start, end } = getPeriodDates(period, referenceDate);
+  return entries.filter(entry => {
+    return entry.date >= start && entry.date <= end;
+  });
+};
+
+/**
+ * Filter entries by custom date range
+ */
+export const filterEntriesByDateRange = (entries, startDate, endDate) => {
+  const start = formatDate(startDate);
+  const end = formatDate(endDate);
   return entries.filter(entry => {
     return entry.date >= start && entry.date <= end;
   });

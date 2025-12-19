@@ -1,6 +1,6 @@
-# Expense Tracker
+# Kharcha
 
-A simple, clean, Android-focused expense and income tracker app built with React Native and Expo.
+A simple, clean, Android-focused expense and income tracker app built with React Native and Expo. Kharcha (Expense) - Track your daily expenses and income effortlessly.
 
 ![Made with ❤️ for India](https://img.shields.io/badge/Made%20with%20❤️%20for-India-orange?style=flat-square)
 ![React Native](https://img.shields.io/badge/React%20Native-0.73.6-blue?style=flat-square&logo=react)
