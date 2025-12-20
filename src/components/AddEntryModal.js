@@ -17,6 +17,7 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [type, setType] = useState('expense');
+  const [mode, setMode] = useState('upi');
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -29,6 +30,7 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
       amount: parseFloat(amount),
       note: note.trim(),
       type,
+      mode,
       date: formatDate(date),
     });
 
@@ -36,6 +38,7 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
     setAmount('');
     setNote('');
     setType('expense');
+    setMode('upi');
     setDate(new Date());
     onSave();
   };
@@ -44,6 +47,7 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
     setAmount('');
     setNote('');
     setType('expense');
+    setMode('upi');
     setDate(new Date());
     setShowDatePicker(false);
     onClose();
@@ -149,6 +153,54 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
             />
           </View>
 
+          {/* Mode Toggle */}
+          <View style={styles.modeContainer}>
+            <TouchableOpacity
+              style={[
+                styles.modeButton,
+                mode === 'upi' && styles.modeButtonActive,
+              ]}
+              onPress={() => setMode('upi')}
+            >
+              <Ionicons
+                name="phone-portrait"
+                size={20}
+                color={mode === 'upi' ? '#fff' : '#007AFF'}
+                style={styles.modeIcon}
+              />
+              <Text
+                style={[
+                  styles.modeButtonText,
+                  mode === 'upi' && styles.modeButtonTextActive,
+                ]}
+              >
+                UPI
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.modeButton,
+                mode === 'cash' && styles.modeButtonActive,
+              ]}
+              onPress={() => setMode('cash')}
+            >
+              <Ionicons
+                name="cash"
+                size={20}
+                color={mode === 'cash' ? '#fff' : '#888888'}
+                style={styles.modeIcon}
+              />
+              <Text
+                style={[
+                  styles.modeButtonText,
+                  mode === 'cash' && styles.modeButtonTextActive,
+                ]}
+              >
+                Cash
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Date Input */}
           <TouchableOpacity
             style={styles.inputContainer}
@@ -198,9 +250,9 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#1e1e1e',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: '#2C2C2E',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     padding: 24,
     paddingBottom: 32,
     maxHeight: '90%',
@@ -261,6 +313,37 @@ const styles = StyleSheet.create({
   typeButtonTextActive: {
     color: '#fff',
   },
+  modeContainer: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    borderRadius: 10,
+    backgroundColor: '#1C1C1E',
+    padding: 4,
+  },
+  modeButton: {
+    flex: 1,
+    flexDirection: 'row',
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    gap: 8,
+  },
+  modeButtonActive: {
+    backgroundColor: '#007AFF',
+    borderWidth: 0,
+  },
+  modeIcon: {
+    marginRight: 4,
+  },
+  modeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#b0b0b0',
+  },
+  modeButtonTextActive: {
+    color: '#fff',
+  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -288,14 +371,13 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     flexDirection: 'row',
-    backgroundColor: '#1976d2',
+    backgroundColor: '#007AFF',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
-    borderWidth: 2,
-    borderColor: '#1565c0',
+    borderWidth: 0,
     gap: 8,
   },
   saveButtonDisabled: {

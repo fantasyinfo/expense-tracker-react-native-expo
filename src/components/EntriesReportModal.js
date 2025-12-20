@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Modal,
   TouchableOpacity,
-  FlatList,
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -52,12 +51,21 @@ const EntriesReportModal = ({ visible, entries, onClose, title = 'Entries Report
         />
       </View>
       <View style={styles.entryContent}>
-        <Text style={[
-          styles.entryAmount,
-          entry.type === 'expense' ? styles.expenseAmount : styles.incomeAmount
-        ]}>
-          {entry.type === 'expense' ? '-' : '+'}₹{parseFloat(entry.amount).toFixed(2)}
-        </Text>
+        <View style={styles.entryAmountRow}>
+          <Text style={[
+            styles.entryAmount,
+            entry.type === 'expense' ? styles.expenseAmount : styles.incomeAmount
+          ]}>
+            {entry.type === 'expense' ? '-' : '+'}₹{parseFloat(entry.amount).toFixed(2)}
+          </Text>
+          <View style={styles.modeIndicator}>
+            <Ionicons
+              name={(entry.mode || 'upi') === 'upi' ? 'phone-portrait' : 'cash'}
+              size={14}
+              color={(entry.mode || 'upi') === 'upi' ? '#007AFF' : '#888888'}
+            />
+          </View>
+        </View>
         {entry.note ? (
           <Text style={styles.entryNote}>{entry.note}</Text>
         ) : (
@@ -104,7 +112,7 @@ const EntriesReportModal = ({ visible, entries, onClose, title = 'Entries Report
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          {/* Header */}
+          {/* Header - Fixed */}
           <View style={styles.modalHeader}>
             <View style={styles.headerLeft}>
               <Ionicons name="document-text" size={24} color="#1976d2" />
@@ -120,57 +128,122 @@ const EntriesReportModal = ({ visible, entries, onClose, title = 'Entries Report
             </TouchableOpacity>
           </View>
 
-          {/* Overall Summary */}
-          {entries.length > 0 && (
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryTitle}>Overall Summary</Text>
-              <View style={styles.summaryRow}>
-                <View style={styles.summaryItem}>
-                  <Ionicons name="arrow-down-circle" size={20} color="#d32f2f" />
-                  <Text style={styles.summaryLabel}>Total Expense</Text>
-                  <Text style={[styles.summaryValue, styles.expenseAmount]}>
-                    ₹{overallTotals.expense.toFixed(2)}
-                  </Text>
+          {/* Scrollable Content Area */}
+          <ScrollView 
+            style={styles.scrollContent}
+            contentContainerStyle={styles.scrollContentContainer}
+            showsVerticalScrollIndicator={true}
+          >
+            {/* Overall Summary */}
+            {entries.length > 0 && (
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryTitle}>Overall Summary</Text>
+                <View style={styles.summaryRow}>
+                  <View style={styles.summaryItem}>
+                    <Ionicons name="arrow-down-circle" size={20} color="#d32f2f" />
+                    <Text style={styles.summaryLabel}>Total Expense</Text>
+                    <Text style={[styles.summaryValue, styles.expenseAmount]}>
+                      ₹{overallTotals.expense.toFixed(2)}
+                    </Text>
+                  </View>
+                  <View style={styles.summaryItem}>
+                    <Ionicons name="arrow-up-circle" size={20} color="#388e3c" />
+                    <Text style={styles.summaryLabel}>Total Income</Text>
+                    <Text style={[styles.summaryValue, styles.incomeAmount]}>
+                      ₹{overallTotals.income.toFixed(2)}
+                    </Text>
+                  </View>
+                  <View style={styles.summaryItem}>
+                    <Ionicons 
+                      name={overallTotals.balance >= 0 ? 'trending-up' : 'trending-down'} 
+                      size={20} 
+                      color={overallTotals.balance >= 0 ? '#388e3c' : '#d32f2f'} 
+                    />
+                    <Text style={styles.summaryLabel}>Net Balance</Text>
+                    <Text style={[
+                      styles.summaryValue,
+                      overallTotals.balance >= 0 ? styles.incomeAmount : styles.expenseAmount
+                    ]}>
+                      ₹{overallTotals.balance.toFixed(2)}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.summaryItem}>
-                  <Ionicons name="arrow-up-circle" size={20} color="#388e3c" />
-                  <Text style={styles.summaryLabel}>Total Income</Text>
-                  <Text style={[styles.summaryValue, styles.incomeAmount]}>
-                    ₹{overallTotals.income.toFixed(2)}
-                  </Text>
-                </View>
-                <View style={styles.summaryItem}>
-                  <Ionicons 
-                    name={overallTotals.balance >= 0 ? 'trending-up' : 'trending-down'} 
-                    size={20} 
-                    color={overallTotals.balance >= 0 ? '#388e3c' : '#d32f2f'} 
-                  />
-                  <Text style={styles.summaryLabel}>Net Balance</Text>
-                  <Text style={[
-                    styles.summaryValue,
-                    overallTotals.balance >= 0 ? styles.incomeAmount : styles.expenseAmount
-                  ]}>
-                    ₹{overallTotals.balance.toFixed(2)}
-                  </Text>
+
+                {/* Payment Method Breakdown */}
+                <View style={styles.paymentBreakdown}>
+                  <Text style={styles.breakdownTitle}>PAYMENT METHOD BREAKDOWN</Text>
+                  
+                  {/* Expense Breakdown */}
+                  <View style={styles.breakdownSection}>
+                    <Text style={styles.breakdownSectionTitle}>Expense</Text>
+                    <View style={styles.breakdownRow}>
+                      <View style={styles.breakdownItem}>
+                        <Ionicons name="phone-portrait" size={16} color="#007AFF" />
+                        <Text style={styles.breakdownLabel}>UPI</Text>
+                        <Text style={styles.breakdownValue}>₹{(overallTotals.expenseUpi || 0).toFixed(2)}</Text>
+                      </View>
+                      <View style={styles.breakdownItem}>
+                        <Ionicons name="cash" size={16} color="#888888" />
+                        <Text style={styles.breakdownLabel}>Cash</Text>
+                        <Text style={styles.breakdownValue}>₹{(overallTotals.expenseCash || 0).toFixed(2)}</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Income Breakdown */}
+                  <View style={styles.breakdownSection}>
+                    <Text style={styles.breakdownSectionTitle}>Income</Text>
+                    <View style={styles.breakdownRow}>
+                      <View style={styles.breakdownItem}>
+                        <Ionicons name="phone-portrait" size={16} color="#007AFF" />
+                        <Text style={styles.breakdownLabel}>UPI</Text>
+                        <Text style={styles.breakdownValue}>₹{(overallTotals.incomeUpi || 0).toFixed(2)}</Text>
+                      </View>
+                      <View style={styles.breakdownItem}>
+                        <Ionicons name="cash" size={16} color="#888888" />
+                        <Text style={styles.breakdownLabel}>Cash</Text>
+                        <Text style={styles.breakdownValue}>₹{(overallTotals.incomeCash || 0).toFixed(2)}</Text>
+                      </View>
+                    </View>
+                  </View>
                 </View>
               </View>
-            </View>
-          )}
+            )}
 
-          {/* Entries List */}
-          <FlatList
-            data={groupedEntries}
-            renderItem={renderDateGroup}
-            keyExtractor={(item) => item.date}
-            style={styles.list}
-            contentContainerStyle={styles.listContent}
-            ListEmptyComponent={
+            {/* Entries List - Rendered manually in ScrollView */}
+            {groupedEntries.length > 0 ? (
+              <View style={styles.entriesListContainer}>
+                {groupedEntries.map((item) => (
+                  <View key={item.date} style={styles.dateGroup}>
+                    <View style={styles.dateHeader}>
+                      <View style={styles.dateHeaderLeft}>
+                        <Ionicons name="calendar-outline" size={18} color="#1976d2" />
+                        <Text style={styles.dateText}>{formatDateWithMonthName(item.date)}</Text>
+                      </View>
+                      <View style={styles.dateTotals}>
+                        <View style={styles.dateTotalItem}>
+                          <Ionicons name="arrow-down-circle" size={14} color="#d32f2f" />
+                          <Text style={styles.dateTotalText}>₹{item.totals.expense.toFixed(2)}</Text>
+                        </View>
+                        <View style={styles.dateTotalItem}>
+                          <Ionicons name="arrow-up-circle" size={14} color="#388e3c" />
+                          <Text style={styles.dateTotalText}>₹{item.totals.income.toFixed(2)}</Text>
+                        </View>
+                      </View>
+                    </View>
+                    <View style={styles.entriesContainer}>
+                      {item.entries.map(renderEntry)}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : (
               <View style={styles.emptyContainer}>
                 <Ionicons name="document-outline" size={64} color="#444444" />
                 <Text style={styles.emptyText}>No entries found</Text>
               </View>
-            }
-          />
+            )}
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -189,6 +262,13 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     maxHeight: '90%',
     flex: 1,
+    flexDirection: 'column',
+  },
+  scrollContent: {
+    flex: 1,
+  },
+  scrollContentContainer: {
+    paddingBottom: 20,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -272,10 +352,53 @@ const styles = StyleSheet.create({
   incomeAmount: {
     color: '#388e3c',
   },
-  list: {
-    flex: 1,
+  paymentBreakdown: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#333333',
   },
-  listContent: {
+  breakdownTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#A0A0A0',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  breakdownSection: {
+    marginBottom: 12,
+  },
+  breakdownSectionTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  breakdownItem: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 8,
+    backgroundColor: '#1e1e1e',
+    borderRadius: 8,
+    marginHorizontal: 4,
+  },
+  breakdownLabel: {
+    fontSize: 10,
+    color: '#b0b0b0',
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  breakdownValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  entriesListContainer: {
     padding: 16,
     paddingTop: 0,
   },
@@ -350,10 +473,18 @@ const styles = StyleSheet.create({
   entryContent: {
     flex: 1,
   },
+  entryAmountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+    gap: 8,
+  },
   entryAmount: {
     fontSize: 16,
     fontWeight: '700',
-    marginBottom: 2,
+  },
+  modeIndicator: {
+    padding: 2,
   },
   entryNote: {
     fontSize: 13,

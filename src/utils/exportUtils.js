@@ -8,14 +8,15 @@ import { formatDateDisplay } from './dateUtils';
 export const exportToExcel = async (entries) => {
   try {
     // Prepare CSV data
-    let csvContent = 'Date,Type,Amount,Note\n';
+    let csvContent = 'Date,Type,Amount,Payment Method,Note\n';
     
     entries.forEach((entry) => {
       const date = formatDateDisplay(entry.date);
       const type = entry.type === 'expense' ? 'Expense' : 'Income';
       const amount = parseFloat(entry.amount).toFixed(2);
+      const paymentMethod = (entry.mode || 'upi') === 'upi' ? 'UPI' : 'Cash';
       const note = (entry.note || '').replace(/,/g, ';'); // Replace commas in notes
-      csvContent += `${date},${type},${amount},${note}\n`;
+      csvContent += `${date},${type},${amount},${paymentMethod},${note}\n`;
     });
 
     // Add summary
@@ -26,12 +27,32 @@ export const exportToExcel = async (entries) => {
       .filter(e => e.type === 'income')
       .reduce((sum, e) => sum + parseFloat(e.amount), 0);
     const balance = totalIncome - totalExpense;
+    
+    // Payment method totals
+    const expenseUpi = entries
+      .filter(e => e.type === 'expense' && (e.mode || 'upi') === 'upi')
+      .reduce((sum, e) => sum + parseFloat(e.amount), 0);
+    const expenseCash = entries
+      .filter(e => e.type === 'expense' && (e.mode || 'upi') === 'cash')
+      .reduce((sum, e) => sum + parseFloat(e.amount), 0);
+    const incomeUpi = entries
+      .filter(e => e.type === 'income' && (e.mode || 'upi') === 'upi')
+      .reduce((sum, e) => sum + parseFloat(e.amount), 0);
+    const incomeCash = entries
+      .filter(e => e.type === 'income' && (e.mode || 'upi') === 'cash')
+      .reduce((sum, e) => sum + parseFloat(e.amount), 0);
 
     csvContent += '\n';
     csvContent += 'SUMMARY\n';
-    csvContent += `Total Expense,,${totalExpense.toFixed(2)},\n`;
-    csvContent += `Total Income,,${totalIncome.toFixed(2)},\n`;
-    csvContent += `Net Balance,,${balance.toFixed(2)},\n`;
+    csvContent += `Total Expense,,${totalExpense.toFixed(2)},,\n`;
+    csvContent += `Total Income,,${totalIncome.toFixed(2)},,\n`;
+    csvContent += `Net Balance,,${balance.toFixed(2)},,\n`;
+    csvContent += '\n';
+    csvContent += 'PAYMENT METHOD BREAKDOWN\n';
+    csvContent += `Expense - UPI,,${expenseUpi.toFixed(2)},,\n`;
+    csvContent += `Expense - Cash,,${expenseCash.toFixed(2)},,\n`;
+    csvContent += `Income - UPI,,${incomeUpi.toFixed(2)},,\n`;
+    csvContent += `Income - Cash,,${incomeCash.toFixed(2)},,\n`;
 
     // Generate file name with timestamp
     const timestamp = new Date().toISOString().split('T')[0];

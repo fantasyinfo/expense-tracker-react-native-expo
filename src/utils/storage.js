@@ -4,11 +4,43 @@ const STORAGE_KEY = '@expense_tracker_entries';
 
 /**
  * Load all entries from AsyncStorage
+ * Migrates existing entries to include mode field (defaults to 'upi')
+ * Also migrates old 'online' values to 'upi'
  */
 export const loadEntries = async () => {
   try {
     const data = await AsyncStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
+    if (!data) return [];
+    
+    const entries = JSON.parse(data);
+    let needsMigration = false;
+    
+    // Migrate entries that don't have the mode field or have old 'online' value
+    const migratedEntries = entries.map(entry => {
+      if (!entry.hasOwnProperty('mode')) {
+        needsMigration = true;
+        return {
+          ...entry,
+          mode: 'upi'
+        };
+      }
+      // Migrate old 'online' values to 'upi'
+      if (entry.mode === 'online') {
+        needsMigration = true;
+        return {
+          ...entry,
+          mode: 'upi'
+        };
+      }
+      return entry;
+    });
+    
+    // Save migrated entries if any were updated
+    if (needsMigration) {
+      await saveEntries(migratedEntries);
+    }
+    
+    return migratedEntries;
   } catch (error) {
     console.error('Error loading entries:', error);
     return [];

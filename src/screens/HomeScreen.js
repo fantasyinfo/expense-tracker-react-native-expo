@@ -146,12 +146,21 @@ const HomeScreen = () => {
         />
       </View>
       <View style={styles.entryContent}>
-        <Text style={[
-          styles.entryAmount,
-          item.type === 'expense' ? styles.expenseAmount : styles.incomeAmount
-        ]}>
-          {item.type === 'expense' ? '-' : '+'}₹{parseFloat(item.amount).toFixed(2)}
-        </Text>
+        <View style={styles.entryAmountRow}>
+          <Text style={[
+            styles.entryAmount,
+            item.type === 'expense' ? styles.expenseAmount : styles.incomeAmount
+          ]}>
+            {item.type === 'expense' ? '-' : '+'}₹{parseFloat(item.amount).toFixed(2)}
+          </Text>
+          <View style={styles.modeIndicator}>
+            <Ionicons
+              name={(item.mode || 'upi') === 'upi' ? 'phone-portrait' : 'cash'}
+              size={14}
+              color={(item.mode || 'upi') === 'upi' ? '#007AFF' : '#888888'}
+            />
+          </View>
+        </View>
         {item.note ? (
           <Text style={styles.entryNote}>{item.note}</Text>
         ) : (
@@ -777,12 +786,20 @@ const styles = StyleSheet.create({
   entryContent: {
     flex: 1,
   },
+  entryAmountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 3,
+    gap: 8,
+  },
   entryAmount: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 3,
     color: '#FFFFFF',
     letterSpacing: -0.3,
+  },
+  modeIndicator: {
+    padding: 2,
   },
   entryNote: {
     fontSize: 13,

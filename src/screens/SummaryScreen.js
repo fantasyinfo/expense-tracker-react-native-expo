@@ -17,7 +17,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { LineChart, BarChart } from 'react-native-chart-kit';
 import { filterEntriesByPeriod, filterEntriesByDateRange, calculateTotals, formatDateWithMonthName, formatDate } from '../utils/dateUtils';
 import { loadEntries } from '../utils/storage';
-import { prepareExpenseIncomeChart, prepareMonthlyChart } from '../utils/chartUtils';
+import { prepareExpenseIncomeChart, prepareMonthlyChart, preparePaymentMethodChart } from '../utils/chartUtils';
 import AppFooter from '../components/AppFooter';
 import EntriesReportModal from '../components/EntriesReportModal';
 
@@ -28,7 +28,15 @@ const SummaryScreen = () => {
   const [entries, setEntries] = useState([]);
   const [selectedPeriod, setSelectedPeriod] = useState('monthly');
   const [filteredEntries, setFilteredEntries] = useState([]);
-  const [totals, setTotals] = useState({ expense: 0, income: 0, balance: 0 });
+  const [totals, setTotals] = useState({ 
+    expense: 0, 
+    income: 0, 
+    balance: 0,
+    expenseUpi: 0,
+    expenseCash: 0,
+    incomeUpi: 0,
+    incomeCash: 0
+  });
   const [refreshing, setRefreshing] = useState(false);
   const [chartType, setChartType] = useState('bar');
   const [isCustomDateRange, setIsCustomDateRange] = useState(false);
@@ -150,6 +158,7 @@ const SummaryScreen = () => {
 
   const expenseIncomeData = prepareExpenseIncomeChart(entries, selectedPeriod || 'monthly');
   const monthlyData = prepareMonthlyChart(entries);
+  const paymentMethodData = preparePaymentMethodChart(filteredEntries);
 
   // Prepare line chart data
   const expenseIncomeLineData = expenseIncomeData && expenseIncomeData.datasets && expenseIncomeData.datasets[0] ? {
@@ -350,6 +359,45 @@ const SummaryScreen = () => {
             </View>
           </View>
         </View>
+
+        {/* Payment Method Breakdown */}
+        <View style={styles.paymentBreakdownSection}>
+          <Text style={styles.breakdownTitle}>PAYMENT METHOD BREAKDOWN</Text>
+          
+          {/* Expense Breakdown */}
+          <View style={styles.breakdownSection}>
+            <Text style={styles.breakdownSectionTitle}>Expense</Text>
+            <View style={styles.breakdownRow}>
+              <View style={styles.breakdownItem}>
+                <Ionicons name="phone-portrait" size={16} color="#007AFF" />
+                <Text style={styles.breakdownLabel}>UPI</Text>
+                <Text style={styles.breakdownValue}>₹{(totals.expenseUpi || 0).toFixed(2)}</Text>
+              </View>
+              <View style={styles.breakdownItem}>
+                <Ionicons name="cash" size={16} color="#888888" />
+                <Text style={styles.breakdownLabel}>Cash</Text>
+                <Text style={styles.breakdownValue}>₹{(totals.expenseCash || 0).toFixed(2)}</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Income Breakdown */}
+          <View style={styles.breakdownSection}>
+            <Text style={styles.breakdownSectionTitle}>Income</Text>
+            <View style={styles.breakdownRow}>
+              <View style={styles.breakdownItem}>
+                <Ionicons name="phone-portrait" size={16} color="#007AFF" />
+                <Text style={styles.breakdownLabel}>UPI</Text>
+                <Text style={styles.breakdownValue}>₹{(totals.incomeUpi || 0).toFixed(2)}</Text>
+              </View>
+              <View style={styles.breakdownItem}>
+                <Ionicons name="cash" size={16} color="#888888" />
+                <Text style={styles.breakdownLabel}>Cash</Text>
+                <Text style={styles.breakdownValue}>₹{(totals.incomeCash || 0).toFixed(2)}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
       </View>
 
       {/* Charts Section */}
@@ -464,6 +512,42 @@ const SummaryScreen = () => {
               )}
             </View>
           )}
+
+          {/* Payment Method Chart */}
+          {paymentMethodData && paymentMethodData.datasets && paymentMethodData.datasets[0] && (
+            <View style={styles.chartCard}>
+              <Text style={styles.chartTitle}>UPI vs Cash</Text>
+              {chartType === 'bar' ? (
+                <BarChart
+                  data={paymentMethodData}
+                  width={screenWidth - 64}
+                  height={220}
+                  chartConfig={{
+                    ...chartConfig,
+                    color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`,
+                  }}
+                  yAxisLabel="₹"
+                  yAxisSuffix=""
+                  showValuesOnTopOfBars
+                  style={styles.chart}
+                />
+              ) : (
+                <BarChart
+                  data={paymentMethodData}
+                  width={screenWidth - 64}
+                  height={220}
+                  chartConfig={{
+                    ...chartConfig,
+                    color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`,
+                  }}
+                  yAxisLabel="₹"
+                  yAxisSuffix=""
+                  showValuesOnTopOfBars
+                  style={styles.chart}
+                />
+              )}
+            </View>
+          )}
         </View>
       )}
 
@@ -506,12 +590,21 @@ const SummaryScreen = () => {
                   />
                 </View>
                 <View style={styles.entryContent}>
-                  <Text style={[
-                    styles.entryAmount,
-                    entry.type === 'expense' ? styles.expenseAmount : styles.incomeAmount
-                  ]}>
-                    {entry.type === 'expense' ? '-' : '+'}₹{parseFloat(entry.amount).toFixed(2)}
-                  </Text>
+                  <View style={styles.entryAmountRow}>
+                    <Text style={[
+                      styles.entryAmount,
+                      entry.type === 'expense' ? styles.expenseAmount : styles.incomeAmount
+                    ]}>
+                      {entry.type === 'expense' ? '-' : '+'}₹{parseFloat(entry.amount).toFixed(2)}
+                    </Text>
+                    <View style={styles.modeIndicator}>
+                      <Ionicons
+                        name={(entry.mode || 'upi') === 'upi' ? 'phone-portrait' : 'cash'}
+                        size={14}
+                        color={(entry.mode || 'upi') === 'upi' ? '#007AFF' : '#888888'}
+                      />
+                    </View>
+                  </View>
                   <View style={styles.entryDetails}>
                     {entry.note ? (
                       <Text style={styles.entryNote}>{entry.note}</Text>
@@ -845,12 +938,20 @@ const styles = StyleSheet.create({
   entryContent: {
     flex: 1,
   },
+  entryAmountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 3,
+    gap: 8,
+  },
   entryAmount: {
     fontSize: 15,
     fontWeight: '600',
-    marginBottom: 3,
     color: '#FFFFFF',
     letterSpacing: -0.3,
+  },
+  modeIndicator: {
+    padding: 2,
   },
   expenseAmount: {
     color: '#d32f2f',
@@ -894,6 +995,56 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#007AFF',
     marginRight: 4,
+  },
+  paymentBreakdownSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#333333',
+  },
+  breakdownTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#A0A0A0',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  breakdownSection: {
+    marginBottom: 12,
+  },
+  breakdownSectionTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: 8,
+  },
+  breakdownItem: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#333333',
+    marginHorizontal: 4,
+  },
+  breakdownLabel: {
+    fontSize: 10,
+    color: '#b0b0b0',
+    marginTop: 6,
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  breakdownValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
 

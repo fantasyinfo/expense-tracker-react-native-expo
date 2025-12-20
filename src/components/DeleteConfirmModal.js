@@ -51,6 +51,19 @@ const DeleteConfirmModal = ({ visible, entry, onConfirm, onCancel }) => {
                 <Text style={styles.detailValue}>{entry.note}</Text>
               </View>
             )}
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Payment:</Text>
+              <View style={styles.modeRow}>
+                <Ionicons
+                  name={(entry.mode || 'upi') === 'upi' ? 'phone-portrait' : 'cash'}
+                  size={16}
+                  color={(entry.mode || 'upi') === 'upi' ? '#007AFF' : '#888888'}
+                />
+                <Text style={styles.detailValue}>
+                  {(entry.mode || 'upi') === 'upi' ? 'UPI' : 'Cash'}
+                </Text>
+              </View>
+            </View>
           </View>
 
           <View style={styles.buttonContainer}>
@@ -144,6 +157,11 @@ const styles = StyleSheet.create({
   },
   incomeAmount: {
     color: '#34C759',
+  },
+  modeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   buttonContainer: {
     flexDirection: 'row',

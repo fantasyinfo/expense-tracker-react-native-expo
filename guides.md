@@ -71,3 +71,6 @@ IMPORTANT:
 - Keep everything minimal
 - Avoid feature bloat
 - Prioritize speed of use over design
+
+
+also i m thinking to have an option to add current bank amount and current cash and can be increses also or modify that will  make the app more real to keep track current status, how much we uses because adding as an income not a right way and that will add as an balance and when we use it like upi then it keep decrese from the bank account and when we select cash then it reduce from cash, what do you think or suggest any other idea do you have to suggest, like if i start using this app and current i have 9k in my bank and 1200 in my wallet this way its keep tracking my current things, also if i take few amount from my wife it will be a cash or upi then its not income its my own moeny its should be treated as a current amount added more, income means getting newly amount or am i wrong firstly clear this and suggest you points before doing anything, i said don;t take action just make an readme file what are the best option for this feature

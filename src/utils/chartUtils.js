@@ -68,3 +68,43 @@ export const prepareMonthlyChart = (entries) => {
     ],
   };
 };
+
+/**
+ * Prepare chart data for UPI vs Cash comparison
+ */
+export const preparePaymentMethodChart = (entries) => {
+  const totals = calculateTotals(entries);
+  
+  return {
+    labels: ['UPI', 'Cash'],
+    datasets: [
+      {
+        data: [
+          totals.expenseUpi + totals.incomeUpi || 0,
+          totals.expenseCash + totals.incomeCash || 0
+        ],
+      },
+    ],
+  };
+};
+
+/**
+ * Prepare chart data for UPI vs Cash breakdown by expense/income
+ */
+export const preparePaymentMethodBreakdownChart = (entries) => {
+  const totals = calculateTotals(entries);
+  
+  return {
+    labels: ['Expense UPI', 'Expense Cash', 'Income UPI', 'Income Cash'],
+    datasets: [
+      {
+        data: [
+          totals.expenseUpi || 0,
+          totals.expenseCash || 0,
+          totals.incomeUpi || 0,
+          totals.incomeCash || 0,
+        ],
+      },
+    ],
+  };
+};

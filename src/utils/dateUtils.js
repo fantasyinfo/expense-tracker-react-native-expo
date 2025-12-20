@@ -119,14 +119,34 @@ export const filterEntriesByDateRange = (entries, startDate, endDate) => {
 export const calculateTotals = (entries) => {
   const totals = entries.reduce(
     (acc, entry) => {
+      const amount = parseFloat(entry.amount) || 0;
+      const mode = entry.mode || 'upi';
+      
       if (entry.type === 'expense') {
-        acc.expense += parseFloat(entry.amount) || 0;
+        acc.expense += amount;
+        if (mode === 'upi') {
+          acc.expenseUpi += amount;
+        } else {
+          acc.expenseCash += amount;
+        }
       } else {
-        acc.income += parseFloat(entry.amount) || 0;
+        acc.income += amount;
+        if (mode === 'upi') {
+          acc.incomeUpi += amount;
+        } else {
+          acc.incomeCash += amount;
+        }
       }
       return acc;
     },
-    { expense: 0, income: 0 }
+    { 
+      expense: 0, 
+      income: 0,
+      expenseUpi: 0,
+      expenseCash: 0,
+      incomeUpi: 0,
+      incomeCash: 0
+    }
   );
 
   totals.balance = totals.income - totals.expense;
