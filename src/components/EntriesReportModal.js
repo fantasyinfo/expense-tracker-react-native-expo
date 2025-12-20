@@ -44,7 +44,12 @@ const EntriesReportModal = ({ visible, entries, onClose, title = 'Entries Report
     const adjustmentIsAdd = isBalanceAdjustment ? (entry.adjustment_type === 'add' || !entry.adjustment_type) : false;
     
     return (
-      <View style={styles.entryItem} key={entry.id}>
+      <View style={[
+        styles.entryItem,
+        isBalanceAdjustment 
+          ? styles.entryItemAdjustment
+          : (entry.type === 'expense' ? styles.entryItemExpense : styles.entryItemIncome)
+      ]} key={entry.id}>
         <View style={[
           styles.entryIconContainer,
           isBalanceAdjustment 
@@ -482,13 +487,15 @@ const styles = StyleSheet.create({
   entryItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
+    padding: 16,
     marginBottom: 1,
     backgroundColor: '#1C1C1E',
     borderRadius: 0,
     borderWidth: 0,
     borderBottomWidth: 1,
     borderBottomColor: '#2a2a2a',
+    borderLeftWidth: 3,
+    borderLeftColor: 'transparent',
   },
   entryIconContainer: {
     width: 32,
@@ -506,6 +513,15 @@ const styles = StyleSheet.create({
   },
   adjustmentIconBg: {
     backgroundColor: 'transparent',
+  },
+  entryItemExpense: {
+    borderLeftColor: '#d32f2f',
+  },
+  entryItemIncome: {
+    borderLeftColor: '#388e3c',
+  },
+  entryItemAdjustment: {
+    borderLeftColor: '#FF9800',
   },
   adjustmentAmount: {
     color: '#FF9800',

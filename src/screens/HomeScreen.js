@@ -144,7 +144,12 @@ const HomeScreen = () => {
     const adjustmentIsAdd = isBalanceAdjustment ? (item.adjustment_type === 'add' || !item.adjustment_type) : false;
     
     return (
-      <View style={styles.entryItem}>
+      <View style={[
+        styles.entryItem,
+        isBalanceAdjustment 
+          ? styles.entryItemAdjustment
+          : (item.type === 'expense' ? styles.entryItemExpense : styles.entryItemIncome)
+      ]}>
         <View style={[
           styles.entryIconContainer,
           isBalanceAdjustment 
@@ -321,12 +326,14 @@ const HomeScreen = () => {
           </View>
         ) : (
           <View style={styles.emptyContainer}>
-            <Ionicons name="document-outline" size={64} color="#444444" />
+            <View style={styles.emptyIconContainer}>
+              <Ionicons name="wallet-outline" size={48} color="#3a3a3a" />
+            </View>
             <Text style={styles.emptyText}>
-              {isCustomDateRange ? 'No entries found for selected date range' : 'No entries for today'}
+              {isCustomDateRange ? 'No entries found' : 'No entries today'}
             </Text>
             <Text style={styles.emptySubtext}>
-              {isCustomDateRange ? 'Try selecting a different date range' : 'Tap + to add your first entry'}
+              {isCustomDateRange ? 'Try a different date range' : 'Start tracking your expenses and income'}
             </Text>
           </View>
         )}
@@ -339,9 +346,9 @@ const HomeScreen = () => {
       <TouchableOpacity
         style={styles.fab}
         onPress={() => setModalVisible(true)}
-        activeOpacity={0.8}
+        activeOpacity={0.9}
       >
-        <Ionicons name="add" size={32} color="#fff" />
+        <Ionicons name="add" size={28} color="#1C1C1E" />
       </TouchableOpacity>
 
       {/* Add Entry Modal */}
@@ -670,8 +677,10 @@ const styles = StyleSheet.create({
   fixedSummaryCard: {
     backgroundColor: '#2C2C2E',
     borderRadius: 0,
-    padding: 16,
+    padding: 18,
     borderWidth: 0,
+    borderTopWidth: 1,
+    borderTopColor: '#3a3a3a',
   },
   fixedSummaryRow: {
     flexDirection: 'row',
@@ -695,8 +704,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   fixedSummaryValue: {
-    fontSize: 17,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     letterSpacing: -0.3,
   },
   summaryValueExpense: {
@@ -722,8 +731,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#2C2C2E',
     borderRadius: 0,
-    padding: 14,
+    padding: 16,
     borderWidth: 0,
+    borderTopWidth: 1,
+    borderTopColor: '#3a3a3a',
     alignItems: 'center',
   },
   balanceCardNegative: {
@@ -737,8 +748,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   balanceCardAmount: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: -0.3,
   },
@@ -772,13 +783,15 @@ const styles = StyleSheet.create({
   entryItem: {
     flexDirection: 'row',
     backgroundColor: '#2C2C2E',
-    padding: 14,
+    padding: 16,
     marginBottom: 1,
     borderRadius: 0,
     alignItems: 'center',
     borderWidth: 0,
     borderBottomWidth: 1,
     borderBottomColor: '#1C1C1E',
+    borderLeftWidth: 3,
+    borderLeftColor: 'transparent',
   },
   entryIconContainer: {
     width: 32,
@@ -796,6 +809,15 @@ const styles = StyleSheet.create({
   },
   adjustmentIconBg: {
     backgroundColor: 'transparent',
+  },
+  entryItemExpense: {
+    borderLeftColor: '#d32f2f',
+  },
+  entryItemIncome: {
+    borderLeftColor: '#388e3c',
+  },
+  entryItemAdjustment: {
+    borderLeftColor: '#FF9800',
   },
   adjustmentAmount: {
     color: '#FF9800',
@@ -842,37 +864,49 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emptyContainer: {
-    padding: 48,
+    padding: 60,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#2C2C2E',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#888888',
-    marginTop: 16,
-    fontWeight: '500',
+    marginTop: 0,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   emptySubtext: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#666666',
-    marginTop: 4,
+    marginTop: 8,
+    textAlign: 'center',
+    lineHeight: 18,
   },
   fab: {
     position: 'absolute',
     right: 20,
     bottom: 20,
-    width: 52,
-    height: 52,
-    borderRadius: 0,
-    backgroundColor: '#2C2C2E',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#3a3a3a',
-    elevation: 2,
+    borderWidth: 0,
+    elevation: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
   },
 });
 

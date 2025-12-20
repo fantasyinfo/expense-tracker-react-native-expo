@@ -509,33 +509,33 @@ const SummaryScreen = () => {
       )}
 
       {/* Entry Count Card */}
-      <TouchableOpacity 
-        style={styles.countCard}
-        onPress={() => setShowEntriesModal(true)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.countContent}>
-          <Ionicons name="document-text" size={24} color="#1976d2" />
-          <View style={styles.countTextContainer}>
+      {filteredEntries.length > 0 && (
+        <TouchableOpacity 
+          style={styles.countCard}
+          onPress={() => setShowEntriesModal(true)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.countContent}>
             <Text style={styles.countNumber}>{filteredEntries.length}</Text>
             <Text style={styles.countLabel}>
-              {filteredEntries.length === 1 ? 'entry' : 'entries'} found
+              {filteredEntries.length === 1 ? 'Entry' : 'Entries'} Found
             </Text>
-            <Text style={styles.countHint}>Tap to view entries</Text>
           </View>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      )}
 
       {/* Filtered Entries Section */}
       {filteredEntries.length > 0 && (
         <View style={styles.entriesSection}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="list" size={24} color="#1976d2" />
-            <Text style={styles.sectionTitle}>Filtered Entries</Text>
+            <Text style={styles.sectionTitle}>Recent Entries</Text>
           </View>
           <View style={styles.entriesListContainer}>
             {filteredEntries.slice(0, 5).map((entry) => (
-              <View key={entry.id} style={styles.entryItem}>
+              <View key={entry.id} style={[
+                styles.entryItem,
+                entry.type === 'expense' ? styles.entryItemExpense : styles.entryItemIncome
+              ]}>
                 <View style={[
                   styles.entryIconContainer,
                   entry.type === 'expense' ? styles.expenseIconBg : styles.incomeIconBg
@@ -731,9 +731,11 @@ const styles = StyleSheet.create({
   financeCard: {
     flex: 1,
     backgroundColor: '#2C2C2E',
-    borderRadius: 8,
-    padding: 14,
+    borderRadius: 0,
+    padding: 16,
     borderWidth: 0,
+    borderTopWidth: 1,
+    borderTopColor: '#3a3a3a',
   },
   financeLabel: {
     fontSize: 11,
@@ -743,8 +745,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   financeAmount: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: -0.3,
   },
@@ -832,28 +834,22 @@ const styles = StyleSheet.create({
   },
   countContent: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'baseline',
     justifyContent: 'center',
-  },
-  countTextContainer: {
-    marginLeft: 12,
-    alignItems: 'center',
+    gap: 8,
   },
   countNumber: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: '700',
-    color: '#1976d2',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
   },
   countLabel: {
-    fontSize: 13,
-    color: '#A0A0A0',
-    marginTop: 2,
-  },
-  countHint: {
-    fontSize: 11,
-    color: '#808080',
-    marginTop: 2,
-    fontStyle: 'italic',
+    fontSize: 12,
+    color: '#888888',
+    fontWeight: '500',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
   },
   entriesSection: {
     backgroundColor: '#1C1C1E',
@@ -870,13 +866,21 @@ const styles = StyleSheet.create({
   entryItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
+    padding: 16,
     marginBottom: 1,
     backgroundColor: '#2C2C2E',
     borderRadius: 0,
     borderWidth: 0,
     borderBottomWidth: 1,
     borderBottomColor: '#1C1C1E',
+    borderLeftWidth: 3,
+    borderLeftColor: 'transparent',
+  },
+  entryItemExpense: {
+    borderLeftColor: '#d32f2f',
+  },
+  entryItemIncome: {
+    borderLeftColor: '#388e3c',
   },
   entryIconContainer: {
     width: 40,

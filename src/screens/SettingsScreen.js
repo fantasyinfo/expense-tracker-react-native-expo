@@ -27,7 +27,7 @@ import {
 import AppFooter from '../components/AppFooter';
 import EntriesReportModal from '../components/EntriesReportModal';
 
-const CollapsibleSection = ({ title, icon, children, defaultExpanded = false }) => {
+const CollapsibleSection = ({ title, children, defaultExpanded = false }) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   return (
@@ -37,14 +37,11 @@ const CollapsibleSection = ({ title, icon, children, defaultExpanded = false }) 
         onPress={() => setExpanded(!expanded)}
         activeOpacity={0.7}
       >
-        <View style={styles.collapsibleHeaderLeft}>
-          <Ionicons name={icon} size={20} color="#1976d2" />
-          <Text style={styles.collapsibleTitle}>{title}</Text>
-        </View>
+        <Text style={styles.collapsibleTitle}>{title}</Text>
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
-          size={20}
-          color="#666"
+          size={18}
+          color="#888888"
         />
       </TouchableOpacity>
       {expanded && <View style={styles.collapsibleContent}>{children}</View>}
@@ -221,63 +218,13 @@ const SettingsScreen = () => {
         <Text style={styles.headerTitle}>Settings</Text>
       </View>
 
-      {/* Share App Section */}
-      <CollapsibleSection title="Share App" icon="share-social-outline" defaultExpanded={true}>
-        <View style={styles.sectionContent}>
-          <SettingCard
-            icon="logo-whatsapp"
-            title="Share via WhatsApp"
-            description="Share Kharcha with friends and family"
-            onPress={shareViaWhatsApp}
-          />
-          <SettingCard
-            icon="chatbubble-outline"
-            title="Share via SMS"
-            description="Send app details via text message"
-            onPress={shareViaSMS}
-          />
-          <SettingCard
-            icon="share-outline"
-            title="Share via Other"
-            description="Share using any available app"
-            onPress={shareApp}
-          />
-        </View>
-      </CollapsibleSection>
-
-      {/* Download APK Section */}
-      <CollapsibleSection title="Download APK" icon="cloud-download-outline" defaultExpanded={true}>
-        <View style={styles.sectionContent}>
-          <Text style={styles.sectionDescription}>
-            Download the latest version of Kharcha app from Google Drive
-          </Text>
-          <SettingCard
-            icon="download-outline"
-            title="Download APK"
-            description="Open Google Drive to download the app"
-            onPress={openDriveDownload}
-          />
-          <SettingCard
-            icon="share-social-outline"
-            title="Share Download Link"
-            description="Share the download link with others"
-            onPress={shareDriveDownload}
-          />
-        </View>
-      </CollapsibleSection>
-
       {/* Balance Management Section */}
-      <CollapsibleSection title="Balance Management" icon="wallet-outline" defaultExpanded={true}>
+      <CollapsibleSection title="Balance Management" defaultExpanded={true}>
         <View style={styles.sectionContent}>
-          <Text style={styles.sectionDescription}>
-            Set and manage your bank and cash balances. Balances update automatically as you add entries.
-          </Text>
-          
           {/* Current Balances Display */}
           <View style={styles.balanceDisplayRow}>
             {bankBalance !== null && (
               <View style={styles.balanceDisplayCard}>
-                <Ionicons name="phone-portrait" size={20} color="#007AFF" />
                 <Text style={styles.balanceDisplayLabel}>Bank / UPI</Text>
                 <Text style={[
                   styles.balanceDisplayAmount,
@@ -289,7 +236,6 @@ const SettingsScreen = () => {
             )}
             {cashBalance !== null && (
               <View style={styles.balanceDisplayCard}>
-                <Ionicons name="cash" size={20} color="#888888" />
                 <Text style={styles.balanceDisplayLabel}>Cash</Text>
                 <Text style={[
                   styles.balanceDisplayAmount,
@@ -302,19 +248,16 @@ const SettingsScreen = () => {
           </View>
 
           <SettingCard
-            icon="card-outline"
             title="Set Bank / UPI Balance"
             description="Set your initial bank or UPI balance"
             onPress={() => handleSetBalance('bank')}
           />
           <SettingCard
-            icon="cash-outline"
             title="Set Cash Balance"
             description="Set your initial cash balance"
             onPress={() => handleSetBalance('cash')}
           />
           <SettingCard
-            icon="calculator-outline"
             title="Auto Calculate from Entries"
             description="Calculate initial balances from all existing entries"
             onPress={handleAutoCalculateBalances}
@@ -324,20 +267,15 @@ const SettingsScreen = () => {
       </CollapsibleSection>
 
       {/* Export Section */}
-      <CollapsibleSection title="Data Export" icon="download-outline">
+      <CollapsibleSection title="Data Export">
         <View style={styles.sectionContent}>
-          <Text style={styles.sectionDescription}>
-            Export your expense data as Excel or JSON file
-          </Text>
           <SettingCard
-            icon="document-outline"
             title="Export to Excel"
             description="Download data as .csv file"
             onPress={handleExportExcel}
             disabled={entryCount === 0}
           />
           <SettingCard
-            icon="code-outline"
             title="Export to JSON"
             description="Download data as .json file"
             onPress={handleExportJSON}
@@ -346,113 +284,108 @@ const SettingsScreen = () => {
         </View>
       </CollapsibleSection>
 
-      {/* App Info Section */}
-      <CollapsibleSection title="About App" icon="information-circle-outline">
+      {/* Share App Section */}
+      <CollapsibleSection title="Share App">
         <View style={styles.sectionContent}>
-          <View style={styles.infoCard}>
-            <View style={styles.appHeader}>
-              <View style={styles.appLogoContainer}>
-                <Ionicons name="wallet" size={32} color="#1976d2" />
-              </View>
-              <View style={styles.appHeaderText}>
-                <Text style={styles.infoText}>Kharcha</Text>
-                <Text style={styles.infoVersion}>Version 1.0.0</Text>
-              </View>
-            </View>
-            <Text style={styles.infoDescription}>
-              A simple, clean expense and income tracker app. Track your daily expenses and income effortlessly. All your data is stored locally on your device - completely offline and secure.
-            </Text>
-          </View>
+          <SettingCard
+            title="Share via WhatsApp"
+            description="Share Kharcha with friends and family"
+            onPress={shareViaWhatsApp}
+          />
+          <SettingCard
+            title="Share via SMS"
+            description="Send app details via text message"
+            onPress={shareViaSMS}
+          />
+          <SettingCard
+            title="Share via Other"
+            description="Share using any available app"
+            onPress={shareApp}
+          />
         </View>
       </CollapsibleSection>
 
-      {/* How to Use Section */}
-      <CollapsibleSection title="How to Use" icon="book-outline">
+      {/* Download APK Section */}
+      <CollapsibleSection title="Download APK">
         <View style={styles.sectionContent}>
-          <View style={styles.instructionItem}>
-            <View style={styles.instructionNumber}>
-              <Text style={styles.instructionNumberText}>1</Text>
-            </View>
-            <Text style={styles.instructionText}>
-              Tap the <Text style={styles.boldText}>+</Text> button to add a new expense or income entry
-            </Text>
-          </View>
-          <View style={styles.instructionItem}>
-            <View style={styles.instructionNumber}>
-              <Text style={styles.instructionNumberText}>2</Text>
-            </View>
-            <Text style={styles.instructionText}>
-              Select <Text style={styles.boldText}>Expense</Text> or <Text style={styles.boldText}>Income</Text>, enter amount and optional note
-            </Text>
-          </View>
-          <View style={styles.instructionItem}>
-            <View style={styles.instructionNumber}>
-              <Text style={styles.instructionNumberText}>3</Text>
-            </View>
-            <Text style={styles.instructionText}>
-              View your <Text style={styles.boldText}>Today</Text> summary on the home screen
-            </Text>
-          </View>
-          <View style={styles.instructionItem}>
-            <View style={styles.instructionNumber}>
-              <Text style={styles.instructionNumberText}>4</Text>
-            </View>
-            <Text style={styles.instructionText}>
-              Check <Text style={styles.boldText}>Summary</Text> tab for reports with charts
-            </Text>
-          </View>
-          <View style={styles.instructionItem}>
-            <View style={styles.instructionNumber}>
-              <Text style={styles.instructionNumberText}>5</Text>
-            </View>
-            <Text style={styles.instructionText}>
-              Export your data as <Text style={styles.boldText}>Excel</Text> or <Text style={styles.boldText}>JSON</Text> file for backup
+          <SettingCard
+            title="Download APK"
+            description="Open Google Drive to download the app"
+            onPress={openDriveDownload}
+          />
+          <SettingCard
+            title="Share Download Link"
+            description="Share the download link with others"
+            onPress={shareDriveDownload}
+          />
+        </View>
+      </CollapsibleSection>
+
+      {/* About App Section */}
+      <CollapsibleSection title="About App">
+        <View style={styles.sectionContent}>
+          <View style={styles.infoCard}>
+            <Text style={styles.appName}>Kharcha</Text>
+            <Text style={styles.appVersion}>Version 1.0.0</Text>
+            <Text style={styles.infoDescription}>
+              A professional expense and income tracker. Track your daily expenses and income with real-time balance updates. All data is stored locally on your device - completely offline and secure.
             </Text>
           </View>
         </View>
       </CollapsibleSection>
 
       {/* Features Section */}
-      <CollapsibleSection title="Features" icon="star-outline">
+      <CollapsibleSection title="Features">
         <View style={styles.sectionContent}>
           <View style={styles.featureList}>
-            <View style={styles.featureItem}>
-              <Ionicons name="checkmark-circle" size={18} color="#388e3c" />
-              <Text style={styles.featureText}>Track expenses and income</Text>
-            </View>
-            <View style={styles.featureItem}>
-              <Ionicons name="checkmark-circle" size={18} color="#388e3c" />
-              <Text style={styles.featureText}>View daily, weekly, monthly summaries</Text>
-            </View>
-            <View style={styles.featureItem}>
-              <Ionicons name="checkmark-circle" size={18} color="#388e3c" />
-              <Text style={styles.featureText}>Beautiful charts and visualizations</Text>
-            </View>
-            <View style={styles.featureItem}>
-              <Ionicons name="checkmark-circle" size={18} color="#388e3c" />
-              <Text style={styles.featureText}>Export data to Excel/JSON</Text>
-            </View>
-            <View style={styles.featureItem}>
-              <Ionicons name="checkmark-circle" size={18} color="#388e3c" />
-              <Text style={styles.featureText}>100% offline - no internet required</Text>
-            </View>
-            <View style={styles.featureItem}>
-              <Ionicons name="checkmark-circle" size={18} color="#388e3c" />
-              <Text style={styles.featureText}>Simple and fast data entry</Text>
-            </View>
+            <Text style={styles.featureText}>Track expenses and income</Text>
+            <Text style={styles.featureText}>View daily, weekly, monthly summaries</Text>
+            <Text style={styles.featureText}>Charts and visualizations</Text>
+            <Text style={styles.featureText}>Export data to Excel/JSON</Text>
+            <Text style={styles.featureText}>100% offline - no internet required</Text>
+            <Text style={styles.featureText}>Real-time balance tracking</Text>
+            <Text style={styles.featureText}>Simple and fast data entry</Text>
+          </View>
+        </View>
+      </CollapsibleSection>
+
+      {/* How to Use Section */}
+      <CollapsibleSection title="How to Use">
+        <View style={styles.sectionContent}>
+          <View style={styles.instructionItem}>
+            <Text style={styles.instructionText}>
+              Tap the + button to add a new expense or income entry
+            </Text>
+          </View>
+          <View style={styles.instructionItem}>
+            <Text style={styles.instructionText}>
+              Select Expense or Income, enter amount and optional note
+            </Text>
+          </View>
+          <View style={styles.instructionItem}>
+            <Text style={styles.instructionText}>
+              View your Today summary on the home screen
+            </Text>
+          </View>
+          <View style={styles.instructionItem}>
+            <Text style={styles.instructionText}>
+              Check Summary tab for reports with charts
+            </Text>
+          </View>
+          <View style={styles.instructionItem}>
+            <Text style={styles.instructionText}>
+              Export your data as Excel or JSON file for backup
+            </Text>
           </View>
         </View>
       </CollapsibleSection>
 
       {/* Developer Contact Section */}
-      <CollapsibleSection title="Developer" icon="person-outline">
+      <CollapsibleSection title="Developer">
         <View style={styles.sectionContent}>
           <View style={styles.developerCard}>
-            <View style={styles.developerHeader}>
-              <Text style={styles.flagEmoji}>🇮🇳</Text>
-              <Text style={styles.developerName}>Gaurav Sharma</Text>
-            </View>
-            <Text style={styles.madeByText}>Made with ❤️ for India</Text>
+            <Text style={styles.developerName}>Gaurav Sharma</Text>
+            <Text style={styles.madeByText}>Made in India</Text>
             <View style={styles.contactSection}>
               <Text style={styles.contactTitle}>Need a similar app or custom solution?</Text>
               <TouchableOpacity 
@@ -465,11 +398,10 @@ const SettingsScreen = () => {
                   );
                 }}
               >
-                <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
-                <Text style={styles.contactButtonText}>WhatsApp/Call</Text>
+                <Text style={styles.contactButtonText}>Contact</Text>
               </TouchableOpacity>
               <Text style={styles.contactNote}>
-                I specialize in creating custom mobile apps, web applications, and digital solutions tailored to your business needs.
+                Custom mobile apps, web applications, and digital solutions tailored to your business needs.
               </Text>
             </View>
           </View>
@@ -513,7 +445,7 @@ const SettingsScreen = () => {
                 onPress={() => setShowBalanceModal(false)}
                 style={styles.modalCloseButton}
               >
-                <Ionicons name="close" size={24} color="#b0b0b0" />
+                <Ionicons name="close" size={20} color="#888888" />
               </TouchableOpacity>
             </View>
 
@@ -522,16 +454,10 @@ const SettingsScreen = () => {
             </Text>
 
             <View style={styles.inputContainer}>
-              <Ionicons 
-                name={balanceType === 'bank' ? 'phone-portrait' : 'cash'} 
-                size={20} 
-                color="#b0b0b0" 
-                style={styles.inputIcon} 
-              />
               <TextInput
                 style={styles.input}
                 placeholder="Enter balance amount"
-                placeholderTextColor="#999"
+                placeholderTextColor="#666666"
                 value={balanceInput}
                 onChangeText={setBalanceInput}
                 keyboardType="numeric"
@@ -602,11 +528,6 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingVertical: 16,
   },
-  collapsibleHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
   collapsibleTitle: {
     fontSize: 12,
     fontWeight: '600',
@@ -615,17 +536,11 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   collapsibleContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingBottom: 16,
   },
   sectionContent: {
     paddingTop: 8,
-  },
-  sectionDescription: {
-    fontSize: 14,
-    color: '#b0b0b0',
-    marginBottom: 12,
-    paddingHorizontal: 4,
   },
   settingCard: {
     flexDirection: 'row',
@@ -657,76 +572,39 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
   },
   infoCard: {
-    backgroundColor: '#2a2a2a',
+    backgroundColor: '#2C2C2E',
     padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#333333',
+    borderRadius: 0,
+    borderWidth: 0,
   },
-  appHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  appLogoContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#1a2332',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-    borderWidth: 2,
-    borderColor: '#2a3441',
-  },
-  appHeaderText: {
-    flex: 1,
-  },
-  infoText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#ffffff',
+  appName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
     marginBottom: 4,
+    letterSpacing: -0.2,
   },
-  infoVersion: {
-    fontSize: 14,
+  appVersion: {
+    fontSize: 12,
     color: '#888888',
     marginBottom: 12,
+    fontWeight: '400',
   },
   infoDescription: {
-    fontSize: 14,
-    color: '#b0b0b0',
-    lineHeight: 22,
+    fontSize: 13,
+    color: '#888888',
+    lineHeight: 20,
+    letterSpacing: 0.1,
   },
   instructionItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
     marginBottom: 12,
-  },
-  instructionNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#1976d2',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-    marginTop: 2,
-  },
-  instructionNumberText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#fff',
+    paddingLeft: 0,
   },
   instructionText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#b0b0b0',
+    fontSize: 13,
+    color: '#888888',
     lineHeight: 20,
-  },
-  boldText: {
-    fontWeight: '700',
-    color: '#ffffff',
+    letterSpacing: 0.1,
   },
   balanceDisplayRow: {
     flexDirection: 'row',
@@ -765,47 +643,56 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#2C2C2E',
-    borderRadius: 20,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 0,
     padding: 24,
     width: '90%',
     maxWidth: 400,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a2a2a',
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
     color: '#ffffff',
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
   },
   modalCloseButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#2a2a2a',
+    width: 28,
+    height: 28,
+    borderRadius: 0,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalDescription: {
-    fontSize: 14,
-    color: '#b0b0b0',
+    fontSize: 13,
+    color: '#888888',
     marginBottom: 20,
     lineHeight: 20,
+    letterSpacing: 0.1,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#333333',
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    borderWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a2a2a',
+    borderRadius: 0,
+    paddingHorizontal: 0,
     paddingVertical: 14,
     marginBottom: 20,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: 'transparent',
   },
   inputIcon: {
     marginRight: 12,
@@ -815,6 +702,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#ffffff',
     padding: 0,
+    fontWeight: '500',
   },
   modalActions: {
     flexDirection: 'row',
@@ -823,102 +711,103 @@ const styles = StyleSheet.create({
   modalCancelButton: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#1C1C1E',
+    borderRadius: 0,
+    backgroundColor: '#2C2C2E',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#3a3a3a',
   },
   modalCancelText: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#b0b0b0',
+    color: '#888888',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
   },
   modalSaveButton: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#007AFF',
+    borderRadius: 0,
+    backgroundColor: '#2C2C2E',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#3a3a3a',
   },
   modalSaveText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
   },
   featureList: {
-    marginTop: 8,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
+    marginTop: 0,
   },
   featureText: {
-    fontSize: 14,
-    color: '#b0b0b0',
-    marginLeft: 10,
-    flex: 1,
+    fontSize: 13,
+    color: '#888888',
+    marginBottom: 10,
+    lineHeight: 20,
+    letterSpacing: 0.1,
   },
   developerCard: {
-    marginTop: 8,
-  },
-  developerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  flagEmoji: {
-    fontSize: 24,
-    marginRight: 8,
+    marginTop: 0,
   },
   developerName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1976d2',
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 4,
+    letterSpacing: -0.2,
   },
   madeByText: {
-    fontSize: 14,
-    color: '#b0b0b0',
+    fontSize: 12,
+    color: '#888888',
     marginBottom: 16,
-    fontWeight: '500',
+    fontWeight: '400',
+    letterSpacing: 0.2,
   },
   contactSection: {
-    backgroundColor: '#2a2a2a',
+    backgroundColor: '#2C2C2E',
     padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#333333',
+    borderRadius: 0,
+    borderWidth: 0,
   },
   contactTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#888888',
     marginBottom: 12,
-    textAlign: 'center',
+    textAlign: 'left',
+    letterSpacing: 0.1,
   },
   contactButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#25D366',
+    backgroundColor: '#2C2C2E',
     paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: 12,
+    borderRadius: 0,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#3a3a3a',
   },
   contactButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-    marginLeft: 8,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
   },
   contactNote: {
     fontSize: 12,
-    color: '#b0b0b0',
-    textAlign: 'center',
+    color: '#888888',
+    textAlign: 'left',
     lineHeight: 18,
-    fontStyle: 'italic',
+    letterSpacing: 0.1,
   },
   loadingOverlay: {
     position: 'absolute',
