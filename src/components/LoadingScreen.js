@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -29,6 +30,11 @@ const LoadingScreen = ({ onFinish }) => {
 
   return (
     <View style={styles.container}>
+      <StatusBar 
+        barStyle="light-content" 
+        backgroundColor="#1C1C1E"
+        translucent={false}
+      />
       <View style={styles.content}>
         {/* App Icon/Logo */}
         <View style={styles.logoContainer}>

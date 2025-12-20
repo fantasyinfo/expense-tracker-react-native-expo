@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, StatusBar, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -24,6 +24,11 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
+      <StatusBar 
+        barStyle="light-content" 
+        backgroundColor="#1C1C1E"
+        translucent={false}
+      />
       <NavigationContainer>
         <Tab.Navigator
           screenOptions={({ route }) => ({
@@ -38,18 +43,24 @@ export default function App() {
               fontSize: 20,
             },
             tabBarActiveTintColor: '#007AFF',
-            tabBarInactiveTintColor: '#808080',
+            tabBarInactiveTintColor: '#A0A0A0',
             tabBarStyle: {
               backgroundColor: '#1C1C1E',
-              borderTopWidth: 0,
-              paddingBottom: 4,
-              paddingTop: 4,
-              height: 60,
-              elevation: 0,
+              borderTopWidth: 1,
+              borderTopColor: '#2C2C2E',
+              paddingBottom: 8,
+              paddingTop: 8,
+              height: 64,
+              elevation: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: -2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
             },
             tabBarLabelStyle: {
               fontSize: 12,
               fontWeight: '600',
+              marginTop: 4,
             },
             tabBarIcon: ({ focused, color, size }) => {
               let iconName;

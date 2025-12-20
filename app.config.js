@@ -17,9 +17,13 @@ module.exports = {
       versionCode: 1,
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
-        backgroundColor: "#1976d2"
+        backgroundColor: "#1C1C1E"
       },
-      permissions: []
+      permissions: [],
+      statusBar: {
+        barStyle: "light-content",
+        backgroundColor: "#1C1C1E"
+      }
     },
     plugins: [
       "expo-font",
