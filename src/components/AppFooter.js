@@ -5,7 +5,7 @@ const AppFooter = () => {
   return (
     <View style={styles.footer}>
       <Text style={styles.footerText}>
-        Made with ❤️ in India by Gaurav Sharma
+        Made with ❤️ in India
       </Text>
     </View>
   );
@@ -16,14 +16,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#e9ecef',
-    backgroundColor: '#f8f9fa',
+    borderTopWidth: 0,
+    backgroundColor: '#1C1C1E',
   },
   footerText: {
     fontSize: 10,
-    color: '#999',
+    color: '#808080',
     fontStyle: 'italic',
+    fontWeight: '400',
   },
 });
 

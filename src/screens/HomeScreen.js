@@ -6,16 +6,19 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   ScrollView,
   Dimensions,
+  Platform,
+  Modal,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { formatDate, filterEntriesByPeriod, calculateTotals, formatDateWithMonthName } from '../utils/dateUtils';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { formatDate, filterEntriesByPeriod, filterEntriesByDateRange, calculateTotals, formatDateWithMonthName } from '../utils/dateUtils';
 import { loadEntries, deleteEntry } from '../utils/storage';
 import AddEntryModal from '../components/AddEntryModal';
 import AppFooter from '../components/AppFooter';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -26,23 +29,36 @@ const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [cardIndex, setCardIndex] = useState(0);
+  const [isCustomDateRange, setIsCustomDateRange] = useState(false);
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date());
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [entryToDelete, setEntryToDelete] = useState(null);
 
   const today = formatDate(new Date());
 
-  // Load entries and filter for today
+  // Load entries and filter
   const loadData = useCallback(async () => {
     const allEntries = await loadEntries();
     setEntries(allEntries);
     
-    // Filter entries for today and sort by id descending (latest first)
-    const filtered = filterEntriesByPeriod(allEntries, 'today');
+    // Filter entries based on date range or today
+    let filtered;
+    if (isCustomDateRange) {
+      filtered = filterEntriesByDateRange(allEntries, startDate, endDate);
+    } else {
+      filtered = filterEntriesByPeriod(allEntries, 'today');
+    }
     const sorted = filtered.sort((a, b) => parseInt(b.id) - parseInt(a.id));
     setTodayEntries(sorted);
     
-    // Calculate today's totals
-    const todayTotals = calculateTotals(filtered);
-    setTotals(todayTotals);
-  }, []);
+    // Calculate totals
+    const periodTotals = calculateTotals(filtered);
+    setTotals(periodTotals);
+  }, [isCustomDateRange, startDate, endDate]);
 
   // Reload data when screen comes into focus
   useFocusEffect(
@@ -67,29 +83,54 @@ const HomeScreen = () => {
   };
 
   const handleDelete = async (id, entry) => {
-    const entryType = entry.type === 'expense' ? 'Expense' : 'Income';
-    const entryAmount = `₹${parseFloat(entry.amount).toFixed(2)}`;
-    const entryNote = entry.note ? ` (${entry.note})` : '';
+    setEntryToDelete({ id, ...entry });
+    setDeleteModalVisible(true);
+  };
 
-    Alert.alert(
-      'Delete Entry',
-      `Are you sure you want to delete this ${entryType.toLowerCase()} entry?\n\n${entryType}: ${entryAmount}${entryNote}`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            await deleteEntry(id);
-            loadData();
-          },
-        },
-      ],
-      { cancelable: true }
-    );
+  const confirmDelete = async () => {
+    if (entryToDelete) {
+      await deleteEntry(entryToDelete.id);
+      loadData();
+      setDeleteModalVisible(false);
+      setEntryToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteModalVisible(false);
+    setEntryToDelete(null);
+  };
+
+  const handleStartDateChange = (event, selectedDate) => {
+    setShowStartDatePicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      if (selectedDate > endDate) {
+        Alert.alert('Invalid Date', 'Start date cannot be after end date');
+        return;
+      }
+      setStartDate(selectedDate);
+    }
+  };
+
+  const handleEndDateChange = (event, selectedDate) => {
+    setShowEndDatePicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      if (selectedDate < startDate) {
+        Alert.alert('Invalid Date', 'End date cannot be before start date');
+        return;
+      }
+      setEndDate(selectedDate);
+    }
+  };
+
+  const handleApplyFilter = () => {
+    setIsCustomDateRange(true);
+    setShowFilterModal(false);
+  };
+
+  const handleResetFilter = () => {
+    setIsCustomDateRange(false);
+    setShowFilterModal(false);
   };
 
   const renderEntry = ({ item }) => (
@@ -122,7 +163,7 @@ const HomeScreen = () => {
         style={styles.deleteButton}
         activeOpacity={0.7}
       >
-        <Ionicons name="trash-outline" size={18} color="#d32f2f" />
+        <Ionicons name="trash-outline" size={18} color="#A0A0A0" />
       </TouchableOpacity>
     </View>
   );
@@ -150,22 +191,35 @@ const HomeScreen = () => {
     <View style={styles.container}>
       {/* Modern Header */}
       <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <View style={styles.headerIconContainer}>
-            <Ionicons name="calendar" size={24} color="#1976d2" />
-          </View>
+            <View style={styles.headerContent}>
           <View style={styles.headerTextContainer}>
-            <Text style={styles.headerTitle}>Today's Summary</Text>
-            <Text style={styles.headerSubtitle}>{formatDateWithMonthName(today)}</Text>
+            <Text style={styles.headerTitle}>
+              {isCustomDateRange ? 'Filtered Summary' : "Today's Summary"}
+            </Text>
+            <Text style={styles.headerSubtitle}>
+              {isCustomDateRange 
+                ? `${formatDateWithMonthName(formatDate(startDate))} to ${formatDateWithMonthName(formatDate(endDate))}`
+                : formatDateWithMonthName(today)
+              }
+            </Text>
           </View>
         </View>
-        <TouchableOpacity 
-          style={styles.refreshButton} 
-          onPress={onRefresh}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="refresh" size={22} color="#1976d2" />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity 
+            style={styles.filterButton} 
+            onPress={() => setShowFilterModal(true)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="filter" size={20} color="#A0A0A0" />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.refreshButton} 
+            onPress={onRefresh}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="refresh" size={20} color="#A0A0A0" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Modern Scrollable Card Section */}
@@ -226,7 +280,9 @@ const HomeScreen = () => {
       <View style={styles.listHeader}>
         <View style={styles.listHeaderLeft}>
           <Ionicons name="list" size={20} color="#1976d2" />
-          <Text style={styles.listTitle}>Today's Entries</Text>
+          <Text style={styles.listTitle}>
+            {isCustomDateRange ? 'Filtered Entries' : "Today's Entries"}
+          </Text>
         </View>
         <View style={styles.listCountBadge}>
           <Text style={styles.listCount}>{todayEntries.length}</Text>
@@ -240,9 +296,13 @@ const HomeScreen = () => {
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="document-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>No entries for today</Text>
-            <Text style={styles.emptySubtext}>Tap + to add your first entry</Text>
+            <Ionicons name="document-outline" size={64} color="#444444" />
+            <Text style={styles.emptyText}>
+              {isCustomDateRange ? 'No entries found for selected date range' : 'No entries for today'}
+            </Text>
+            <Text style={styles.emptySubtext}>
+              {isCustomDateRange ? 'Try selecting a different date range' : 'Tap + to add your first entry'}
+            </Text>
           </View>
         }
         refreshControl={
@@ -266,6 +326,126 @@ const HomeScreen = () => {
         onClose={() => setModalVisible(false)}
         onSave={handleEntryAdded}
       />
+
+      {/* Filter Modal */}
+      <Modal
+        visible={showFilterModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowFilterModal(false)}
+      >
+        <View style={styles.filterModalOverlay}>
+          <View style={styles.filterModalContent}>
+            <View style={styles.filterModalHeader}>
+              <Text style={styles.filterModalTitle}>Filter Entries</Text>
+              <TouchableOpacity 
+                onPress={() => setShowFilterModal(false)}
+                style={styles.filterCloseButton}
+              >
+                <Ionicons name="close" size={24} color="#b0b0b0" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.filterOptions}>
+              <TouchableOpacity
+                style={[
+                  styles.filterOption,
+                  !isCustomDateRange && styles.filterOptionActive
+                ]}
+                onPress={handleResetFilter}
+              >
+                <Ionicons 
+                  name="today" 
+                  size={20} 
+                  color={!isCustomDateRange ? '#fff' : '#b0b0b0'} 
+                />
+                <Text style={[
+                  styles.filterOptionText,
+                  !isCustomDateRange && styles.filterOptionTextActive
+                ]}>
+                  Today
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.filterSectionTitle}>Custom Date Range</Text>
+            
+            <View style={styles.datePickerRow}>
+              <TouchableOpacity
+                style={styles.datePickerButton}
+                onPress={() => setShowStartDatePicker(true)}
+              >
+                <Ionicons name="calendar-outline" size={18} color="#1976d2" />
+                <View style={styles.datePickerTextContainer}>
+                  <Text style={styles.datePickerLabel}>Start Date</Text>
+                  <Text style={styles.datePickerValue}>
+                    {formatDateWithMonthName(formatDate(startDate))}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.datePickerButton}
+                onPress={() => setShowEndDatePicker(true)}
+              >
+                <Ionicons name="calendar-outline" size={18} color="#1976d2" />
+                <View style={styles.datePickerTextContainer}>
+                  <Text style={styles.datePickerLabel}>End Date</Text>
+                  <Text style={styles.datePickerValue}>
+                    {formatDateWithMonthName(formatDate(endDate))}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {showStartDatePicker && (
+              <DateTimePicker
+                value={startDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleStartDateChange}
+                maximumDate={endDate}
+                themeVariant="dark"
+                textColor={Platform.OS === 'android' ? '#FFFFFF' : undefined}
+              />
+            )}
+            {showEndDatePicker && (
+              <DateTimePicker
+                value={endDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleEndDateChange}
+                minimumDate={startDate}
+                maximumDate={new Date()}
+                themeVariant="dark"
+                textColor={Platform.OS === 'android' ? '#FFFFFF' : undefined}
+              />
+            )}
+
+            <View style={styles.filterActions}>
+              <TouchableOpacity
+                style={styles.filterResetButton}
+                onPress={handleResetFilter}
+              >
+                <Text style={styles.filterResetText}>Reset to Today</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.filterApplyButton}
+                onPress={handleApplyFilter}
+              >
+                <Text style={styles.filterApplyText}>Apply Filter</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        visible={deleteModalVisible}
+        entry={entryToDelete}
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
     </View>
   );
 };
@@ -273,112 +453,248 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#1C1C1E',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    alignItems: 'flex-start',
+    paddingTop: 16,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+    backgroundColor: '#1C1C1E',
+    borderBottomWidth: 0,
   },
   headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
     flex: 1,
+    paddingRight: 12,
   },
   headerIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#f0f7ff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: '#e3f2fd',
+    display: 'none',
   },
   headerTextContainer: {
     flex: 1,
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#1a1a1a',
-    marginBottom: 4,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 2,
+    letterSpacing: -0.3,
   },
   headerSubtitle: {
-    fontSize: 15,
-    color: '#666',
-    fontWeight: '500',
+    fontSize: 13,
+    color: '#A0A0A0',
+    fontWeight: '400',
+    marginTop: 2,
   },
-  refreshButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#f0f7ff',
+  headerActions: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'flex-start',
+    paddingTop: 2,
+  },
+  filterButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#e3f2fd',
+    borderWidth: 0,
+  },
+  refreshButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 0,
+  },
+  filterModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'flex-end',
+  },
+  filterModalContent: {
+    backgroundColor: '#2C2C2E',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 32,
+    maxHeight: '80%',
+  },
+  filterModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  filterModalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+  },
+  filterCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterOptions: {
+    marginBottom: 20,
+  },
+  filterOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: '#1C1C1E',
+    borderWidth: 0,
+    gap: 10,
+  },
+  filterOptionActive: {
+    backgroundColor: '#1976d2',
+    borderColor: '#1976d2',
+  },
+  filterOptionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#b0b0b0',
+  },
+  filterOptionTextActive: {
+    color: '#fff',
+  },
+  filterSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#A0A0A0',
+    marginBottom: 10,
+    marginTop: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  datePickerRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  datePickerButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1C1C1E',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 0,
+    gap: 10,
+  },
+  datePickerTextContainer: {
+    flex: 1,
+  },
+  datePickerLabel: {
+    fontSize: 12,
+    color: '#888888',
+    marginBottom: 4,
+  },
+  datePickerValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  filterActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  filterResetButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#1C1C1E',
+    borderWidth: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterResetText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#b0b0b0',
+  },
+  filterApplyButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#007AFF',
+    borderWidth: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterApplyText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
   },
   cardSection: {
-    paddingVertical: 20,
-    backgroundColor: '#ffffff',
+    paddingVertical: 16,
+    backgroundColor: '#1C1C1E',
   },
   cardWrapper: {
     width: screenWidth - 32,
     paddingHorizontal: 16,
   },
   modernCard: {
-    borderRadius: 16,
-    padding: 24,
-    backgroundColor: '#f8f8f8',
-    borderBottomWidth: 1,
+    borderRadius: 12,
+    padding: 20,
+    backgroundColor: '#2C2C2E',
+    borderBottomWidth: 0,
     elevation: 0,
     shadowOpacity: 0,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   cardIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
   cardHeaderText: {
     flex: 1,
   },
   cardLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-    fontWeight: '600',
+    fontSize: 12,
+    color: '#A0A0A0',
+    marginBottom: 6,
+    fontWeight: '500',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
   cardAmount: {
-    fontSize: 36,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
   },
   cardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 4,
   },
   cardFooterText: {
-    fontSize: 13,
-    marginLeft: 6,
-    fontWeight: '500',
+    fontSize: 11,
+    marginLeft: 4,
+    fontWeight: '400',
+    color: '#A0A0A0',
   },
   cardIndicators: {
     flexDirection: 'row',
@@ -390,7 +706,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#ccc',
+    backgroundColor: '#444444',
   },
   indicatorActive: {
     backgroundColor: '#1976d2',
@@ -410,22 +726,23 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   listTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1a1a1a',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
   },
   listCountBadge: {
-    backgroundColor: '#1976d2',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    minWidth: 32,
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    minWidth: 28,
     alignItems: 'center',
   },
   listCount: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#fff',
-    fontWeight: '700',
+    fontWeight: '600',
   },
   list: {
     flex: 1,
@@ -436,49 +753,52 @@ const styles = StyleSheet.create({
   },
   entryItem: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
-    padding: 16,
-    marginBottom: 12,
-    borderRadius: 16,
+    backgroundColor: '#2C2C2E',
+    padding: 14,
+    marginBottom: 8,
+    borderRadius: 12,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderWidth: 0,
   },
   entryIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   expenseIconBg: {
-    backgroundColor: '#ffebee',
+    backgroundColor: 'rgba(211, 47, 47, 0.15)',
   },
   incomeIconBg: {
-    backgroundColor: '#e8f5e9',
+    backgroundColor: 'rgba(56, 142, 60, 0.15)',
   },
   entryContent: {
     flex: 1,
   },
   entryAmount: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 4,
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 3,
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
   },
   entryNote: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 13,
+    color: '#A0A0A0',
+    fontWeight: '400',
   },
   entryDate: {
     fontSize: 12,
-    color: '#999',
+    color: '#808080',
+    fontWeight: '400',
   },
   deleteButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#ffebee',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -488,27 +808,31 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#999',
+    color: '#888888',
     marginTop: 16,
     fontWeight: '500',
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#bbb',
+    color: '#666666',
     marginTop: 4,
   },
   fab: {
     position: 'absolute',
     right: 20,
     bottom: 20,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#1976d2',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#007AFF',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#1565c0',
+    borderWidth: 0,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
 });
 

@@ -70,7 +70,7 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Add Entry</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#666" />
+              <Ionicons name="close" size={24} color="#b0b0b0" />
             </TouchableOpacity>
           </View>
 
@@ -124,7 +124,7 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
 
           {/* Amount Input */}
           <View style={styles.inputContainer}>
-            <Ionicons name="cash-outline" size={20} color="#666" style={styles.inputIcon} />
+            <Ionicons name="cash-outline" size={20} color="#b0b0b0" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               placeholder="Amount *"
@@ -138,7 +138,7 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
 
           {/* Note Input */}
           <View style={styles.inputContainer}>
-            <Ionicons name="document-text-outline" size={20} color="#666" style={styles.inputIcon} />
+            <Ionicons name="document-text-outline" size={20} color="#b0b0b0" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               placeholder="Note (optional)"
@@ -155,9 +155,9 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
             onPress={() => setShowDatePicker(true)}
             activeOpacity={0.7}
           >
-            <Ionicons name="calendar-outline" size={20} color="#666" style={styles.inputIcon} />
+            <Ionicons name="calendar-outline" size={20} color="#b0b0b0" style={styles.inputIcon} />
             <Text style={styles.dateText}>{formatDateDisplay(formatDate(date))}</Text>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
+            <Ionicons name="chevron-forward" size={20} color="#888888" />
           </TouchableOpacity>
 
           {/* Date Picker */}
@@ -168,6 +168,8 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={handleDateChange}
               maximumDate={new Date()}
+              themeVariant="dark"
+              textColor={Platform.OS === 'android' ? '#FFFFFF' : undefined}
             />
           )}
 
@@ -192,11 +194,11 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: '#1e1e1e',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -212,13 +214,13 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: '#ffffff',
   },
   closeButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#2a2a2a',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -226,7 +228,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 20,
     borderRadius: 12,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#2a2a2a',
     padding: 4,
   },
   typeButton: {
@@ -254,7 +256,7 @@ const styles = StyleSheet.create({
   typeButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#666',
+    color: '#b0b0b0',
   },
   typeButtonTextActive: {
     color: '#fff',
@@ -263,12 +265,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#e0e0e0',
+    borderColor: '#333333',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     marginBottom: 16,
-    backgroundColor: '#fafafa',
+    backgroundColor: '#2a2a2a',
   },
   inputIcon: {
     marginRight: 12,
@@ -276,13 +278,13 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#1a1a1a',
+    color: '#ffffff',
     padding: 0,
   },
   dateText: {
     flex: 1,
     fontSize: 16,
-    color: '#1a1a1a',
+    color: '#ffffff',
   },
   saveButton: {
     flexDirection: 'row',

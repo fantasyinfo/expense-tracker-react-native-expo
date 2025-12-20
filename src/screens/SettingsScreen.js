@@ -12,8 +12,9 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { loadEntries } from '../utils/storage';
 import { exportToExcel, exportToJSON } from '../utils/exportUtils';
-import { shareApp, shareViaWhatsApp, shareViaSMS } from '../utils/shareUtils';
+import { shareApp, shareViaWhatsApp, shareViaSMS, openDriveDownload, shareDriveDownload } from '../utils/shareUtils';
 import AppFooter from '../components/AppFooter';
+import EntriesReportModal from '../components/EntriesReportModal';
 
 const CollapsibleSection = ({ title, icon, children, defaultExpanded = false }) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
@@ -44,6 +45,7 @@ const SettingsScreen = () => {
   const [entries, setEntries] = useState([]);
   const [exporting, setExporting] = useState(false);
   const [entryCount, setEntryCount] = useState(0);
+  const [showEntriesModal, setShowEntriesModal] = useState(false);
 
   const loadData = useCallback(async () => {
     const allEntries = await loadEntries();
@@ -134,7 +136,7 @@ const SettingsScreen = () => {
         <Text style={styles.settingTitle}>{title}</Text>
         <Text style={styles.settingDescription}>{description}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={20} color="#999" />
+      <Ionicons name="chevron-forward" size={20} color="#888888" />
     </TouchableOpacity>
   );
 
@@ -147,13 +149,18 @@ const SettingsScreen = () => {
       </View>
 
       {/* Stats Card */}
-      <View style={styles.statsCard}>
+      <TouchableOpacity 
+        style={styles.statsCard}
+        onPress={() => setShowEntriesModal(true)}
+        activeOpacity={0.7}
+      >
         <View style={styles.statItem}>
           <Ionicons name="document-text" size={24} color="#1976d2" />
           <Text style={styles.statValue}>{entryCount}</Text>
           <Text style={styles.statLabel}>Total Entries</Text>
+          <Text style={styles.statHint}>Tap to view all entries</Text>
         </View>
-      </View>
+      </TouchableOpacity>
 
       {/* Share App Section */}
       <CollapsibleSection title="Share App" icon="share-social-outline" defaultExpanded={true}>
@@ -175,6 +182,27 @@ const SettingsScreen = () => {
             title="Share via Other"
             description="Share using any available app"
             onPress={shareApp}
+          />
+        </View>
+      </CollapsibleSection>
+
+      {/* Download APK Section */}
+      <CollapsibleSection title="Download APK" icon="cloud-download-outline" defaultExpanded={true}>
+        <View style={styles.sectionContent}>
+          <Text style={styles.sectionDescription}>
+            Download the latest version of Kharcha app from Google Drive
+          </Text>
+          <SettingCard
+            icon="download-outline"
+            title="Download APK"
+            description="Open Google Drive to download the app"
+            onPress={openDriveDownload}
+          />
+          <SettingCard
+            icon="share-social-outline"
+            title="Share Download Link"
+            description="Share the download link with others"
+            onPress={shareDriveDownload}
           />
         </View>
       </CollapsibleSection>
@@ -343,6 +371,14 @@ const SettingsScreen = () => {
           </View>
         </View>
       )}
+
+      {/* Entries Report Modal */}
+      <EntriesReportModal
+        visible={showEntriesModal}
+        entries={entries}
+        onClose={() => setShowEntriesModal(false)}
+        title="All Entries Report"
+      />
     </ScrollView>
   );
 };
@@ -350,30 +386,30 @@ const SettingsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#121212',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 20,
     paddingTop: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#1e1e1e',
     borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    borderBottomColor: '#333333',
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: '#ffffff',
     marginLeft: 12,
   },
   statsCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#1e1e1e',
     margin: 16,
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: '#333333',
   },
   statItem: {
     alignItems: 'center',
@@ -386,16 +422,22 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 14,
-    color: '#666',
+    color: '#b0b0b0',
     marginTop: 4,
+  },
+  statHint: {
+    fontSize: 12,
+    color: '#888888',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   collapsibleSection: {
     marginHorizontal: 16,
     marginBottom: 12,
-    backgroundColor: '#fff',
+    backgroundColor: '#1e1e1e',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: '#333333',
     overflow: 'hidden',
   },
   collapsibleHeader: {
@@ -412,7 +454,7 @@ const styles = StyleSheet.create({
   collapsibleTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: '#ffffff',
   },
   collapsibleContent: {
     paddingHorizontal: 16,
@@ -423,19 +465,19 @@ const styles = StyleSheet.create({
   },
   sectionDescription: {
     fontSize: 14,
-    color: '#666',
+    color: '#b0b0b0',
     marginBottom: 12,
     paddingHorizontal: 4,
   },
   settingCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#2a2a2a',
     padding: 14,
     borderRadius: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: '#333333',
   },
   settingCardDisabled: {
     opacity: 0.5,
@@ -444,12 +486,12 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#f0f7ff',
+    backgroundColor: '#1a2332',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
     borderWidth: 1,
-    borderColor: '#e3f2fd',
+    borderColor: '#2a3441',
   },
   settingContent: {
     flex: 1,
@@ -457,19 +499,19 @@ const styles = StyleSheet.create({
   settingTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1a1a1a',
+    color: '#ffffff',
     marginBottom: 2,
   },
   settingDescription: {
     fontSize: 13,
-    color: '#666',
+    color: '#b0b0b0',
   },
   infoCard: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#2a2a2a',
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: '#333333',
   },
   appHeader: {
     flexDirection: 'row',
@@ -480,12 +522,12 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#f0f7ff',
+    backgroundColor: '#1a2332',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
     borderWidth: 2,
-    borderColor: '#e3f2fd',
+    borderColor: '#2a3441',
   },
   appHeaderText: {
     flex: 1,
@@ -493,17 +535,17 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: '#ffffff',
     marginBottom: 4,
   },
   infoVersion: {
     fontSize: 14,
-    color: '#999',
+    color: '#888888',
     marginBottom: 12,
   },
   infoDescription: {
     fontSize: 14,
-    color: '#666',
+    color: '#b0b0b0',
     lineHeight: 22,
   },
   instructionItem: {
@@ -529,12 +571,12 @@ const styles = StyleSheet.create({
   instructionText: {
     flex: 1,
     fontSize: 14,
-    color: '#666',
+    color: '#b0b0b0',
     lineHeight: 20,
   },
   boldText: {
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: '#ffffff',
   },
   featureList: {
     marginTop: 8,
@@ -546,7 +588,7 @@ const styles = StyleSheet.create({
   },
   featureText: {
     fontSize: 14,
-    color: '#666',
+    color: '#b0b0b0',
     marginLeft: 10,
     flex: 1,
   },
@@ -569,21 +611,21 @@ const styles = StyleSheet.create({
   },
   madeByText: {
     fontSize: 14,
-    color: '#666',
+    color: '#b0b0b0',
     marginBottom: 16,
     fontWeight: '500',
   },
   contactSection: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#2a2a2a',
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: '#333333',
   },
   contactTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1a1a1a',
+    color: '#ffffff',
     marginBottom: 12,
     textAlign: 'center',
   },
@@ -605,7 +647,7 @@ const styles = StyleSheet.create({
   },
   contactNote: {
     fontSize: 12,
-    color: '#666',
+    color: '#b0b0b0',
     textAlign: 'center',
     lineHeight: 18,
     fontStyle: 'italic',
@@ -616,12 +658,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: '#1e1e1e',
     padding: 24,
     borderRadius: 16,
     alignItems: 'center',
@@ -629,7 +671,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#666',
+    color: '#b0b0b0',
   },
 });
 

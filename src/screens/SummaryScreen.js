@@ -19,6 +19,7 @@ import { filterEntriesByPeriod, filterEntriesByDateRange, calculateTotals, forma
 import { loadEntries } from '../utils/storage';
 import { prepareExpenseIncomeChart, prepareMonthlyChart } from '../utils/chartUtils';
 import AppFooter from '../components/AppFooter';
+import EntriesReportModal from '../components/EntriesReportModal';
 
 const PERIODS = ['today', 'weekly', 'monthly', 'quarterly', 'yearly'];
 const screenWidth = Dimensions.get('window').width;
@@ -35,6 +36,7 @@ const SummaryScreen = () => {
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
+  const [showEntriesModal, setShowEntriesModal] = useState(false);
 
   const loadData = useCallback(async () => {
     const allEntries = await loadEntries();
@@ -129,13 +131,13 @@ const SummaryScreen = () => {
     return icons[period] || 'calendar';
   };
 
-  const chartConfig = {
-    backgroundColor: '#ffffff',
-    backgroundGradientFrom: '#ffffff',
-    backgroundGradientTo: '#ffffff',
+  const   chartConfig = {
+    backgroundColor: '#2C2C2E',
+    backgroundGradientFrom: '#2C2C2E',
+    backgroundGradientTo: '#2C2C2E',
     decimalPlaces: 0,
     color: (opacity = 1) => `rgba(25, 118, 210, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
     style: {
       borderRadius: 16,
     },
@@ -265,6 +267,8 @@ const SummaryScreen = () => {
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={handleStartDateChange}
               maximumDate={endDate}
+              themeVariant="dark"
+              textColor={Platform.OS === 'android' ? '#FFFFFF' : undefined}
             />
           )}
           {showEndDatePicker && (
@@ -275,6 +279,8 @@ const SummaryScreen = () => {
               onChange={handleEndDateChange}
               minimumDate={startDate}
               maximumDate={new Date()}
+              themeVariant="dark"
+              textColor={Platform.OS === 'android' ? '#FFFFFF' : undefined}
             />
           )}
         </View>
@@ -462,7 +468,11 @@ const SummaryScreen = () => {
       )}
 
       {/* Entry Count Card */}
-      <View style={styles.countCard}>
+      <TouchableOpacity 
+        style={styles.countCard}
+        onPress={() => setShowEntriesModal(true)}
+        activeOpacity={0.7}
+      >
         <View style={styles.countContent}>
           <Ionicons name="document-text" size={24} color="#1976d2" />
           <View style={styles.countTextContainer}>
@@ -470,9 +480,77 @@ const SummaryScreen = () => {
             <Text style={styles.countLabel}>
               {filteredEntries.length === 1 ? 'entry' : 'entries'} found
             </Text>
+            <Text style={styles.countHint}>Tap to view entries</Text>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
+
+      {/* Filtered Entries Section */}
+      {filteredEntries.length > 0 && (
+        <View style={styles.entriesSection}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="list" size={24} color="#1976d2" />
+            <Text style={styles.sectionTitle}>Filtered Entries</Text>
+          </View>
+          <View style={styles.entriesListContainer}>
+            {filteredEntries.slice(0, 5).map((entry) => (
+              <View key={entry.id} style={styles.entryItem}>
+                <View style={[
+                  styles.entryIconContainer,
+                  entry.type === 'expense' ? styles.expenseIconBg : styles.incomeIconBg
+                ]}>
+                  <Ionicons
+                    name={entry.type === 'expense' ? 'arrow-down' : 'arrow-up'}
+                    size={18}
+                    color={entry.type === 'expense' ? '#d32f2f' : '#388e3c'}
+                  />
+                </View>
+                <View style={styles.entryContent}>
+                  <Text style={[
+                    styles.entryAmount,
+                    entry.type === 'expense' ? styles.expenseAmount : styles.incomeAmount
+                  ]}>
+                    {entry.type === 'expense' ? '-' : '+'}₹{parseFloat(entry.amount).toFixed(2)}
+                  </Text>
+                  <View style={styles.entryDetails}>
+                    {entry.note ? (
+                      <Text style={styles.entryNote}>{entry.note}</Text>
+                    ) : (
+                      <Text style={styles.entryType}>
+                        {entry.type === 'expense' ? 'Expense' : 'Income'}
+                      </Text>
+                    )}
+                    <Text style={styles.entryDate}>{formatDateWithMonthName(entry.date)}</Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+            {filteredEntries.length > 5 && (
+              <TouchableOpacity
+                style={styles.viewAllButton}
+                onPress={() => setShowEntriesModal(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.viewAllText}>
+                  View all {filteredEntries.length} entries
+                </Text>
+                <Ionicons name="chevron-forward" size={18} color="#007AFF" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      )}
+
+      {/* Entries Report Modal */}
+      <EntriesReportModal
+        visible={showEntriesModal}
+        entries={filteredEntries}
+        onClose={() => setShowEntriesModal(false)}
+        title={`Entries Report - ${isCustomDateRange 
+          ? `${formatDateWithMonthName(formatDate(startDate))} to ${formatDateWithMonthName(formatDate(endDate))}`
+          : getPeriodLabel(selectedPeriod || 'monthly')
+        }`}
+      />
 
       {/* Footer */}
       <AppFooter />
@@ -483,13 +561,12 @@ const SummaryScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#1C1C1E',
   },
   periodContainer: {
-    backgroundColor: '#fff',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    backgroundColor: '#1C1C1E',
+    paddingVertical: 12,
+    borderBottomWidth: 0,
   },
   periodScrollContent: {
     paddingHorizontal: 16,
@@ -497,13 +574,12 @@ const styles = StyleSheet.create({
   periodButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    marginRight: 8,
-    borderRadius: 24,
-    backgroundColor: '#f8f9fa',
-    borderWidth: 1,
-    borderColor: 'transparent',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 6,
+    borderRadius: 20,
+    backgroundColor: '#2C2C2E',
+    borderWidth: 0,
   },
   periodButtonActive: {
     backgroundColor: '#1976d2',
@@ -517,18 +593,17 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   periodButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#A0A0A0',
   },
   periodButtonTextActive: {
     color: '#fff',
   },
   customDateContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: '#1C1C1E',
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    borderBottomWidth: 0,
   },
   datePickerRow: {
     flexDirection: 'row',
@@ -538,11 +613,10 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e9ecef',
+    backgroundColor: '#2C2C2E',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 0,
     gap: 10,
   },
   datePickerTextContainer: {
@@ -550,40 +624,39 @@ const styles = StyleSheet.create({
   },
   datePickerLabel: {
     fontSize: 12,
-    color: '#999',
+    color: '#888888',
     marginBottom: 4,
   },
   datePickerValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1a1a1a',
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#FFFFFF',
   },
   totalsSection: {
-    backgroundColor: '#fff',
+    backgroundColor: '#2C2C2E',
     margin: 16,
-    padding: 20,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#e9ecef',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 0,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1a1a1a',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
     marginLeft: 8,
+    letterSpacing: -0.2,
   },
   totalCard: {
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    backgroundColor: '#fafafa',
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+    backgroundColor: '#1C1C1E',
+    borderWidth: 0,
   },
   expenseCard: {
     borderLeftWidth: 4,
@@ -596,7 +669,7 @@ const styles = StyleSheet.create({
   balanceCard: {
     borderLeftWidth: 4,
     borderLeftColor: '#1976d2',
-    backgroundColor: '#f0f7ff',
+    backgroundColor: '#1a2332',
   },
   totalCardLeft: {
     flexDirection: 'row',
@@ -611,32 +684,34 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   expenseIconBg: {
-    backgroundColor: '#ffebee',
+    backgroundColor: '#3d1f1f',
   },
   incomeIconBg: {
-    backgroundColor: '#e8f5e9',
+    backgroundColor: '#1f3d1f',
   },
   balancePositiveBg: {
-    backgroundColor: '#e8f5e9',
+    backgroundColor: '#1f3d1f',
   },
   balanceNegativeBg: {
-    backgroundColor: '#ffebee',
+    backgroundColor: '#3d1f1f',
   },
   totalCardContent: {
     flex: 1,
   },
   totalCardLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 6,
-    fontWeight: '500',
+    fontSize: 12,
+    color: '#A0A0A0',
+    marginBottom: 4,
+    fontWeight: '400',
   },
   totalCardValue: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
   },
   balanceValue: {
-    fontSize: 26,
+    fontSize: 24,
   },
   expenseAmount: {
     color: '#d32f2f',
@@ -665,10 +740,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#2a2a2a',
     gap: 6,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: '#333333',
   },
   chartTypeButtonActive: {
     backgroundColor: '#1976d2',
@@ -677,37 +752,36 @@ const styles = StyleSheet.create({
   chartTypeText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: '#b0b0b0',
   },
   chartTypeTextActive: {
     color: '#fff',
   },
   chartCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
+    backgroundColor: '#2C2C2E',
+    borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#e9ecef',
+    marginBottom: 12,
+    borderWidth: 0,
   },
   chartTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1a1a1a',
-    marginBottom: 12,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 10,
+    letterSpacing: -0.2,
   },
   chart: {
     marginVertical: 8,
     borderRadius: 16,
   },
   countCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#2C2C2E',
     margin: 16,
     marginTop: 0,
-    padding: 20,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#e9ecef',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 0,
   },
   countContent: {
     flexDirection: 'row',
@@ -724,9 +798,102 @@ const styles = StyleSheet.create({
     color: '#1976d2',
   },
   countLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
+    fontSize: 13,
+    color: '#A0A0A0',
+    marginTop: 2,
+  },
+  countHint: {
+    fontSize: 11,
+    color: '#808080',
+    marginTop: 2,
+    fontStyle: 'italic',
+  },
+  entriesSection: {
+    backgroundColor: '#2C2C2E',
+    margin: 16,
+    marginTop: 0,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 0,
+  },
+  entriesListContainer: {
+    marginTop: 12,
+  },
+  entryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    marginBottom: 8,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 10,
+    borderWidth: 0,
+  },
+  entryIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  expenseIconBg: {
+    backgroundColor: '#3d1f1f',
+  },
+  incomeIconBg: {
+    backgroundColor: '#1f3d1f',
+  },
+  entryContent: {
+    flex: 1,
+  },
+  entryAmount: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 3,
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+  },
+  expenseAmount: {
+    color: '#d32f2f',
+  },
+  incomeAmount: {
+    color: '#388e3c',
+  },
+  entryDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  entryNote: {
+    fontSize: 12,
+    color: '#A0A0A0',
+    flex: 1,
+    fontWeight: '400',
+  },
+  entryType: {
+    fontSize: 11,
+    color: '#808080',
+    fontWeight: '400',
+  },
+  entryDate: {
+    fontSize: 11,
+    color: '#808080',
+    fontWeight: '400',
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    marginTop: 6,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 10,
+    borderWidth: 0,
+  },
+  viewAllText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#007AFF',
+    marginRight: 4,
   },
 });
 
