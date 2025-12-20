@@ -38,44 +38,71 @@ const EntriesReportModal = ({ visible, entries, onClose, title = 'Entries Report
     }));
   }, [entries]);
 
-  const renderEntry = (entry) => (
-    <View style={styles.entryItem} key={entry.id}>
-      <View style={[
-        styles.entryIconContainer,
-        entry.type === 'expense' ? styles.expenseIconBg : styles.incomeIconBg
-      ]}>
-        <Ionicons
-          name={entry.type === 'expense' ? 'arrow-down' : 'arrow-up'}
-          size={18}
-          color={entry.type === 'expense' ? '#d32f2f' : '#388e3c'}
-        />
-      </View>
-      <View style={styles.entryContent}>
-        <View style={styles.entryAmountRow}>
-          <Text style={[
-            styles.entryAmount,
-            entry.type === 'expense' ? styles.expenseAmount : styles.incomeAmount
-          ]}>
-            {entry.type === 'expense' ? '-' : '+'}₹{parseFloat(entry.amount).toFixed(2)}
-          </Text>
-          <View style={styles.modeIndicator}>
-            <Ionicons
-              name={(entry.mode || 'upi') === 'upi' ? 'phone-portrait' : 'cash'}
-              size={14}
-              color={(entry.mode || 'upi') === 'upi' ? '#007AFF' : '#888888'}
-            />
-          </View>
+  const renderEntry = (entry) => {
+    const isBalanceAdjustment = entry.type === 'balance_adjustment';
+    // Default to 'add' if adjustment_type is missing (for backward compatibility)
+    const adjustmentIsAdd = isBalanceAdjustment ? (entry.adjustment_type === 'add' || !entry.adjustment_type) : false;
+    
+    return (
+      <View style={styles.entryItem} key={entry.id}>
+        <View style={[
+          styles.entryIconContainer,
+          isBalanceAdjustment 
+            ? styles.adjustmentIconBg 
+            : (entry.type === 'expense' ? styles.expenseIconBg : styles.incomeIconBg)
+        ]}>
+          <Ionicons
+            name={
+              isBalanceAdjustment 
+                ? (adjustmentIsAdd ? 'add-circle' : 'remove-circle')
+                : (entry.type === 'expense' ? 'arrow-down' : 'arrow-up')
+            }
+            size={18}
+            color={
+              isBalanceAdjustment 
+                ? '#FF9800'
+                : (entry.type === 'expense' ? '#d32f2f' : '#388e3c')
+            }
+          />
         </View>
-        {entry.note ? (
-          <Text style={styles.entryNote}>{entry.note}</Text>
-        ) : (
-          <Text style={styles.entryType}>
-            {entry.type === 'expense' ? 'Expense' : 'Income'}
-          </Text>
-        )}
+        <View style={styles.entryContent}>
+          <View style={styles.entryAmountRow}>
+            <Text style={[
+              styles.entryAmount,
+              isBalanceAdjustment 
+                ? styles.adjustmentAmount
+                : (entry.type === 'expense' ? styles.expenseAmount : styles.incomeAmount)
+            ]}>
+              {isBalanceAdjustment 
+                ? (adjustmentIsAdd ? '+' : '-')
+                : (entry.type === 'expense' ? '-' : '+')
+              }₹{parseFloat(entry.amount).toFixed(2)}
+            </Text>
+            <View style={styles.modeIndicator}>
+              <Ionicons
+                name={(entry.mode || 'upi') === 'upi' ? 'phone-portrait' : 'cash'}
+                size={14}
+                color={(entry.mode || 'upi') === 'upi' ? '#007AFF' : '#888888'}
+              />
+            </View>
+          </View>
+          {entry.note ? (
+            <Text style={styles.entryNote}>
+              {isBalanceAdjustment && <Text style={styles.adjustmentLabel}>[Balance Adjustment] </Text>}
+              {entry.note}
+            </Text>
+          ) : (
+            <Text style={styles.entryType}>
+              {isBalanceAdjustment 
+                ? 'Balance Adjustment' 
+                : (entry.type === 'expense' ? 'Expense' : 'Income')
+              }
+            </Text>
+          )}
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderDateGroup = ({ item }) => (
     <View style={styles.dateGroup}>
@@ -112,10 +139,9 @@ const EntriesReportModal = ({ visible, entries, onClose, title = 'Entries Report
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          {/* Header - Fixed */}
+          {/* Professional Header */}
           <View style={styles.modalHeader}>
             <View style={styles.headerLeft}>
-              <Ionicons name="document-text" size={24} color="#1976d2" />
               <View style={styles.headerTextContainer}>
                 <Text style={styles.modalTitle}>{title}</Text>
                 <Text style={styles.modalSubtitle}>
@@ -124,7 +150,7 @@ const EntriesReportModal = ({ visible, entries, onClose, title = 'Entries Report
               </View>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#b0b0b0" />
+              <Ionicons name="close" size={20} color="#888888" />
             </TouchableOpacity>
           </View>
 
@@ -170,43 +196,39 @@ const EntriesReportModal = ({ visible, entries, onClose, title = 'Entries Report
                 </View>
 
                 {/* Payment Method Breakdown */}
-                <View style={styles.paymentBreakdown}>
-                  <Text style={styles.breakdownTitle}>PAYMENT METHOD BREAKDOWN</Text>
-                  
-                  {/* Expense Breakdown */}
-                  <View style={styles.breakdownSection}>
-                    <Text style={styles.breakdownSectionTitle}>Expense</Text>
-                    <View style={styles.breakdownRow}>
-                      <View style={styles.breakdownItem}>
-                        <Ionicons name="phone-portrait" size={16} color="#007AFF" />
-                        <Text style={styles.breakdownLabel}>UPI</Text>
-                        <Text style={styles.breakdownValue}>₹{(overallTotals.expenseUpi || 0).toFixed(2)}</Text>
-                      </View>
-                      <View style={styles.breakdownItem}>
-                        <Ionicons name="cash" size={16} color="#888888" />
-                        <Text style={styles.breakdownLabel}>Cash</Text>
-                        <Text style={styles.breakdownValue}>₹{(overallTotals.expenseCash || 0).toFixed(2)}</Text>
-                      </View>
+              <View style={styles.paymentBreakdown}>
+                <Text style={styles.breakdownTitle}>PAYMENT METHOD BREAKDOWN</Text>
+                
+                {/* Expense Breakdown */}
+                <View style={styles.breakdownSection}>
+                  <Text style={styles.breakdownSectionTitle}>Expense</Text>
+                  <View style={styles.breakdownRow}>
+                    <View style={styles.breakdownItem}>
+                      <Text style={styles.breakdownLabel}>UPI</Text>
+                      <Text style={styles.breakdownValue}>₹{(overallTotals.expenseUpi || 0).toFixed(2)}</Text>
                     </View>
-                  </View>
-
-                  {/* Income Breakdown */}
-                  <View style={styles.breakdownSection}>
-                    <Text style={styles.breakdownSectionTitle}>Income</Text>
-                    <View style={styles.breakdownRow}>
-                      <View style={styles.breakdownItem}>
-                        <Ionicons name="phone-portrait" size={16} color="#007AFF" />
-                        <Text style={styles.breakdownLabel}>UPI</Text>
-                        <Text style={styles.breakdownValue}>₹{(overallTotals.incomeUpi || 0).toFixed(2)}</Text>
-                      </View>
-                      <View style={styles.breakdownItem}>
-                        <Ionicons name="cash" size={16} color="#888888" />
-                        <Text style={styles.breakdownLabel}>Cash</Text>
-                        <Text style={styles.breakdownValue}>₹{(overallTotals.incomeCash || 0).toFixed(2)}</Text>
-                      </View>
+                    <View style={styles.breakdownItem}>
+                      <Text style={styles.breakdownLabel}>Cash</Text>
+                      <Text style={styles.breakdownValue}>₹{(overallTotals.expenseCash || 0).toFixed(2)}</Text>
                     </View>
                   </View>
                 </View>
+
+                {/* Income Breakdown */}
+                <View style={styles.breakdownSection}>
+                  <Text style={styles.breakdownSectionTitle}>Income</Text>
+                  <View style={styles.breakdownRow}>
+                    <View style={styles.breakdownItem}>
+                      <Text style={styles.breakdownLabel}>UPI</Text>
+                      <Text style={styles.breakdownValue}>₹{(overallTotals.incomeUpi || 0).toFixed(2)}</Text>
+                    </View>
+                    <View style={styles.breakdownItem}>
+                      <Text style={styles.breakdownLabel}>Cash</Text>
+                      <Text style={styles.breakdownValue}>₹{(overallTotals.incomeCash || 0).toFixed(2)}</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
               </View>
             )}
 
@@ -217,17 +239,14 @@ const EntriesReportModal = ({ visible, entries, onClose, title = 'Entries Report
                   <View key={item.date} style={styles.dateGroup}>
                     <View style={styles.dateHeader}>
                       <View style={styles.dateHeaderLeft}>
-                        <Ionicons name="calendar-outline" size={18} color="#1976d2" />
                         <Text style={styles.dateText}>{formatDateWithMonthName(item.date)}</Text>
                       </View>
                       <View style={styles.dateTotals}>
                         <View style={styles.dateTotalItem}>
-                          <Ionicons name="arrow-down-circle" size={14} color="#d32f2f" />
-                          <Text style={styles.dateTotalText}>₹{item.totals.expense.toFixed(2)}</Text>
+                          <Text style={[styles.dateTotalText, { color: '#d32f2f' }]}>₹{item.totals.expense.toFixed(2)}</Text>
                         </View>
                         <View style={styles.dateTotalItem}>
-                          <Ionicons name="arrow-up-circle" size={14} color="#388e3c" />
-                          <Text style={styles.dateTotalText}>₹{item.totals.income.toFixed(2)}</Text>
+                          <Text style={[styles.dateTotalText, { color: '#388e3c' }]}>₹{item.totals.income.toFixed(2)}</Text>
                         </View>
                       </View>
                     </View>
@@ -277,7 +296,7 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#333333',
+    borderBottomColor: '#2a2a2a',
   },
   headerLeft: {
     flexDirection: 'row',
@@ -285,66 +304,74 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTextContainer: {
-    marginLeft: 12,
+    marginLeft: 0,
   },
   modalTitle: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
     color: '#ffffff',
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
   },
   modalSubtitle: {
-    fontSize: 14,
-    color: '#b0b0b0',
-    marginTop: 2,
+    fontSize: 12,
+    color: '#888888',
+    marginTop: 4,
+    fontWeight: '400',
   },
   closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#2a2a2a',
+    width: 28,
+    height: 28,
+    borderRadius: 0,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
   summaryCard: {
-    backgroundColor: '#2a2a2a',
-    margin: 16,
+    backgroundColor: '#2C2C2E',
+    margin: 0,
     marginTop: 0,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#333333',
+    padding: 20,
+    borderRadius: 0,
+    borderWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a2a2a',
   },
   summaryTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#ffffff',
-    marginBottom: 12,
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#888888',
+    marginBottom: 16,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 8,
+    gap: 12,
   },
   summaryItem: {
     flex: 1,
     alignItems: 'center',
-    padding: 8,
-    backgroundColor: '#1e1e1e',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#333333',
+    padding: 12,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 0,
+    borderWidth: 0,
   },
   summaryLabel: {
-    fontSize: 11,
-    color: '#b0b0b0',
-    marginTop: 4,
-    marginBottom: 4,
+    fontSize: 10,
+    color: '#888888',
+    marginTop: 0,
+    marginBottom: 6,
     textAlign: 'center',
+    fontWeight: '500',
+    letterSpacing: 0.3,
   },
   summaryValue: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '600',
     textAlign: 'center',
+    letterSpacing: -0.3,
   },
   expenseAmount: {
     color: '#d32f2f',
@@ -377,98 +404,116 @@ const styles = StyleSheet.create({
   },
   breakdownRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
+    gap: 12,
   },
   breakdownItem: {
     flex: 1,
     alignItems: 'center',
-    padding: 8,
-    backgroundColor: '#1e1e1e',
-    borderRadius: 8,
-    marginHorizontal: 4,
+    padding: 12,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 0,
+    marginHorizontal: 0,
   },
   breakdownLabel: {
     fontSize: 10,
-    color: '#b0b0b0',
-    marginTop: 4,
-    marginBottom: 2,
+    color: '#888888',
+    marginTop: 0,
+    marginBottom: 6,
+    fontWeight: '500',
+    letterSpacing: 0.3,
   },
   breakdownValue: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '600',
     color: '#FFFFFF',
+    letterSpacing: -0.2,
   },
   entriesListContainer: {
     padding: 16,
     paddingTop: 0,
   },
   dateGroup: {
-    marginBottom: 20,
-    backgroundColor: '#1e1e1e',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#333333',
+    marginBottom: 1,
+    backgroundColor: '#2C2C2E',
+    borderRadius: 0,
+    borderWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1C1C1E',
     overflow: 'hidden',
   },
   dateHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 14,
-    backgroundColor: '#2a2a2a',
+    padding: 16,
+    backgroundColor: '#2C2C2E',
     borderBottomWidth: 1,
-    borderBottomColor: '#333333',
+    borderBottomColor: '#1C1C1E',
   },
   dateHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
   dateText: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '600',
     color: '#ffffff',
+    letterSpacing: -0.2,
   },
   dateTotals: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 16,
   },
   dateTotalItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   dateTotalText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#b0b0b0',
+    fontWeight: '500',
+    color: '#888888',
+    letterSpacing: -0.2,
   },
   entriesContainer: {
-    padding: 8,
+    padding: 0,
   },
   entryItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    marginBottom: 8,
-    backgroundColor: '#2a2a2a',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#333333',
+    padding: 14,
+    marginBottom: 1,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 0,
+    borderWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a2a2a',
   },
   entryIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   expenseIconBg: {
-    backgroundColor: '#3d1f1f',
+    backgroundColor: 'transparent',
   },
   incomeIconBg: {
-    backgroundColor: '#1f3d1f',
+    backgroundColor: 'transparent',
+  },
+  adjustmentIconBg: {
+    backgroundColor: 'transparent',
+  },
+  adjustmentAmount: {
+    color: '#FF9800',
+  },
+  adjustmentLabel: {
+    fontSize: 11,
+    color: '#FF9800',
+    fontWeight: '600',
   },
   entryContent: {
     flex: 1,

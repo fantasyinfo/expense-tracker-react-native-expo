@@ -20,19 +20,32 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
   const [mode, setMode] = useState('upi');
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [adjustmentType, setAdjustmentType] = useState('add'); // 'add' or 'subtract' for balance adjustments
 
   const handleSave = async () => {
-    if (!amount || parseFloat(amount) <= 0) {
+    const parsedAmount = parseFloat(amount);
+    if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
       return;
     }
 
-    await addEntry({
-      amount: parseFloat(amount),
+    const entryData = {
+      amount: parsedAmount,
       note: note.trim(),
       type,
       mode,
       date: formatDate(date),
-    });
+    };
+
+    // Add adjustment_type for balance adjustments (required field)
+    if (type === 'balance_adjustment') {
+      if (!adjustmentType || (adjustmentType !== 'add' && adjustmentType !== 'subtract')) {
+        console.error('Invalid adjustment_type:', adjustmentType);
+        return;
+      }
+      entryData.adjustment_type = adjustmentType;
+    }
+
+    await addEntry(entryData);
 
     // Reset form
     setAmount('');
@@ -40,6 +53,7 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
     setType('expense');
     setMode('upi');
     setDate(new Date());
+    setAdjustmentType('add');
     onSave();
   };
 
@@ -49,6 +63,7 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
     setType('expense');
     setMode('upi');
     setDate(new Date());
+    setAdjustmentType('add');
     setShowDatePicker(false);
     onClose();
   };
@@ -74,11 +89,11 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Add Entry</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#b0b0b0" />
+              <Ionicons name="close" size={20} color="#888888" />
             </TouchableOpacity>
           </View>
 
-          {/* Type Toggle */}
+          {/* Professional Type Toggle */}
           <View style={styles.typeContainer}>
             <TouchableOpacity
               style={[
@@ -87,12 +102,6 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
               ]}
               onPress={() => setType('expense')}
             >
-              <Ionicons
-                name="arrow-down-circle"
-                size={20}
-                color={type === 'expense' ? '#fff' : '#d32f2f'}
-                style={styles.typeIcon}
-              />
               <Text
                 style={[
                   styles.typeButtonText,
@@ -109,12 +118,6 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
               ]}
               onPress={() => setType('income')}
             >
-              <Ionicons
-                name="arrow-up-circle"
-                size={20}
-                color={type === 'income' ? '#fff' : '#388e3c'}
-                style={styles.typeIcon}
-              />
               <Text
                 style={[
                   styles.typeButtonText,
@@ -124,7 +127,61 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
                 Income
               </Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.typeButton,
+                type === 'balance_adjustment' && styles.typeButtonActiveAdjustment,
+              ]}
+              onPress={() => setType('balance_adjustment')}
+            >
+              <Text
+                style={[
+                  styles.typeButtonText,
+                  type === 'balance_adjustment' && styles.typeButtonTextActive,
+                ]}
+              >
+                Adjust
+              </Text>
+            </TouchableOpacity>
           </View>
+
+          {/* Adjustment Type Toggle - Only show for balance adjustments */}
+          {type === 'balance_adjustment' && (
+            <View style={styles.adjustmentContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.adjustmentButton,
+                  adjustmentType === 'add' && styles.adjustmentButtonActive,
+                ]}
+                onPress={() => setAdjustmentType('add')}
+              >
+                <Text
+                  style={[
+                    styles.adjustmentButtonText,
+                    adjustmentType === 'add' && styles.adjustmentButtonTextActive,
+                  ]}
+                >
+                  Add to Balance
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.adjustmentButton,
+                  adjustmentType === 'subtract' && styles.adjustmentButtonActive,
+                ]}
+                onPress={() => setAdjustmentType('subtract')}
+              >
+                <Text
+                  style={[
+                    styles.adjustmentButtonText,
+                    adjustmentType === 'subtract' && styles.adjustmentButtonTextActive,
+                  ]}
+                >
+                  Subtract from Balance
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Amount Input */}
           <View style={styles.inputContainer}>
@@ -153,7 +210,7 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
             />
           </View>
 
-          {/* Mode Toggle */}
+          {/* Professional Mode Toggle */}
           <View style={styles.modeContainer}>
             <TouchableOpacity
               style={[
@@ -162,12 +219,6 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
               ]}
               onPress={() => setMode('upi')}
             >
-              <Ionicons
-                name="phone-portrait"
-                size={20}
-                color={mode === 'upi' ? '#fff' : '#007AFF'}
-                style={styles.modeIcon}
-              />
               <Text
                 style={[
                   styles.modeButtonText,
@@ -184,12 +235,6 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
               ]}
               onPress={() => setMode('cash')}
             >
-              <Ionicons
-                name="cash"
-                size={20}
-                color={mode === 'cash' ? '#fff' : '#888888'}
-                style={styles.modeIcon}
-              />
               <Text
                 style={[
                   styles.modeButtonText,
@@ -250,10 +295,10 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#2C2C2E',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 24,
+    backgroundColor: '#1C1C1E',
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    padding: 20,
     paddingBottom: 32,
     maxHeight: '90%',
   },
@@ -261,99 +306,131 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a2a2a',
   },
   modalTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
     color: '#ffffff',
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
   },
   closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#2a2a2a',
+    width: 28,
+    height: 28,
+    borderRadius: 0,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
   typeContainer: {
     flexDirection: 'row',
     marginBottom: 20,
-    borderRadius: 12,
-    backgroundColor: '#2a2a2a',
-    padding: 4,
+    borderRadius: 0,
+    backgroundColor: '#2C2C2E',
+    padding: 2,
+    gap: 2,
   },
   typeButton: {
     flex: 1,
-    flexDirection: 'row',
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 10,
-    gap: 8,
+    borderRadius: 0,
   },
   typeButtonActiveExpense: {
-    backgroundColor: '#d32f2f',
-    borderWidth: 1,
-    borderColor: '#b71c1c',
+    backgroundColor: '#2C2C2E',
+    borderBottomWidth: 2,
+    borderBottomColor: '#d32f2f',
   },
   typeButtonActiveIncome: {
-    backgroundColor: '#388e3c',
-    borderWidth: 1,
-    borderColor: '#2e7d32',
+    backgroundColor: '#2C2C2E',
+    borderBottomWidth: 2,
+    borderBottomColor: '#388e3c',
   },
-  typeIcon: {
-    marginRight: 4,
+  typeButtonActiveAdjustment: {
+    backgroundColor: '#2C2C2E',
+    borderBottomWidth: 2,
+    borderBottomColor: '#FF9800',
+  },
+  adjustmentContainer: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    borderRadius: 0,
+    backgroundColor: '#2C2C2E',
+    padding: 2,
+    gap: 2,
+  },
+  adjustmentButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 0,
+  },
+  adjustmentButtonActive: {
+    backgroundColor: '#2C2C2E',
+    borderBottomWidth: 2,
+    borderBottomColor: '#888888',
+  },
+  adjustmentButtonText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#888888',
+  },
+  adjustmentButtonTextActive: {
+    color: '#FFFFFF',
   },
   typeButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#b0b0b0',
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#888888',
   },
   typeButtonTextActive: {
-    color: '#fff',
+    color: '#FFFFFF',
   },
   modeContainer: {
     flexDirection: 'row',
     marginBottom: 20,
-    borderRadius: 10,
-    backgroundColor: '#1C1C1E',
-    padding: 4,
+    borderRadius: 0,
+    backgroundColor: '#2C2C2E',
+    padding: 2,
+    gap: 2,
   },
   modeButton: {
     flex: 1,
-    flexDirection: 'row',
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 10,
-    gap: 8,
+    borderRadius: 0,
   },
   modeButtonActive: {
-    backgroundColor: '#007AFF',
-    borderWidth: 0,
-  },
-  modeIcon: {
-    marginRight: 4,
+    backgroundColor: '#2C2C2E',
+    borderBottomWidth: 2,
+    borderBottomColor: '#007AFF',
   },
   modeButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#b0b0b0',
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#888888',
   },
   modeButtonTextActive: {
-    color: '#fff',
+    color: '#FFFFFF',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#333333',
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    borderWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a2a2a',
+    borderRadius: 0,
+    paddingHorizontal: 0,
     paddingVertical: 14,
-    marginBottom: 16,
-    backgroundColor: '#2a2a2a',
+    marginBottom: 20,
+    backgroundColor: 'transparent',
   },
   inputIcon: {
     marginRight: 12,
@@ -363,34 +440,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#ffffff',
     padding: 0,
+    fontWeight: '500',
   },
   dateText: {
     flex: 1,
     fontSize: 16,
     color: '#ffffff',
+    fontWeight: '500',
   },
   saveButton: {
     flexDirection: 'row',
-    backgroundColor: '#007AFF',
+    backgroundColor: '#2C2C2E',
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
-    borderWidth: 0,
+    borderWidth: 1,
+    borderColor: '#3a3a3a',
     gap: 8,
   },
   saveButtonDisabled: {
-    backgroundColor: '#bdbdbd',
-    borderColor: '#9e9e9e',
+    backgroundColor: '#1C1C1E',
+    borderColor: '#2a2a2a',
+    opacity: 0.5,
   },
   saveIcon: {
     marginRight: 4,
   },
   saveButtonText: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
   },
 });
 

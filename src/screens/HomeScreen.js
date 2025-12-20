@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   RefreshControl,
   ScrollView,
-  Dimensions,
   Platform,
   Modal,
 } from 'react-native';
@@ -16,19 +15,19 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { formatDate, filterEntriesByPeriod, filterEntriesByDateRange, calculateTotals, formatDateWithMonthName } from '../utils/dateUtils';
 import { loadEntries, deleteEntry } from '../utils/storage';
+import { getCurrentBankBalance, getCurrentCashBalance } from '../utils/balanceUtils';
 import AddEntryModal from '../components/AddEntryModal';
 import AppFooter from '../components/AppFooter';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
-
-const { width: screenWidth } = Dimensions.get('window');
 
 const HomeScreen = () => {
   const [entries, setEntries] = useState([]);
   const [todayEntries, setTodayEntries] = useState([]);
   const [totals, setTotals] = useState({ expense: 0, income: 0, balance: 0 });
+  const [bankBalance, setBankBalance] = useState(null);
+  const [cashBalance, setCashBalance] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [cardIndex, setCardIndex] = useState(0);
   const [isCustomDateRange, setIsCustomDateRange] = useState(false);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
@@ -44,6 +43,12 @@ const HomeScreen = () => {
   const loadData = useCallback(async () => {
     const allEntries = await loadEntries();
     setEntries(allEntries);
+    
+    // Load current balances
+    const bankBal = await getCurrentBankBalance();
+    const cashBal = await getCurrentCashBalance();
+    setBankBalance(bankBal);
+    setCashBalance(cashBal);
     
     // Filter entries based on date range or today
     let filtered;
@@ -133,74 +138,83 @@ const HomeScreen = () => {
     setShowFilterModal(false);
   };
 
-  const renderEntry = ({ item }) => (
-    <View style={styles.entryItem}>
-      <View style={[
-        styles.entryIconContainer,
-        item.type === 'expense' ? styles.expenseIconBg : styles.incomeIconBg
-      ]}>
-        <Ionicons
-          name={item.type === 'expense' ? 'arrow-down' : 'arrow-up'}
-          size={20}
-          color={item.type === 'expense' ? '#d32f2f' : '#388e3c'}
-        />
-      </View>
-      <View style={styles.entryContent}>
-        <View style={styles.entryAmountRow}>
-          <Text style={[
-            styles.entryAmount,
-            item.type === 'expense' ? styles.expenseAmount : styles.incomeAmount
-          ]}>
-            {item.type === 'expense' ? '-' : '+'}₹{parseFloat(item.amount).toFixed(2)}
-          </Text>
-          <View style={styles.modeIndicator}>
-            <Ionicons
-              name={(item.mode || 'upi') === 'upi' ? 'phone-portrait' : 'cash'}
-              size={14}
-              color={(item.mode || 'upi') === 'upi' ? '#007AFF' : '#888888'}
-            />
-          </View>
+  const renderEntry = ({ item }) => {
+    const isBalanceAdjustment = item.type === 'balance_adjustment';
+    // Default to 'add' if adjustment_type is missing (for backward compatibility)
+    const adjustmentIsAdd = isBalanceAdjustment ? (item.adjustment_type === 'add' || !item.adjustment_type) : false;
+    
+    return (
+      <View style={styles.entryItem}>
+        <View style={[
+          styles.entryIconContainer,
+          isBalanceAdjustment 
+            ? styles.adjustmentIconBg 
+            : (item.type === 'expense' ? styles.expenseIconBg : styles.incomeIconBg)
+        ]}>
+          <Ionicons
+            name={
+              isBalanceAdjustment 
+                ? (adjustmentIsAdd ? 'add-circle' : 'remove-circle')
+                : (item.type === 'expense' ? 'arrow-down' : 'arrow-up')
+            }
+            size={20}
+            color={
+              isBalanceAdjustment 
+                ? '#FF9800'
+                : (item.type === 'expense' ? '#d32f2f' : '#388e3c')
+            }
+          />
         </View>
-        {item.note ? (
-          <Text style={styles.entryNote}>{item.note}</Text>
-        ) : (
-          <Text style={styles.entryDate}>{formatDateWithMonthName(item.date)}</Text>
-        )}
+        <View style={styles.entryContent}>
+          <View style={styles.entryAmountRow}>
+            <Text style={[
+              styles.entryAmount,
+              isBalanceAdjustment 
+                ? styles.adjustmentAmount
+                : (item.type === 'expense' ? styles.expenseAmount : styles.incomeAmount)
+            ]}>
+              {isBalanceAdjustment 
+                ? (adjustmentIsAdd ? '+' : '-')
+                : (item.type === 'expense' ? '-' : '+')
+              }₹{parseFloat(item.amount).toFixed(2)}
+            </Text>
+            <View style={styles.modeIndicator}>
+              <Ionicons
+                name={(item.mode || 'upi') === 'upi' ? 'phone-portrait' : 'cash'}
+                size={14}
+                color={(item.mode || 'upi') === 'upi' ? '#007AFF' : '#888888'}
+              />
+            </View>
+          </View>
+          {item.note ? (
+            <Text style={styles.entryNote}>
+              {isBalanceAdjustment && <Text style={styles.adjustmentLabel}>[Balance Adjustment] </Text>}
+              {item.note}
+            </Text>
+          ) : (
+            <Text style={styles.entryDate}>
+              {isBalanceAdjustment && <Text style={styles.adjustmentLabel}>[Balance Adjustment] </Text>}
+              {formatDateWithMonthName(item.date)}
+            </Text>
+          )}
+        </View>
+        <TouchableOpacity
+          onPress={() => handleDelete(item.id, item)}
+          style={styles.deleteButton}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="trash-outline" size={18} color="#A0A0A0" />
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity
-        onPress={() => handleDelete(item.id, item)}
-        style={styles.deleteButton}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="trash-outline" size={18} color="#A0A0A0" />
-      </TouchableOpacity>
-    </View>
-  );
+    );
+  };
 
-  const cards = [
-    {
-      type: 'expense',
-      label: 'Today\'s Expense',
-      amount: totals.expense,
-      icon: 'arrow-down-circle',
-      color: '#d32f2f',
-      borderColor: '#d32f2f',
-    },
-    {
-      type: 'income',
-      label: 'Today\'s Income',
-      amount: totals.income,
-      icon: 'arrow-up-circle',
-      color: '#388e3c',
-      borderColor: '#388e3c',
-    },
-  ];
 
   return (
     <View style={styles.container}>
-      {/* Modern Header */}
+      {/* Professional Header */}
       <View style={styles.header}>
-            <View style={styles.headerContent}>
+        <View style={styles.headerContent}>
           <View style={styles.headerTextContainer}>
             <Text style={styles.headerTitle}>
               {isCustomDateRange ? 'Filtered Summary' : "Today's Summary"}
@@ -219,91 +233,93 @@ const HomeScreen = () => {
             onPress={() => setShowFilterModal(true)}
             activeOpacity={0.7}
           >
-            <Ionicons name="filter" size={20} color="#A0A0A0" />
+            <Ionicons name="filter" size={18} color="#888888" />
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.refreshButton} 
             onPress={onRefresh}
             activeOpacity={0.7}
           >
-            <Ionicons name="refresh" size={20} color="#A0A0A0" />
+            <Ionicons name="refresh" size={18} color="#888888" />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Modern Scrollable Card Section */}
-      <View style={styles.cardSection}>
-        <ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onScroll={(event) => {
-            const index = Math.round(event.nativeEvent.contentOffset.x / (screenWidth - 32));
-            setCardIndex(index);
-          }}
-          scrollEventThrottle={16}
-        >
-          {cards.map((card, index) => (
-            <View key={index} style={styles.cardWrapper}>
-              <View style={[
-                styles.modernCard,
-                { borderBottomColor: card.borderColor }
-              ]}>
-                <View style={styles.cardHeader}>
-                  <View style={styles.cardIconContainer}>
-                    <Ionicons name={card.icon} size={32} color={card.color} />
-                  </View>
-                  <View style={styles.cardHeaderText}>
-                    <Text style={styles.cardLabel}>{card.label}</Text>
-                    <Text style={[styles.cardAmount, { color: card.color }]}>
-                      ₹{card.amount.toFixed(2)}
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.cardFooter}>
-                  <Ionicons name="trending-up" size={16} color={card.color} />
-                  <Text style={[styles.cardFooterText, { color: card.color }]}>
-                    {card.type === 'expense' ? 'Total expenses today' : 'Total income today'}
-                  </Text>
-                </View>
-              </View>
+      {/* Professional Finance Summary - Fixed */}
+      <View style={styles.fixedSummarySection}>
+        <View style={styles.fixedSummaryCard}>
+          <View style={styles.fixedSummaryRow}>
+            <View style={styles.fixedSummaryItem}>
+              <Text style={styles.fixedSummaryLabel}>Expense</Text>
+              <Text style={[styles.fixedSummaryValue, styles.summaryValueExpense]}>
+                ₹{totals.expense.toFixed(2)}
+              </Text>
             </View>
-          ))}
-        </ScrollView>
-        
-        {/* Card Indicators */}
-        <View style={styles.cardIndicators}>
-          {cards.map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.indicator,
-                cardIndex === index && styles.indicatorActive
-              ]}
-            />
-          ))}
+            <View style={styles.fixedSummaryDivider} />
+            <View style={styles.fixedSummaryItem}>
+              <Text style={styles.fixedSummaryLabel}>Income</Text>
+              <Text style={[styles.fixedSummaryValue, styles.summaryValueIncome]}>
+                ₹{totals.income.toFixed(2)}
+              </Text>
+            </View>
+          </View>
         </View>
       </View>
 
-      {/* Entries List */}
-      <View style={styles.listHeader}>
-        <View style={styles.listHeaderLeft}>
-          <Ionicons name="list" size={20} color="#1976d2" />
+      {/* Scrollable Content Area */}
+      <ScrollView 
+        style={styles.scrollableContent}
+        contentContainerStyle={styles.scrollableContentContainer}
+        showsVerticalScrollIndicator={true}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {/* Balance Cards - Scrollable */}
+        {(bankBalance !== null || cashBalance !== null) && (
+          <View style={styles.balanceCardsSection}>
+            {bankBalance !== null && (
+              <View style={[styles.balanceCard, bankBalance < 0 && styles.balanceCardNegative]}>
+                <Text style={styles.balanceCardLabel}>Bank / UPI Balance</Text>
+                <Text style={[
+                  styles.balanceCardAmount,
+                  bankBalance < 0 && styles.balanceCardAmountNegative
+                ]}>
+                  {bankBalance < 0 ? '-' : ''}₹{Math.abs(bankBalance).toFixed(2)}
+                </Text>
+              </View>
+            )}
+            {cashBalance !== null && (
+              <View style={[styles.balanceCard, cashBalance < 0 && styles.balanceCardNegative]}>
+                <Text style={styles.balanceCardLabel}>Cash Balance</Text>
+                <Text style={[
+                  styles.balanceCardAmount,
+                  cashBalance < 0 && styles.balanceCardAmountNegative
+                ]}>
+                  {cashBalance < 0 ? '-' : ''}₹{Math.abs(cashBalance).toFixed(2)}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Entries List Header */}
+        <View style={styles.listHeader}>
           <Text style={styles.listTitle}>
             {isCustomDateRange ? 'Filtered Entries' : "Today's Entries"}
           </Text>
-        </View>
-        <View style={styles.listCountBadge}>
           <Text style={styles.listCount}>{todayEntries.length}</Text>
         </View>
-      </View>
-      <FlatList
-        data={todayEntries}
-        renderItem={renderEntry}
-        keyExtractor={(item) => item.id}
-        style={styles.list}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
+
+        {/* Entries List */}
+        {todayEntries.length > 0 ? (
+          <View style={styles.entriesContainer}>
+            {todayEntries.map((item) => {
+              const entryComponent = renderEntry({ item });
+              return <View key={item.id}>{entryComponent}</View>;
+            })}
+          </View>
+        ) : (
           <View style={styles.emptyContainer}>
             <Ionicons name="document-outline" size={64} color="#444444" />
             <Text style={styles.emptyText}>
@@ -313,12 +329,11 @@ const HomeScreen = () => {
               {isCustomDateRange ? 'Try selecting a different date range' : 'Tap + to add your first entry'}
             </Text>
           </View>
-        }
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        ListFooterComponent={<AppFooter />}
-      />
+        )}
+
+        {/* Footer */}
+        <AppFooter />
+      </ScrollView>
 
       {/* Floating Add Button */}
       <TouchableOpacity
@@ -468,58 +483,54 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingTop: 16,
+    paddingTop: 20,
     paddingBottom: 16,
     paddingHorizontal: 20,
     backgroundColor: '#1C1C1E',
-    borderBottomWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a2a2a',
   },
   headerContent: {
     flex: 1,
     paddingRight: 12,
   },
-  headerIconContainer: {
-    display: 'none',
-  },
   headerTextContainer: {
     flex: 1,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
-    marginBottom: 2,
-    letterSpacing: -0.3,
+    marginBottom: 4,
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
   },
   headerSubtitle: {
-    fontSize: 13,
-    color: '#A0A0A0',
+    fontSize: 12,
+    color: '#888888',
     fontWeight: '400',
-    marginTop: 2,
   },
   headerActions: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 8,
     alignItems: 'flex-start',
     paddingTop: 2,
   },
   filterButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 0,
     backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 0,
   },
   refreshButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 0,
     backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 0,
   },
   filterModalOverlay: {
     flex: 1,
@@ -648,140 +659,151 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
   },
-  cardSection: {
-    paddingVertical: 16,
+  fixedSummarySection: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 16,
     backgroundColor: '#1C1C1E',
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a2a2a',
   },
-  cardWrapper: {
-    width: screenWidth - 32,
-    paddingHorizontal: 16,
-  },
-  modernCard: {
-    borderRadius: 12,
-    padding: 20,
+  fixedSummaryCard: {
     backgroundColor: '#2C2C2E',
-    borderBottomWidth: 0,
-    elevation: 0,
-    shadowOpacity: 0,
+    borderRadius: 0,
+    padding: 16,
+    borderWidth: 0,
   },
-  cardHeader: {
+  fixedSummaryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
   },
-  cardIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  cardHeaderText: {
+  fixedSummaryItem: {
     flex: 1,
+    alignItems: 'center',
   },
-  cardLabel: {
-    fontSize: 12,
-    color: '#A0A0A0',
-    marginBottom: 6,
+  fixedSummaryDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: '#2a2a2a',
+    marginHorizontal: 16,
+  },
+  fixedSummaryLabel: {
+    fontSize: 10,
+    color: '#888888',
     fontWeight: '500',
-    textTransform: 'uppercase',
+    marginBottom: 6,
     letterSpacing: 0.5,
   },
-  cardAmount: {
-    fontSize: 28,
+  fixedSummaryValue: {
+    fontSize: 17,
+    fontWeight: '600',
+    letterSpacing: -0.3,
+  },
+  summaryValueExpense: {
+    color: '#d32f2f',
+  },
+  summaryValueIncome: {
+    color: '#388e3c',
+  },
+  scrollableContent: {
+    flex: 1,
+  },
+  scrollableContentContainer: {
+    paddingBottom: 20,
+  },
+  balanceCardsSection: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+    gap: 12,
+  },
+  balanceCard: {
+    flex: 1,
+    backgroundColor: '#2C2C2E',
+    borderRadius: 0,
+    padding: 14,
+    borderWidth: 0,
+    alignItems: 'center',
+  },
+  balanceCardNegative: {
+    backgroundColor: '#2C2C2E',
+  },
+  balanceCardLabel: {
+    fontSize: 10,
+    color: '#888888',
+    fontWeight: '500',
+    marginBottom: 6,
+    letterSpacing: 0.5,
+  },
+  balanceCardAmount: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
-  cardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  cardFooterText: {
-    fontSize: 11,
-    marginLeft: 4,
-    fontWeight: '400',
-    color: '#A0A0A0',
-  },
-  cardIndicators: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 12,
-    gap: 6,
-  },
-  indicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#444444',
-  },
-  indicatorActive: {
-    backgroundColor: '#1976d2',
-    width: 24,
+  balanceCardAmountNegative: {
+    color: '#d32f2f',
   },
   listHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingBottom: 12,
     paddingTop: 8,
   },
-  listHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
   listTitle: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
-    letterSpacing: -0.2,
-  },
-  listCountBadge: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    minWidth: 28,
-    alignItems: 'center',
+    color: '#888888',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   listCount: {
     fontSize: 12,
-    color: '#fff',
-    fontWeight: '600',
+    color: '#888888',
+    fontWeight: '500',
   },
-  list: {
-    flex: 1,
-  },
-  listContent: {
-    padding: 16,
-    paddingTop: 0,
+  entriesContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
   },
   entryItem: {
     flexDirection: 'row',
     backgroundColor: '#2C2C2E',
     padding: 14,
-    marginBottom: 8,
-    borderRadius: 12,
+    marginBottom: 1,
+    borderRadius: 0,
     alignItems: 'center',
     borderWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1C1C1E',
   },
   entryIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   expenseIconBg: {
-    backgroundColor: 'rgba(211, 47, 47, 0.15)',
+    backgroundColor: 'transparent',
   },
   incomeIconBg: {
-    backgroundColor: 'rgba(56, 142, 60, 0.15)',
+    backgroundColor: 'transparent',
+  },
+  adjustmentIconBg: {
+    backgroundColor: 'transparent',
+  },
+  adjustmentAmount: {
+    color: '#FF9800',
+  },
+  adjustmentLabel: {
+    fontSize: 11,
+    color: '#FF9800',
+    fontWeight: '600',
   },
   entryContent: {
     flex: 1,
@@ -793,7 +815,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   entryAmount: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#FFFFFF',
     letterSpacing: -0.3,
@@ -838,18 +860,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 20,
     bottom: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#007AFF',
+    width: 52,
+    height: 52,
+    borderRadius: 0,
+    backgroundColor: '#2C2C2E',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 0,
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#3a3a3a',
+    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
 });
 

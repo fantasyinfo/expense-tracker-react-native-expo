@@ -7,12 +7,23 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { loadEntries } from '../utils/storage';
 import { exportToExcel, exportToJSON } from '../utils/exportUtils';
 import { shareApp, shareViaWhatsApp, shareViaSMS, openDriveDownload, shareDriveDownload } from '../utils/shareUtils';
+import { 
+  getInitialBankBalance, 
+  getInitialCashBalance, 
+  setInitialBankBalance, 
+  setInitialCashBalance,
+  getCurrentBankBalance,
+  getCurrentCashBalance,
+  calculateInitialBalancesFromEntries
+} from '../utils/balanceUtils';
 import AppFooter from '../components/AppFooter';
 import EntriesReportModal from '../components/EntriesReportModal';
 
@@ -46,11 +57,22 @@ const SettingsScreen = () => {
   const [exporting, setExporting] = useState(false);
   const [entryCount, setEntryCount] = useState(0);
   const [showEntriesModal, setShowEntriesModal] = useState(false);
+  const [bankBalance, setBankBalance] = useState(null);
+  const [cashBalance, setCashBalance] = useState(null);
+  const [showBalanceModal, setShowBalanceModal] = useState(false);
+  const [balanceType, setBalanceType] = useState('bank'); // 'bank' or 'cash'
+  const [balanceInput, setBalanceInput] = useState('');
 
   const loadData = useCallback(async () => {
     const allEntries = await loadEntries();
     setEntries(allEntries);
     setEntryCount(allEntries.length);
+    
+    // Load current balances
+    const bankBal = await getCurrentBankBalance();
+    const cashBal = await getCurrentCashBalance();
+    setBankBalance(bankBal);
+    setCashBalance(cashBal);
   }, []);
 
   // Reload data when screen comes into focus
@@ -122,6 +144,61 @@ const SettingsScreen = () => {
     );
   };
 
+  const handleSetBalance = (type) => {
+    setBalanceType(type);
+    const currentBalance = type === 'bank' ? bankBalance : cashBalance;
+    setBalanceInput(currentBalance !== null ? currentBalance.toString() : '');
+    setShowBalanceModal(true);
+  };
+
+  const handleSaveBalance = async () => {
+    const balance = parseFloat(balanceInput);
+    if (isNaN(balance)) {
+      Alert.alert('Invalid Input', 'Please enter a valid number');
+      return;
+    }
+
+    try {
+      if (balanceType === 'bank') {
+        await setInitialBankBalance(balance);
+      } else {
+        await setInitialCashBalance(balance);
+      }
+      Alert.alert('Success', `${balanceType === 'bank' ? 'Bank' : 'Cash'} balance set successfully!`);
+      setShowBalanceModal(false);
+      setBalanceInput('');
+      loadData(); // Reload to update displayed balances
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save balance. Please try again.');
+      console.error(error);
+    }
+  };
+
+  const handleAutoCalculateBalances = async () => {
+    Alert.alert(
+      'Auto Calculate Initial Balances',
+      'This will calculate initial balances from all your existing entries (assuming starting balance was 0). Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Calculate',
+          onPress: async () => {
+            try {
+              const { bankBalance: bankBal, cashBalance: cashBal } = await calculateInitialBalancesFromEntries();
+              await setInitialBankBalance(bankBal);
+              await setInitialCashBalance(cashBal);
+              Alert.alert('Success', 'Initial balances calculated and set successfully!');
+              loadData();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to calculate balances. Please try again.');
+              console.error(error);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const SettingCard = ({ icon, title, description, onPress, disabled = false }) => (
     <TouchableOpacity
       style={[styles.settingCard, disabled && styles.settingCardDisabled]}
@@ -129,38 +206,20 @@ const SettingsScreen = () => {
       disabled={disabled || exporting}
       activeOpacity={0.7}
     >
-      <View style={styles.settingIconContainer}>
-        <Ionicons name={icon} size={24} color="#1976d2" />
-      </View>
       <View style={styles.settingContent}>
         <Text style={styles.settingTitle}>{title}</Text>
         <Text style={styles.settingDescription}>{description}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={20} color="#888888" />
+      <Ionicons name="chevron-forward" size={18} color="#888888" />
     </TouchableOpacity>
   );
 
   return (
     <ScrollView style={styles.container}>
-      {/* Header */}
+      {/* Professional Header */}
       <View style={styles.header}>
-        <Ionicons name="settings" size={28} color="#1976d2" />
         <Text style={styles.headerTitle}>Settings</Text>
       </View>
-
-      {/* Stats Card */}
-      <TouchableOpacity 
-        style={styles.statsCard}
-        onPress={() => setShowEntriesModal(true)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.statItem}>
-          <Ionicons name="document-text" size={24} color="#1976d2" />
-          <Text style={styles.statValue}>{entryCount}</Text>
-          <Text style={styles.statLabel}>Total Entries</Text>
-          <Text style={styles.statHint}>Tap to view all entries</Text>
-        </View>
-      </TouchableOpacity>
 
       {/* Share App Section */}
       <CollapsibleSection title="Share App" icon="share-social-outline" defaultExpanded={true}>
@@ -203,6 +262,63 @@ const SettingsScreen = () => {
             title="Share Download Link"
             description="Share the download link with others"
             onPress={shareDriveDownload}
+          />
+        </View>
+      </CollapsibleSection>
+
+      {/* Balance Management Section */}
+      <CollapsibleSection title="Balance Management" icon="wallet-outline" defaultExpanded={true}>
+        <View style={styles.sectionContent}>
+          <Text style={styles.sectionDescription}>
+            Set and manage your bank and cash balances. Balances update automatically as you add entries.
+          </Text>
+          
+          {/* Current Balances Display */}
+          <View style={styles.balanceDisplayRow}>
+            {bankBalance !== null && (
+              <View style={styles.balanceDisplayCard}>
+                <Ionicons name="phone-portrait" size={20} color="#007AFF" />
+                <Text style={styles.balanceDisplayLabel}>Bank / UPI</Text>
+                <Text style={[
+                  styles.balanceDisplayAmount,
+                  bankBalance < 0 && styles.balanceDisplayAmountNegative
+                ]}>
+                  ₹{bankBalance.toFixed(2)}
+                </Text>
+              </View>
+            )}
+            {cashBalance !== null && (
+              <View style={styles.balanceDisplayCard}>
+                <Ionicons name="cash" size={20} color="#888888" />
+                <Text style={styles.balanceDisplayLabel}>Cash</Text>
+                <Text style={[
+                  styles.balanceDisplayAmount,
+                  cashBalance < 0 && styles.balanceDisplayAmountNegative
+                ]}>
+                  ₹{cashBalance.toFixed(2)}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <SettingCard
+            icon="card-outline"
+            title="Set Bank / UPI Balance"
+            description="Set your initial bank or UPI balance"
+            onPress={() => handleSetBalance('bank')}
+          />
+          <SettingCard
+            icon="cash-outline"
+            title="Set Cash Balance"
+            description="Set your initial cash balance"
+            onPress={() => handleSetBalance('cash')}
+          />
+          <SettingCard
+            icon="calculator-outline"
+            title="Auto Calculate from Entries"
+            description="Calculate initial balances from all existing entries"
+            onPress={handleAutoCalculateBalances}
+            disabled={entryCount === 0}
           />
         </View>
       </CollapsibleSection>
@@ -379,6 +495,70 @@ const SettingsScreen = () => {
         onClose={() => setShowEntriesModal(false)}
         title="All Entries Report"
       />
+
+      {/* Balance Setting Modal */}
+      <Modal
+        visible={showBalanceModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowBalanceModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                Set {balanceType === 'bank' ? 'Bank / UPI' : 'Cash'} Balance
+              </Text>
+              <TouchableOpacity 
+                onPress={() => setShowBalanceModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close" size={24} color="#b0b0b0" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalDescription}>
+              Enter your current {balanceType === 'bank' ? 'bank/UPI' : 'cash'} balance. This will be used as the starting point for tracking.
+            </Text>
+
+            <View style={styles.inputContainer}>
+              <Ionicons 
+                name={balanceType === 'bank' ? 'phone-portrait' : 'cash'} 
+                size={20} 
+                color="#b0b0b0" 
+                style={styles.inputIcon} 
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Enter balance amount"
+                placeholderTextColor="#999"
+                value={balanceInput}
+                onChangeText={setBalanceInput}
+                keyboardType="numeric"
+                autoFocus={true}
+              />
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => {
+                  setShowBalanceModal(false);
+                  setBalanceInput('');
+                }}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalSaveButton}
+                onPress={handleSaveBalance}
+              >
+                <Text style={styles.modalSaveText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -392,69 +572,47 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 20,
-    paddingTop: 16,
-    backgroundColor: '#1e1e1e',
+    paddingTop: 20,
+    paddingBottom: 16,
+    backgroundColor: '#1C1C1E',
     borderBottomWidth: 1,
-    borderBottomColor: '#333333',
+    borderBottomColor: '#2a2a2a',
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
     color: '#ffffff',
-    marginLeft: 12,
-  },
-  statsCard: {
-    backgroundColor: '#1e1e1e',
-    margin: 16,
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#333333',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: '#1976d2',
-    marginTop: 8,
-  },
-  statLabel: {
-    fontSize: 14,
-    color: '#b0b0b0',
-    marginTop: 4,
-  },
-  statHint: {
-    fontSize: 12,
-    color: '#888888',
-    marginTop: 4,
-    fontStyle: 'italic',
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
   },
   collapsibleSection: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-    backgroundColor: '#1e1e1e',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#333333',
+    marginHorizontal: 0,
+    marginBottom: 0,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 0,
+    borderWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a2a2a',
     overflow: 'hidden',
   },
   collapsibleHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    padding: 20,
+    paddingVertical: 16,
   },
   collapsibleHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   collapsibleTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#888888',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   collapsibleContent: {
     paddingHorizontal: 16,
@@ -472,39 +630,31 @@ const styles = StyleSheet.create({
   settingCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2a2a2a',
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#333333',
+    backgroundColor: '#2C2C2E',
+    padding: 16,
+    borderRadius: 0,
+    marginBottom: 1,
+    borderWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1C1C1E',
   },
   settingCardDisabled: {
     opacity: 0.5,
-  },
-  settingIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#1a2332',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: '#2a3441',
   },
   settingContent: {
     flex: 1,
   },
   settingTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#ffffff',
-    marginBottom: 2,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#FFFFFF',
+    marginBottom: 4,
+    letterSpacing: -0.2,
   },
   settingDescription: {
-    fontSize: 13,
-    color: '#b0b0b0',
+    fontSize: 12,
+    color: '#888888',
+    letterSpacing: 0.1,
   },
   infoCard: {
     backgroundColor: '#2a2a2a',
@@ -577,6 +727,124 @@ const styles = StyleSheet.create({
   boldText: {
     fontWeight: '700',
     color: '#ffffff',
+  },
+  balanceDisplayRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  balanceDisplayCard: {
+    flex: 1,
+    backgroundColor: '#2C2C2E',
+    padding: 14,
+    borderRadius: 0,
+    borderWidth: 0,
+    alignItems: 'center',
+  },
+  balanceDisplayLabel: {
+    fontSize: 10,
+    color: '#888888',
+    marginTop: 0,
+    marginBottom: 6,
+    fontWeight: '500',
+    letterSpacing: 0.3,
+  },
+  balanceDisplayAmount: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+  },
+  balanceDisplayAmountNegative: {
+    color: '#d32f2f',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#2C2C2E',
+    borderRadius: 20,
+    padding: 24,
+    width: '90%',
+    maxWidth: 400,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  modalCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#2a2a2a',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: '#b0b0b0',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#333333',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 20,
+    backgroundColor: '#2a2a2a',
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: '#ffffff',
+    padding: 0,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#1C1C1E',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#b0b0b0',
+  },
+  modalSaveButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#007AFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalSaveText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
   },
   featureList: {
     marginTop: 8,

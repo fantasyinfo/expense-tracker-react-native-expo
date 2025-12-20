@@ -201,12 +201,6 @@ const SummaryScreen = () => {
               onPress={() => handlePeriodSelect(period)}
               activeOpacity={0.7}
             >
-              <Ionicons
-                name={getPeriodIcon(period)}
-                size={16}
-                color={selectedPeriod === period && !isCustomDateRange ? '#fff' : '#666'}
-                style={styles.periodIcon}
-              />
               <Text
                 style={[
                   styles.periodButtonText,
@@ -226,12 +220,6 @@ const SummaryScreen = () => {
             onPress={handleCustomDateRange}
             activeOpacity={0.7}
           >
-            <Ionicons
-              name="calendar"
-              size={16}
-              color={isCustomDateRange ? '#fff' : '#666'}
-              style={styles.periodIcon}
-            />
             <Text
               style={[
                 styles.periodButtonText,
@@ -298,65 +286,39 @@ const SummaryScreen = () => {
       {/* Totals Display */}
       <View style={styles.totalsSection}>
         <View style={styles.sectionHeader}>
-          <Ionicons name="stats-chart" size={24} color="#1976d2" />
           <Text style={styles.sectionTitle}>Summary</Text>
+          <TouchableOpacity onPress={() => setShowEntriesModal(true)} activeOpacity={0.7}>
+            <Text style={styles.viewAllLink}>View All Entries</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Expense Card */}
-        <View style={[styles.totalCard, styles.expenseCard]}>
-          <View style={styles.totalCardLeft}>
-            <View style={[styles.iconCircle, styles.expenseIconBg]}>
-              <Ionicons name="arrow-down-circle" size={28} color="#d32f2f" />
-            </View>
-            <View style={styles.totalCardContent}>
-              <Text style={styles.totalCardLabel}>Total Expense</Text>
-              <Text style={[styles.totalCardValue, styles.expenseAmount]}>
-                ₹{totals.expense.toFixed(2)}
-              </Text>
-            </View>
+        {/* Professional Finance Summary Cards */}
+        <View style={styles.financeSummaryGrid}>
+          {/* Expense */}
+          <View style={styles.financeCard}>
+            <Text style={styles.financeLabel}>Total Expense</Text>
+            <Text style={[styles.financeAmount, styles.financeAmountExpense]}>
+              ₹{totals.expense.toFixed(2)}
+            </Text>
           </View>
-        </View>
 
-        {/* Income Card */}
-        <View style={[styles.totalCard, styles.incomeCard]}>
-          <View style={styles.totalCardLeft}>
-            <View style={[styles.iconCircle, styles.incomeIconBg]}>
-              <Ionicons name="arrow-up-circle" size={28} color="#388e3c" />
-            </View>
-            <View style={styles.totalCardContent}>
-              <Text style={styles.totalCardLabel}>Total Income</Text>
-              <Text style={[styles.totalCardValue, styles.incomeAmount]}>
-                ₹{totals.income.toFixed(2)}
-              </Text>
-            </View>
+          {/* Income */}
+          <View style={styles.financeCard}>
+            <Text style={styles.financeLabel}>Total Income</Text>
+            <Text style={[styles.financeAmount, styles.financeAmountIncome]}>
+              ₹{totals.income.toFixed(2)}
+            </Text>
           </View>
-        </View>
 
-        {/* Balance Card */}
-        <View style={[styles.totalCard, styles.balanceCard]}>
-          <View style={styles.totalCardLeft}>
-            <View style={[
-              styles.iconCircle,
-              totals.balance >= 0 ? styles.balancePositiveBg : styles.balanceNegativeBg
+          {/* Balance */}
+          <View style={styles.financeCard}>
+            <Text style={styles.financeLabel}>Net Balance</Text>
+            <Text style={[
+              styles.financeAmount,
+              totals.balance >= 0 ? styles.financeAmountIncome : styles.financeAmountExpense
             ]}>
-              <Ionicons
-                name={totals.balance >= 0 ? 'trending-up' : 'trending-down'}
-                size={28}
-                color={totals.balance >= 0 ? '#388e3c' : '#d32f2f'}
-              />
-            </View>
-            <View style={styles.totalCardContent}>
-              <Text style={styles.totalCardLabel}>Net Balance</Text>
-              <Text
-                style={[
-                  styles.totalCardValue,
-                  styles.balanceValue,
-                  totals.balance >= 0 ? styles.incomeAmount : styles.expenseAmount,
-                ]}
-              >
-                ₹{totals.balance.toFixed(2)}
-              </Text>
-            </View>
+              ₹{totals.balance.toFixed(2)}
+            </Text>
           </View>
         </View>
 
@@ -369,12 +331,10 @@ const SummaryScreen = () => {
             <Text style={styles.breakdownSectionTitle}>Expense</Text>
             <View style={styles.breakdownRow}>
               <View style={styles.breakdownItem}>
-                <Ionicons name="phone-portrait" size={16} color="#007AFF" />
                 <Text style={styles.breakdownLabel}>UPI</Text>
                 <Text style={styles.breakdownValue}>₹{(totals.expenseUpi || 0).toFixed(2)}</Text>
               </View>
               <View style={styles.breakdownItem}>
-                <Ionicons name="cash" size={16} color="#888888" />
                 <Text style={styles.breakdownLabel}>Cash</Text>
                 <Text style={styles.breakdownValue}>₹{(totals.expenseCash || 0).toFixed(2)}</Text>
               </View>
@@ -386,12 +346,10 @@ const SummaryScreen = () => {
             <Text style={styles.breakdownSectionTitle}>Income</Text>
             <View style={styles.breakdownRow}>
               <View style={styles.breakdownItem}>
-                <Ionicons name="phone-portrait" size={16} color="#007AFF" />
                 <Text style={styles.breakdownLabel}>UPI</Text>
                 <Text style={styles.breakdownValue}>₹{(totals.incomeUpi || 0).toFixed(2)}</Text>
               </View>
               <View style={styles.breakdownItem}>
-                <Ionicons name="cash" size={16} color="#888888" />
                 <Text style={styles.breakdownLabel}>Cash</Text>
                 <Text style={styles.breakdownValue}>₹{(totals.incomeCash || 0).toFixed(2)}</Text>
               </View>
@@ -404,7 +362,6 @@ const SummaryScreen = () => {
       {entries.length > 0 && (
         <View style={styles.chartsSection}>
           <View style={styles.chartHeader}>
-            <Ionicons name="bar-chart" size={24} color="#1976d2" />
             <Text style={styles.sectionTitle}>Visualizations</Text>
           </View>
 
@@ -659,44 +616,48 @@ const styles = StyleSheet.create({
   periodContainer: {
     backgroundColor: '#1C1C1E',
     paddingVertical: 12,
-    borderBottomWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a2a2a',
   },
   periodScrollContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
   periodButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 6,
-    borderRadius: 20,
+    paddingVertical: 10,
+    marginRight: 8,
+    borderRadius: 0,
     backgroundColor: '#2C2C2E',
     borderWidth: 0,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
   periodButtonActive: {
-    backgroundColor: '#1976d2',
-    borderColor: '#1976d2',
+    backgroundColor: '#2C2C2E',
+    borderBottomColor: '#FFFFFF',
   },
   customDateButton: {
-    borderWidth: 2,
-    borderStyle: 'dashed',
-  },
-  periodIcon: {
-    marginRight: 6,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
   periodButtonText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
-    color: '#A0A0A0',
+    color: '#888888',
+    letterSpacing: 0.3,
   },
   periodButtonTextActive: {
-    color: '#fff',
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   customDateContainer: {
     backgroundColor: '#1C1C1E',
-    padding: 16,
-    borderBottomWidth: 0,
+    padding: 20,
+    paddingTop: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a2a2a',
   },
   datePickerRow: {
     flexDirection: 'row',
@@ -707,104 +668,91 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#2C2C2E',
-    padding: 12,
-    borderRadius: 10,
+    padding: 14,
+    borderRadius: 0,
     borderWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1C1C1E',
     gap: 10,
   },
   datePickerTextContainer: {
     flex: 1,
   },
   datePickerLabel: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#888888',
     marginBottom: 4,
+    fontWeight: '500',
+    letterSpacing: 0.3,
   },
   datePickerValue: {
     fontSize: 13,
     fontWeight: '500',
     color: '#FFFFFF',
+    letterSpacing: -0.2,
   },
   totalsSection: {
-    backgroundColor: '#2C2C2E',
-    margin: 16,
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: '#1C1C1E',
+    margin: 0,
+    padding: 20,
+    paddingBottom: 16,
+    borderRadius: 0,
     borderWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a2a2a',
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    paddingHorizontal: 0,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 11,
     fontWeight: '600',
-    color: '#FFFFFF',
-    marginLeft: 8,
-    letterSpacing: -0.2,
+    color: '#888888',
+    marginLeft: 0,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-  totalCard: {
-    borderRadius: 12,
+  viewAllLink: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#888888',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  financeSummaryGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 0,
+  },
+  financeCard: {
+    flex: 1,
+    backgroundColor: '#2C2C2E',
+    borderRadius: 8,
     padding: 14,
-    marginBottom: 10,
-    backgroundColor: '#1C1C1E',
     borderWidth: 0,
   },
-  expenseCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#d32f2f',
+  financeLabel: {
+    fontSize: 11,
+    color: '#888888',
+    fontWeight: '500',
+    marginBottom: 8,
+    letterSpacing: 0.2,
   },
-  incomeCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#388e3c',
-  },
-  balanceCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#1976d2',
-    backgroundColor: '#1a2332',
-  },
-  totalCardLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  expenseIconBg: {
-    backgroundColor: '#3d1f1f',
-  },
-  incomeIconBg: {
-    backgroundColor: '#1f3d1f',
-  },
-  balancePositiveBg: {
-    backgroundColor: '#1f3d1f',
-  },
-  balanceNegativeBg: {
-    backgroundColor: '#3d1f1f',
-  },
-  totalCardContent: {
-    flex: 1,
-  },
-  totalCardLabel: {
-    fontSize: 12,
-    color: '#A0A0A0',
-    marginBottom: 4,
-    fontWeight: '400',
-  },
-  totalCardValue: {
-    fontSize: 20,
+  financeAmount: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
     letterSpacing: -0.3,
   },
-  balanceValue: {
-    fontSize: 24,
+  financeAmountExpense: {
+    color: '#d32f2f',
+  },
+  financeAmountIncome: {
+    color: '#388e3c',
   },
   expenseAmount: {
     color: '#d32f2f',
@@ -813,13 +761,15 @@ const styles = StyleSheet.create({
     color: '#388e3c',
   },
   chartsSection: {
-    margin: 16,
+    margin: 0,
+    padding: 20,
+    paddingTop: 16,
     marginTop: 0,
   },
   chartHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   chartTypeContainer: {
     flexDirection: 'row',
@@ -852,17 +802,18 @@ const styles = StyleSheet.create({
   },
   chartCard: {
     backgroundColor: '#2C2C2E',
-    borderRadius: 12,
+    borderRadius: 0,
     padding: 16,
     marginBottom: 12,
     borderWidth: 0,
   },
   chartTitle: {
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 10,
-    letterSpacing: -0.2,
+    color: '#888888',
+    marginBottom: 12,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   chart: {
     marginVertical: 8,
@@ -870,11 +821,14 @@ const styles = StyleSheet.create({
   },
   countCard: {
     backgroundColor: '#2C2C2E',
-    margin: 16,
+    margin: 0,
     marginTop: 0,
-    padding: 16,
-    borderRadius: 12,
+    padding: 20,
+    paddingTop: 16,
+    borderRadius: 0,
     borderWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a2a2a',
   },
   countContent: {
     flexDirection: 'row',
@@ -902,11 +856,12 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   entriesSection: {
-    backgroundColor: '#2C2C2E',
-    margin: 16,
+    backgroundColor: '#1C1C1E',
+    margin: 0,
     marginTop: 0,
-    padding: 16,
-    borderRadius: 12,
+    padding: 20,
+    paddingTop: 16,
+    borderRadius: 0,
     borderWidth: 0,
   },
   entriesListContainer: {
@@ -915,11 +870,13 @@ const styles = StyleSheet.create({
   entryItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    marginBottom: 8,
-    backgroundColor: '#1C1C1E',
-    borderRadius: 10,
+    padding: 14,
+    marginBottom: 1,
+    backgroundColor: '#2C2C2E',
+    borderRadius: 0,
     borderWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1C1C1E',
   },
   entryIconContainer: {
     width: 40,
@@ -984,10 +941,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 12,
-    marginTop: 6,
-    backgroundColor: '#1C1C1E',
-    borderRadius: 10,
+    padding: 14,
+    marginTop: 8,
+    backgroundColor: '#2C2C2E',
+    borderRadius: 0,
     borderWidth: 0,
   },
   viewAllText: {
@@ -997,54 +954,55 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   paymentBreakdownSection: {
-    marginTop: 16,
-    paddingTop: 16,
+    marginTop: 20,
+    paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: '#333333',
+    borderTopColor: '#2a2a2a',
   },
   breakdownTitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-    color: '#A0A0A0',
-    marginBottom: 12,
+    color: '#888888',
+    marginBottom: 16,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
   breakdownSection: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
   breakdownSectionTitle: {
     fontSize: 12,
     fontWeight: '600',
     color: '#FFFFFF',
-    marginBottom: 8,
+    marginBottom: 10,
+    letterSpacing: 0.2,
   },
   breakdownRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    gap: 8,
+    justifyContent: 'space-between',
+    gap: 12,
   },
   breakdownItem: {
     flex: 1,
     alignItems: 'center',
     padding: 12,
-    backgroundColor: '#1C1C1E',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#333333',
-    marginHorizontal: 4,
+    backgroundColor: '#2C2C2E',
+    borderRadius: 8,
+    borderWidth: 0,
   },
   breakdownLabel: {
     fontSize: 10,
-    color: '#b0b0b0',
+    color: '#888888',
     marginTop: 6,
-    marginBottom: 4,
+    marginBottom: 6,
     fontWeight: '500',
+    letterSpacing: 0.3,
   },
   breakdownValue: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '600',
     color: '#FFFFFF',
+    letterSpacing: -0.2,
   },
 });
 

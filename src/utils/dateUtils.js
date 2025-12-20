@@ -119,21 +119,29 @@ export const filterEntriesByDateRange = (entries, startDate, endDate) => {
 export const calculateTotals = (entries) => {
   const totals = entries.reduce(
     (acc, entry) => {
+      // Skip balance adjustments - they don't affect income/expense totals
+      if (entry.type === 'balance_adjustment') {
+        return acc;
+      }
+
       const amount = parseFloat(entry.amount) || 0;
-      const mode = entry.mode || 'upi';
+      // Skip invalid amounts
+      if (isNaN(amount) || amount <= 0) return acc;
       
+      const mode = entry.mode || 'upi';
+
       if (entry.type === 'expense') {
         acc.expense += amount;
         if (mode === 'upi') {
           acc.expenseUpi += amount;
-        } else {
+        } else if (mode === 'cash') {
           acc.expenseCash += amount;
         }
-      } else {
+      } else if (entry.type === 'income') {
         acc.income += amount;
         if (mode === 'upi') {
           acc.incomeUpi += amount;
-        } else {
+        } else if (mode === 'cash') {
           acc.incomeCash += amount;
         }
       }
