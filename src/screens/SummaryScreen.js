@@ -15,7 +15,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LineChart, BarChart } from 'react-native-chart-kit';
-import { filterEntriesByPeriod, filterEntriesByDateRange, calculateTotals, formatDateWithMonthName, formatDate } from '../utils/dateUtils';
+import { filterEntriesByPeriod, filterEntriesByDateRange, calculateTotals, formatDateWithMonthName, formatDate, formatCurrency } from '../utils/dateUtils';
 import { loadEntries } from '../utils/storage';
 import { prepareExpenseIncomeChart, prepareMonthlyChart, preparePaymentMethodChart } from '../utils/chartUtils';
 import AppFooter from '../components/AppFooter';
@@ -297,27 +297,42 @@ const SummaryScreen = () => {
           {/* Expense */}
           <View style={styles.financeCard}>
             <Text style={styles.financeLabel}>Total Expense</Text>
-            <Text style={[styles.financeAmount, styles.financeAmountExpense]}>
-              ₹{totals.expense.toFixed(2)}
+            <Text 
+              style={[styles.financeAmount, styles.financeAmountExpense]}
+              numberOfLines={1}
+              adjustsFontSizeToFit={true}
+              minimumFontScale={0.6}
+            >
+              ₹{formatCurrency(totals.expense)}
             </Text>
           </View>
 
           {/* Income */}
           <View style={styles.financeCard}>
             <Text style={styles.financeLabel}>Total Income</Text>
-            <Text style={[styles.financeAmount, styles.financeAmountIncome]}>
-              ₹{totals.income.toFixed(2)}
+            <Text 
+              style={[styles.financeAmount, styles.financeAmountIncome]}
+              numberOfLines={1}
+              adjustsFontSizeToFit={true}
+              minimumFontScale={0.6}
+            >
+              ₹{formatCurrency(totals.income)}
             </Text>
           </View>
 
           {/* Balance */}
           <View style={styles.financeCard}>
             <Text style={styles.financeLabel}>Net Balance</Text>
-            <Text style={[
-              styles.financeAmount,
-              totals.balance >= 0 ? styles.financeAmountIncome : styles.financeAmountExpense
-            ]}>
-              ₹{totals.balance.toFixed(2)}
+            <Text 
+              style={[
+                styles.financeAmount,
+                totals.balance >= 0 ? styles.financeAmountIncome : styles.financeAmountExpense
+              ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit={true}
+              minimumFontScale={0.6}
+            >
+              ₹{formatCurrency(totals.balance)}
             </Text>
           </View>
         </View>
@@ -332,11 +347,25 @@ const SummaryScreen = () => {
             <View style={styles.breakdownRow}>
               <View style={styles.breakdownItem}>
                 <Text style={styles.breakdownLabel}>UPI</Text>
-                <Text style={styles.breakdownValue}>₹{(totals.expenseUpi || 0).toFixed(2)}</Text>
+                <Text 
+                  style={styles.breakdownValue}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit={true}
+                  minimumFontScale={0.7}
+                >
+                  ₹{formatCurrency(totals.expenseUpi || 0)}
+                </Text>
               </View>
               <View style={styles.breakdownItem}>
                 <Text style={styles.breakdownLabel}>Cash</Text>
-                <Text style={styles.breakdownValue}>₹{(totals.expenseCash || 0).toFixed(2)}</Text>
+                <Text 
+                  style={styles.breakdownValue}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit={true}
+                  minimumFontScale={0.7}
+                >
+                  ₹{formatCurrency(totals.expenseCash || 0)}
+                </Text>
               </View>
             </View>
           </View>
@@ -347,11 +376,25 @@ const SummaryScreen = () => {
             <View style={styles.breakdownRow}>
               <View style={styles.breakdownItem}>
                 <Text style={styles.breakdownLabel}>UPI</Text>
-                <Text style={styles.breakdownValue}>₹{(totals.incomeUpi || 0).toFixed(2)}</Text>
+                <Text 
+                  style={styles.breakdownValue}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit={true}
+                  minimumFontScale={0.7}
+                >
+                  ₹{formatCurrency(totals.incomeUpi || 0)}
+                </Text>
               </View>
               <View style={styles.breakdownItem}>
                 <Text style={styles.breakdownLabel}>Cash</Text>
-                <Text style={styles.breakdownValue}>₹{(totals.incomeCash || 0).toFixed(2)}</Text>
+                <Text 
+                  style={styles.breakdownValue}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit={true}
+                  minimumFontScale={0.7}
+                >
+                  ₹{formatCurrency(totals.incomeCash || 0)}
+                </Text>
               </View>
             </View>
           </View>
@@ -552,7 +595,7 @@ const SummaryScreen = () => {
                       styles.entryAmount,
                       entry.type === 'expense' ? styles.expenseAmount : styles.incomeAmount
                     ]}>
-                      {entry.type === 'expense' ? '-' : '+'}₹{parseFloat(entry.amount).toFixed(2)}
+                      {entry.type === 'expense' ? '-' : '+'}₹{formatCurrency(entry.amount)}
                     </Text>
                     <View style={styles.modeIndicator}>
                       <Ionicons

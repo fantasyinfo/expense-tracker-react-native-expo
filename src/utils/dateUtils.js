@@ -161,3 +161,24 @@ export const calculateTotals = (entries) => {
   return totals;
 };
 
+/**
+ * Format number with commas (thousands separator) and fixed decimal places
+ */
+export const formatCurrency = (amount, decimals = 2) => {
+  if (amount === null || amount === undefined || isNaN(amount)) {
+    return '0.00';
+  }
+  const num = parseFloat(amount);
+  if (isNaN(num)) return '0.00';
+  
+  // Split into integer and decimal parts
+  const parts = num.toFixed(decimals).split('.');
+  const integerPart = parts[0];
+  const decimalPart = parts[1] || '';
+  
+  // Add commas to integer part
+  const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  
+  return `${formattedInteger}.${decimalPart}`;
+};
+

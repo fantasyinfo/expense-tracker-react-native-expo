@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,13 @@ import {
   ScrollView,
   Platform,
   Modal,
+  Alert,
+  Animated,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { formatDate, filterEntriesByPeriod, filterEntriesByDateRange, calculateTotals, formatDateWithMonthName } from '../utils/dateUtils';
+import { formatDate, filterEntriesByPeriod, filterEntriesByDateRange, calculateTotals, formatDateWithMonthName, formatCurrency } from '../utils/dateUtils';
 import { loadEntries, deleteEntry } from '../utils/storage';
 import { getCurrentBankBalance, getCurrentCashBalance } from '../utils/balanceUtils';
 import AddEntryModal from '../components/AddEntryModal';
@@ -36,6 +38,9 @@ const HomeScreen = () => {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState(null);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [showStickyHeader, setShowStickyHeader] = useState(false);
+  const stickyHeaderOpacity = useRef(new Animated.Value(0)).current;
 
   const today = formatDate(new Date());
 
@@ -181,7 +186,7 @@ const HomeScreen = () => {
               {isBalanceAdjustment 
                 ? (adjustmentIsAdd ? '+' : '-')
                 : (item.type === 'expense' ? '-' : '+')
-              }₹{parseFloat(item.amount).toFixed(2)}
+              }₹{formatCurrency(item.amount)}
             </Text>
             <View style={styles.modeIndicator}>
               <Ionicons
@@ -215,61 +220,71 @@ const HomeScreen = () => {
   };
 
 
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: false,
+      listener: (event) => {
+        const offsetY = event.nativeEvent.contentOffset.y;
+        // Show sticky header when scrolled past 100px
+        if (offsetY > 100 && !showStickyHeader) {
+          setShowStickyHeader(true);
+          Animated.timing(stickyHeaderOpacity, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }).start();
+        } else if (offsetY <= 100 && showStickyHeader) {
+          Animated.timing(stickyHeaderOpacity, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => {
+            setShowStickyHeader(false);
+          });
+        }
+      },
+    }
+  );
+
   return (
     <View style={styles.container}>
-      {/* Professional Header */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <View style={styles.headerTextContainer}>
-            <Text style={styles.headerTitle}>
-              {isCustomDateRange ? 'Filtered Summary' : "Today's Summary"}
-            </Text>
-            <Text style={styles.headerSubtitle}>
-              {isCustomDateRange 
-                ? `${formatDateWithMonthName(formatDate(startDate))} to ${formatDateWithMonthName(formatDate(endDate))}`
-                : formatDateWithMonthName(today)
-              }
-            </Text>
-          </View>
-        </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity 
-            style={styles.filterButton} 
-            onPress={() => setShowFilterModal(true)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="filter" size={18} color="#888888" />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.refreshButton} 
-            onPress={onRefresh}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="refresh" size={18} color="#888888" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Professional Finance Summary - Fixed */}
-      <View style={styles.fixedSummarySection}>
-        <View style={styles.fixedSummaryCard}>
-          <View style={styles.fixedSummaryRow}>
-            <View style={styles.fixedSummaryItem}>
-              <Text style={styles.fixedSummaryLabel}>Expense</Text>
-              <Text style={[styles.fixedSummaryValue, styles.summaryValueExpense]}>
-                ₹{totals.expense.toFixed(2)}
-              </Text>
+      {/* Sticky Compact Header - Shows only Expense and Income when scrolling */}
+      {showStickyHeader && (
+        <Animated.View style={[styles.stickyHeader, { opacity: stickyHeaderOpacity }]}>
+          <View style={styles.stickyHeaderContent}>
+            <View style={styles.stickyHeaderItem}>
+              <Ionicons name="arrow-down" size={16} color="#FF6B6B" />
+              <View style={styles.stickyHeaderTextContainer}>
+                <Text style={styles.stickyHeaderLabel}>Expense</Text>
+                <Text 
+                  style={styles.stickyHeaderValue}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit={true}
+                  minimumFontScale={0.8}
+                >
+                  ₹{formatCurrency(totals.expense)}
+                </Text>
+              </View>
             </View>
-            <View style={styles.fixedSummaryDivider} />
-            <View style={styles.fixedSummaryItem}>
-              <Text style={styles.fixedSummaryLabel}>Income</Text>
-              <Text style={[styles.fixedSummaryValue, styles.summaryValueIncome]}>
-                ₹{totals.income.toFixed(2)}
-              </Text>
+            <View style={styles.stickyHeaderDivider} />
+            <View style={styles.stickyHeaderItem}>
+              <Ionicons name="arrow-up" size={16} color="#51CF66" />
+              <View style={styles.stickyHeaderTextContainer}>
+                <Text style={styles.stickyHeaderLabel}>Income</Text>
+                <Text 
+                  style={[styles.stickyHeaderValue, styles.stickyHeaderValueIncome]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit={true}
+                  minimumFontScale={0.8}
+                >
+                  ₹{formatCurrency(totals.income)}
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
-      </View>
+        </Animated.View>
+      )}
 
       {/* Scrollable Content Area */}
       <ScrollView 
@@ -279,34 +294,157 @@ const HomeScreen = () => {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
-        {/* Balance Cards - Scrollable */}
-        {(bankBalance !== null || cashBalance !== null) && (
-          <View style={styles.balanceCardsSection}>
-            {bankBalance !== null && (
-              <View style={[styles.balanceCard, bankBalance < 0 && styles.balanceCardNegative]}>
-                <Text style={styles.balanceCardLabel}>Bank / UPI Balance</Text>
-                <Text style={[
-                  styles.balanceCardAmount,
-                  bankBalance < 0 && styles.balanceCardAmountNegative
-                ]}>
-                  {bankBalance < 0 ? '-' : ''}₹{Math.abs(bankBalance).toFixed(2)}
-                </Text>
-              </View>
-            )}
-            {cashBalance !== null && (
-              <View style={[styles.balanceCard, cashBalance < 0 && styles.balanceCardNegative]}>
-                <Text style={styles.balanceCardLabel}>Cash Balance</Text>
-                <Text style={[
-                  styles.balanceCardAmount,
-                  cashBalance < 0 && styles.balanceCardAmountNegative
-                ]}>
-                  {cashBalance < 0 ? '-' : ''}₹{Math.abs(cashBalance).toFixed(2)}
-                </Text>
-              </View>
-            )}
+        {/* Professional Header - Now Scrollable */}
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.headerTitle}>
+                {isCustomDateRange ? 'Filtered Summary' : "Today's Summary"}
+              </Text>
+              <Text style={styles.headerSubtitle}>
+                {isCustomDateRange 
+                  ? `${formatDateWithMonthName(formatDate(startDate))} to ${formatDateWithMonthName(formatDate(endDate))}`
+                  : formatDateWithMonthName(today)
+                }
+              </Text>
+            </View>
           </View>
-        )}
+          <View style={styles.headerActions}>
+            <TouchableOpacity 
+              style={styles.filterButton} 
+              onPress={() => setShowFilterModal(true)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="filter" size={18} color="#888888" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.refreshButton} 
+              onPress={onRefresh}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="refresh" size={18} color="#888888" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* ATM Card Style Design - Now Scrollable */}
+        <View style={styles.fixedSummarySection}>
+        <View style={styles.atmCard}>
+          {/* Card Header */}
+          <View style={styles.atmCardHeader}>
+            <View style={styles.atmCardHeaderLeft}>
+              <Text style={styles.atmCardTitle}>Balance Overview</Text>
+              <Text style={styles.atmCardSubtitle}>
+                {isCustomDateRange 
+                  ? `${formatDateWithMonthName(formatDate(startDate))} - ${formatDateWithMonthName(formatDate(endDate))}`
+                  : formatDateWithMonthName(today)
+                }
+              </Text>
+            </View>
+            <View style={styles.atmCardChip}>
+              <View style={styles.chipInner} />
+            </View>
+          </View>
+
+          {/* Main Balance Display */}
+          <View style={styles.atmCardMainBalance}>
+            <Text style={styles.atmCardBalanceLabel}>Net Balance</Text>
+            <Text 
+              style={[
+                styles.atmCardBalanceAmount,
+                totals.balance < 0 && styles.atmCardBalanceAmountNegative
+              ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit={true}
+              minimumFontScale={0.7}
+            >
+              ₹{formatCurrency(totals.balance)}
+            </Text>
+          </View>
+
+          {/* Bottom Section - Income, Expense, UPI, Cash */}
+          <View style={styles.atmCardBottom}>
+            <View style={styles.atmCardRow}>
+              <View style={styles.atmCardItem}>
+                <View style={styles.atmCardItemHeader}>
+                  <Ionicons name="arrow-down" size={14} color="#FF6B6B" />
+                  <Text style={styles.atmCardItemLabel}>Expense</Text>
+                </View>
+                <Text 
+                  style={styles.atmCardItemValue}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit={true}
+                  minimumFontScale={0.75}
+                >
+                  ₹{formatCurrency(totals.expense)}
+                </Text>
+              </View>
+              
+              <View style={styles.atmCardItem}>
+                <View style={styles.atmCardItemHeader}>
+                  <Ionicons name="arrow-up" size={14} color="#51CF66" />
+                  <Text style={styles.atmCardItemLabel}>Income</Text>
+                </View>
+                <Text 
+                  style={[styles.atmCardItemValue, styles.atmCardItemValueIncome]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit={true}
+                  minimumFontScale={0.75}
+                >
+                  ₹{formatCurrency(totals.income)}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.atmCardRow}>
+              <View style={styles.atmCardItem}>
+                <View style={styles.atmCardItemHeader}>
+                  <Ionicons name="phone-portrait" size={14} color="#4DABF7" />
+                  <Text style={styles.atmCardItemLabel}>UPI Balance</Text>
+                </View>
+                <Text 
+                  style={[
+                    styles.atmCardItemValue,
+                    bankBalance !== null && bankBalance < 0 && styles.atmCardItemValueNegative
+                  ]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit={true}
+                  minimumFontScale={0.75}
+                >
+                  {bankBalance !== null 
+                    ? `₹${formatCurrency(Math.abs(bankBalance))}`
+                    : '₹0.00'
+                  }
+                </Text>
+              </View>
+              
+              <View style={styles.atmCardItem}>
+                <View style={styles.atmCardItemHeader}>
+                  <Ionicons name="cash" size={14} color="#FFD43B" />
+                  <Text style={styles.atmCardItemLabel}>Cash Balance</Text>
+                </View>
+                <Text 
+                  style={[
+                    styles.atmCardItemValue,
+                    cashBalance !== null && cashBalance < 0 && styles.atmCardItemValueNegative
+                  ]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit={true}
+                  minimumFontScale={0.75}
+                >
+                  {cashBalance !== null 
+                    ? `₹${formatCurrency(Math.abs(cashBalance))}`
+                    : '₹0.00'
+                  }
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      </View>
 
         {/* Entries List Header */}
         <View style={styles.listHeader}>
@@ -485,6 +623,61 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#1C1C1E',
+  },
+  stickyHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#1C1C1E',
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a2a2a',
+    zIndex: 1000,
+    paddingTop: 8,
+    paddingBottom: 8,
+    paddingHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  stickyHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  stickyHeaderItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  stickyHeaderTextContainer: {
+    flex: 1,
+  },
+  stickyHeaderLabel: {
+    fontSize: 10,
+    color: '#888888',
+    fontWeight: '500',
+    marginBottom: 2,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  stickyHeaderValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+  },
+  stickyHeaderValueIncome: {
+    color: '#51CF66',
+  },
+  stickyHeaderDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: '#2a2a2a',
+    marginHorizontal: 12,
   },
   header: {
     flexDirection: 'row',
@@ -668,93 +861,123 @@ const styles = StyleSheet.create({
   },
   fixedSummarySection: {
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 16,
+    paddingTop: 20,
+    paddingBottom: 20,
     backgroundColor: '#1C1C1E',
-    borderBottomWidth: 1,
-    borderBottomColor: '#2a2a2a',
   },
-  fixedSummaryCard: {
+  atmCard: {
     backgroundColor: '#2C2C2E',
-    borderRadius: 0,
-    padding: 18,
+    borderRadius: 20,
+    padding: 24,
     borderWidth: 0,
-    borderTopWidth: 1,
-    borderTopColor: '#3a3a3a',
+    // Gradient-like effect with shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+    // Subtle gradient background effect
+    overflow: 'hidden',
   },
-  fixedSummaryRow: {
+  atmCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 24,
+  },
+  atmCardHeaderLeft: {
+    flex: 1,
+  },
+  atmCardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+    letterSpacing: 0.3,
+  },
+  atmCardSubtitle: {
+    fontSize: 12,
+    color: '#A0A0A0',
+    fontWeight: '400',
+  },
+  atmCardChip: {
+    width: 40,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: '#FFD700',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
+  },
+  chipInner: {
+    width: 32,
+    height: 20,
+    borderRadius: 4,
+    backgroundColor: '#FFA500',
+  },
+  atmCardMainBalance: {
+    marginBottom: 24,
+    paddingBottom: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#3a3a3a',
+  },
+  atmCardBalanceLabel: {
+    fontSize: 12,
+    color: '#A0A0A0',
+    fontWeight: '500',
+    marginBottom: 8,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  atmCardBalanceAmount: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#51CF66',
+    letterSpacing: -0.5,
+  },
+  atmCardBalanceAmountNegative: {
+    color: '#FF6B6B',
+  },
+  atmCardBottom: {
+    gap: 16,
+  },
+  atmCardRow: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  atmCardItem: {
+    flex: 1,
+  },
+  atmCardItemHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  fixedSummaryItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  fixedSummaryDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: '#2a2a2a',
-    marginHorizontal: 16,
-  },
-  fixedSummaryLabel: {
-    fontSize: 10,
-    color: '#888888',
-    fontWeight: '500',
     marginBottom: 6,
-    letterSpacing: 0.5,
+    gap: 6,
   },
-  fixedSummaryValue: {
+  atmCardItemLabel: {
+    fontSize: 11,
+    color: '#A0A0A0',
+    fontWeight: '500',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  atmCardItemValue: {
     fontSize: 18,
     fontWeight: '700',
+    color: '#FFFFFF',
     letterSpacing: -0.3,
   },
-  summaryValueExpense: {
-    color: '#d32f2f',
+  atmCardItemValueIncome: {
+    color: '#51CF66',
   },
-  summaryValueIncome: {
-    color: '#388e3c',
+  atmCardItemValueNegative: {
+    color: '#FF6B6B',
   },
   scrollableContent: {
     flex: 1,
   },
   scrollableContentContainer: {
     paddingBottom: 20,
-  },
-  balanceCardsSection: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 12,
-    gap: 12,
-  },
-  balanceCard: {
-    flex: 1,
-    backgroundColor: '#2C2C2E',
-    borderRadius: 0,
-    padding: 16,
-    borderWidth: 0,
-    borderTopWidth: 1,
-    borderTopColor: '#3a3a3a',
-    alignItems: 'center',
-  },
-  balanceCardNegative: {
-    backgroundColor: '#2C2C2E',
-  },
-  balanceCardLabel: {
-    fontSize: 10,
-    color: '#888888',
-    fontWeight: '500',
-    marginBottom: 6,
-    letterSpacing: 0.5,
-  },
-  balanceCardAmount: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: -0.3,
-  },
-  balanceCardAmountNegative: {
-    color: '#d32f2f',
   },
   listHeader: {
     flexDirection: 'row',
