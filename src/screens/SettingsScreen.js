@@ -25,6 +25,7 @@ import {
   getCurrentCashBalance,
   calculateInitialBalancesFromEntries
 } from '../utils/balanceUtils';
+import { getGoals, saveGoals, resetGoalCompletion } from '../utils/engagementUtils';
 import AppFooter from '../components/AppFooter';
 import EntriesReportModal from '../components/EntriesReportModal';
 import Colors from '../constants/colors';
@@ -62,6 +63,25 @@ const SettingsScreen = () => {
   const [showBalanceModal, setShowBalanceModal] = useState(false);
   const [balanceType, setBalanceType] = useState('bank'); // 'bank' or 'cash'
   const [balanceInput, setBalanceInput] = useState('');
+  const [goals, setGoals] = useState({ 
+    dailySavingsGoal: 0,
+    weeklySavingsGoal: 0,
+    monthlySavingsGoal: 0,
+    yearlySavingsGoal: 0,
+    customSavingsGoal: 0,
+    customSavingsGoalName: '',
+    dailyExpenseGoal: 0,
+    weeklyExpenseGoal: 0,
+    monthlyExpenseGoal: 0,
+    yearlyExpenseGoal: 0,
+    customExpenseGoal: 0,
+    customExpenseGoalName: '',
+  });
+  const [showGoalsModal, setShowGoalsModal] = useState(false);
+  const [goalType, setGoalType] = useState('monthly');
+  const [goalCategory, setGoalCategory] = useState('savings'); // 'savings' or 'expense'
+  const [goalInput, setGoalInput] = useState('');
+  const [customGoalNameInput, setCustomGoalNameInput] = useState('');
 
   const loadData = useCallback(async () => {
     const allEntries = await loadEntries();
@@ -73,6 +93,10 @@ const SettingsScreen = () => {
     const cashBal = await getCurrentCashBalance();
     setBankBalance(bankBal);
     setCashBalance(cashBal);
+    
+    // Load goals
+    const goalsData = await getGoals();
+    setGoals(goalsData);
   }, []);
 
   // Reload data when screen comes into focus
@@ -269,6 +293,120 @@ const SettingsScreen = () => {
         </View>
       </CollapsibleSection>
 
+      {/* Savings Goals Section */}
+      <CollapsibleSection title="Savings Goals">
+        <View style={styles.sectionContent}>
+          <SettingCard
+            title="Set Daily Savings Goal"
+            description={goals.dailySavingsGoal > 0 ? `Current: ₹${formatCurrency(goals.dailySavingsGoal)}` : 'Set your daily savings target'}
+            onPress={() => {
+              setGoalCategory('savings');
+              setGoalType('daily');
+              setGoalInput(goals.dailySavingsGoal > 0 ? goals.dailySavingsGoal.toString() : '');
+              setShowGoalsModal(true);
+            }}
+          />
+          <SettingCard
+            title="Set Weekly Savings Goal"
+            description={goals.weeklySavingsGoal > 0 ? `Current: ₹${formatCurrency(goals.weeklySavingsGoal)}` : 'Set your weekly savings target'}
+            onPress={() => {
+              setGoalCategory('savings');
+              setGoalType('weekly');
+              setGoalInput(goals.weeklySavingsGoal > 0 ? goals.weeklySavingsGoal.toString() : '');
+              setShowGoalsModal(true);
+            }}
+          />
+          <SettingCard
+            title="Set Monthly Savings Goal"
+            description={goals.monthlySavingsGoal > 0 ? `Current: ₹${formatCurrency(goals.monthlySavingsGoal)}` : 'Set your monthly savings target'}
+            onPress={() => {
+              setGoalCategory('savings');
+              setGoalType('monthly');
+              setGoalInput(goals.monthlySavingsGoal > 0 ? goals.monthlySavingsGoal.toString() : '');
+              setShowGoalsModal(true);
+            }}
+          />
+          <SettingCard
+            title="Set Yearly Savings Goal"
+            description={goals.yearlySavingsGoal > 0 ? `Current: ₹${formatCurrency(goals.yearlySavingsGoal)}` : 'Set your yearly savings target'}
+            onPress={() => {
+              setGoalCategory('savings');
+              setGoalType('yearly');
+              setGoalInput(goals.yearlySavingsGoal > 0 ? goals.yearlySavingsGoal.toString() : '');
+              setShowGoalsModal(true);
+            }}
+          />
+          <SettingCard
+            title="Set Custom Savings Goal"
+            description={goals.customSavingsGoal > 0 ? `${goals.customSavingsGoalName || 'Custom'}: ₹${formatCurrency(goals.customSavingsGoal)}` : 'Set a custom savings goal'}
+            onPress={() => {
+              setGoalCategory('savings');
+              setGoalType('custom');
+              setGoalInput(goals.customSavingsGoal > 0 ? goals.customSavingsGoal.toString() : '');
+              setCustomGoalNameInput(goals.customSavingsGoalName || '');
+              setShowGoalsModal(true);
+            }}
+          />
+        </View>
+      </CollapsibleSection>
+
+      {/* Expense Goals Section */}
+      <CollapsibleSection title="Expense Limits">
+        <View style={styles.sectionContent}>
+          <SettingCard
+            title="Set Daily Expense Limit"
+            description={goals.dailyExpenseGoal > 0 ? `Current: ₹${formatCurrency(goals.dailyExpenseGoal)}` : 'Set your daily expense limit'}
+            onPress={() => {
+              setGoalCategory('expense');
+              setGoalType('daily');
+              setGoalInput(goals.dailyExpenseGoal > 0 ? goals.dailyExpenseGoal.toString() : '');
+              setShowGoalsModal(true);
+            }}
+          />
+          <SettingCard
+            title="Set Weekly Expense Limit"
+            description={goals.weeklyExpenseGoal > 0 ? `Current: ₹${formatCurrency(goals.weeklyExpenseGoal)}` : 'Set your weekly expense limit'}
+            onPress={() => {
+              setGoalCategory('expense');
+              setGoalType('weekly');
+              setGoalInput(goals.weeklyExpenseGoal > 0 ? goals.weeklyExpenseGoal.toString() : '');
+              setShowGoalsModal(true);
+            }}
+          />
+          <SettingCard
+            title="Set Monthly Expense Limit"
+            description={goals.monthlyExpenseGoal > 0 ? `Current: ₹${formatCurrency(goals.monthlyExpenseGoal)}` : 'Set your monthly expense limit'}
+            onPress={() => {
+              setGoalCategory('expense');
+              setGoalType('monthly');
+              setGoalInput(goals.monthlyExpenseGoal > 0 ? goals.monthlyExpenseGoal.toString() : '');
+              setShowGoalsModal(true);
+            }}
+          />
+          <SettingCard
+            title="Set Yearly Expense Limit"
+            description={goals.yearlyExpenseGoal > 0 ? `Current: ₹${formatCurrency(goals.yearlyExpenseGoal)}` : 'Set your yearly expense limit'}
+            onPress={() => {
+              setGoalCategory('expense');
+              setGoalType('yearly');
+              setGoalInput(goals.yearlyExpenseGoal > 0 ? goals.yearlyExpenseGoal.toString() : '');
+              setShowGoalsModal(true);
+            }}
+          />
+          <SettingCard
+            title="Set Custom Expense Limit"
+            description={goals.customExpenseGoal > 0 ? `${goals.customExpenseGoalName || 'Custom'}: ₹${formatCurrency(goals.customExpenseGoal)}` : 'Set a custom expense limit'}
+            onPress={() => {
+              setGoalCategory('expense');
+              setGoalType('custom');
+              setGoalInput(goals.customExpenseGoal > 0 ? goals.customExpenseGoal.toString() : '');
+              setCustomGoalNameInput(goals.customExpenseGoalName || '');
+              setShowGoalsModal(true);
+            }}
+          />
+        </View>
+      </CollapsibleSection>
+
       {/* Export Section */}
       <CollapsibleSection title="Data Export">
         <View style={styles.sectionContent}>
@@ -329,10 +467,16 @@ const SettingsScreen = () => {
         <View style={styles.sectionContent}>
           <View style={styles.infoCard}>
             <Text style={styles.appName}>Kharcha</Text>
-            <Text style={styles.appVersion}>Version 1.0.0</Text>
+            <Text style={styles.appVersion}>Version 2.0.0</Text>
             <Text style={styles.infoDescription}>
-              A professional expense and income tracker. Track your daily expenses and income with real-time balance updates. All data is stored locally on your device - completely offline and secure.
+              A comprehensive, professional expense and income tracker designed to help you take complete control of your finances. Track every transaction, set savings goals and expense limits, monitor your progress, and achieve financial freedom - all in one beautiful, intuitive app.
             </Text>
+            <View style={styles.highlightBox}>
+              <Ionicons name="shield-checkmark" size={20} color={Colors.accent.primary} />
+              <Text style={styles.highlightText}>
+                100% offline - All your data stays on your device. No cloud, no login, completely private and secure.
+              </Text>
+            </View>
           </View>
         </View>
       </CollapsibleSection>
@@ -341,13 +485,82 @@ const SettingsScreen = () => {
       <CollapsibleSection title="Features">
         <View style={styles.sectionContent}>
           <View style={styles.featureList}>
-            <Text style={styles.featureText}>Track expenses and income</Text>
-            <Text style={styles.featureText}>View daily, weekly, monthly summaries</Text>
-            <Text style={styles.featureText}>Charts and visualizations</Text>
-            <Text style={styles.featureText}>Export data to Excel/JSON</Text>
-            <Text style={styles.featureText}>100% offline - no internet required</Text>
-            <Text style={styles.featureText}>Real-time balance tracking</Text>
-            <Text style={styles.featureText}>Simple and fast data entry</Text>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.status.income} />
+              <Text style={styles.featureText}>Track expenses and income with detailed notes</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.status.income} />
+              <Text style={styles.featureText}>Real-time UPI and Cash balance tracking</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.status.income} />
+              <Text style={styles.featureText}>View daily, weekly, monthly, quarterly, and yearly summaries</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.status.income} />
+              <Text style={styles.featureText}>Beautiful charts and visualizations</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.status.income} />
+              <Text style={styles.featureText}>Comprehensive Goals & Progress tracking</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.status.income} />
+              <Text style={styles.featureText}>Daily, Weekly, Monthly, Yearly, and Custom savings goals</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.status.income} />
+              <Text style={styles.featureText}>Daily, Weekly, Monthly, Yearly, and Custom expense limits</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.status.income} />
+              <Text style={styles.featureText}>Achievement system with 9+ unlockable achievements</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.status.income} />
+              <Text style={styles.featureText}>Daily streak tracking to build consistent habits</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.status.income} />
+              <Text style={styles.featureText}>Motivational messages and progress celebrations</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.status.income} />
+              <Text style={styles.featureText}>Personalized profile with name, bio, and future goals</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.status.income} />
+              <Text style={styles.featureText}>Dedicated Goals screen with visual progress tracking</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.status.income} />
+              <Text style={styles.featureText}>Export data to Excel (.csv) and JSON formats</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.status.income} />
+              <Text style={styles.featureText}>Date range filtering and custom period views</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.status.income} />
+              <Text style={styles.featureText}>Modern, professional UI with dark theme</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.status.income} />
+              <Text style={styles.featureText}>100% offline - No internet required, no ads, no tracking</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.status.income} />
+              <Text style={styles.featureText}>Fast and simple data entry with floating action button</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.status.income} />
+              <Text style={styles.featureText}>Payment method tracking (UPI/Bank and Cash)</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.status.income} />
+              <Text style={styles.featureText}>Balance adjustments for transfers and corrections</Text>
+            </View>
           </View>
         </View>
       </CollapsibleSection>
@@ -356,28 +569,51 @@ const SettingsScreen = () => {
       <CollapsibleSection title="How to Use">
         <View style={styles.sectionContent}>
           <View style={styles.instructionItem}>
+            <Ionicons name="add-circle" size={20} color={Colors.accent.primary} />
             <Text style={styles.instructionText}>
-              Tap the + button to add a new expense or income entry
+              Tap the pink + button (center of bottom bar) to add expense or income entries
             </Text>
           </View>
           <View style={styles.instructionItem}>
+            <Ionicons name="settings" size={20} color={Colors.accent.primary} />
             <Text style={styles.instructionText}>
-              Select Expense or Income, enter amount and optional note
+              Set your savings goals and expense limits in Settings → Savings Goals / Expense Limits
             </Text>
           </View>
           <View style={styles.instructionItem}>
+            <Ionicons name="flag" size={20} color={Colors.accent.primary} />
             <Text style={styles.instructionText}>
-              View your Today summary on the home screen
+              Visit the Goals tab to track your progress and see achievements
             </Text>
           </View>
           <View style={styles.instructionItem}>
+            <Ionicons name="home" size={20} color={Colors.accent.primary} />
             <Text style={styles.instructionText}>
-              Check Summary tab for reports with charts
+              View daily summary, balances, and quick progress on the Home screen
             </Text>
           </View>
           <View style={styles.instructionItem}>
+            <Ionicons name="stats-chart" size={20} color={Colors.accent.primary} />
             <Text style={styles.instructionText}>
-              Export your data as Excel or JSON file for backup
+              Check Summary tab for detailed reports, charts, and period analysis
+            </Text>
+          </View>
+          <View style={styles.instructionItem}>
+            <Ionicons name="person" size={20} color={Colors.accent.primary} />
+            <Text style={styles.instructionText}>
+              Personalize your experience in Profile tab with name, bio, and goals
+            </Text>
+          </View>
+          <View style={styles.instructionItem}>
+            <Ionicons name="download" size={20} color={Colors.accent.primary} />
+            <Text style={styles.instructionText}>
+              Export your data as Excel (.csv) or JSON file for backup
+            </Text>
+          </View>
+          <View style={styles.instructionItem}>
+            <Ionicons name="flame" size={20} color={Colors.accent.primary} />
+            <Text style={styles.instructionText}>
+              Maintain daily streaks by adding entries regularly to unlock achievements
             </Text>
           </View>
         </View>
@@ -430,6 +666,136 @@ const SettingsScreen = () => {
         onClose={() => setShowEntriesModal(false)}
         title="All Entries Report"
       />
+
+      {/* Goals Setting Modal */}
+      <Modal
+        visible={showGoalsModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowGoalsModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                Set {goalType === 'daily' ? 'Daily' : goalType === 'weekly' ? 'Weekly' : goalType === 'monthly' ? 'Monthly' : goalType === 'yearly' ? 'Yearly' : 'Custom'} {goalCategory === 'savings' ? 'Savings Goal' : 'Expense Limit'}
+              </Text>
+              <TouchableOpacity 
+                onPress={() => {
+                  setShowGoalsModal(false);
+                  setGoalInput('');
+                  setCustomGoalNameInput('');
+                }}
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close" size={24} color={Colors.text.secondary} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalDescription}>
+              {goalCategory === 'savings' 
+                ? `Set your ${goalType === 'daily' ? 'daily' : goalType === 'weekly' ? 'weekly' : goalType === 'monthly' ? 'monthly' : goalType === 'yearly' ? 'yearly' : 'custom'} savings target. Track your progress and stay motivated!`
+                : `Set your ${goalType === 'daily' ? 'daily' : goalType === 'weekly' ? 'weekly' : goalType === 'monthly' ? 'monthly' : goalType === 'yearly' ? 'yearly' : 'custom'} expense limit. Stay within budget and save more!`
+              }
+            </Text>
+
+            {goalType === 'custom' && (
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Goal name (e.g., Vacation Fund)"
+                  placeholderTextColor={Colors.text.tertiary}
+                  value={customGoalNameInput}
+                  onChangeText={setCustomGoalNameInput}
+                />
+              </View>
+            )}
+
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter goal amount"
+                placeholderTextColor={Colors.text.tertiary}
+                value={goalInput}
+                onChangeText={setGoalInput}
+                keyboardType="numeric"
+                autoFocus={true}
+              />
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => {
+                  setShowGoalsModal(false);
+                  setGoalInput('');
+                  setCustomGoalNameInput('');
+                }}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalSaveButton}
+                onPress={async () => {
+                  const amount = parseFloat(goalInput);
+                  if (isNaN(amount) || amount < 0) {
+                    Alert.alert('Invalid Input', 'Please enter a valid amount');
+                    return;
+                  }
+
+                  try {
+                    const updatedGoals = { ...goals };
+                    const goalKey = goalCategory === 'savings' 
+                      ? (goalType === 'daily' ? 'dailySavingsGoal' : 
+                         goalType === 'weekly' ? 'weeklySavingsGoal' :
+                         goalType === 'monthly' ? 'monthlySavingsGoal' :
+                         goalType === 'yearly' ? 'yearlySavingsGoal' :
+                         'customSavingsGoal')
+                      : (goalType === 'daily' ? 'dailyExpenseGoal' :
+                         goalType === 'weekly' ? 'weeklyExpenseGoal' :
+                         goalType === 'monthly' ? 'monthlyExpenseGoal' :
+                         goalType === 'yearly' ? 'yearlyExpenseGoal' :
+                         'customExpenseGoal');
+                    
+                    updatedGoals[goalKey] = amount;
+                    
+                    if (goalType === 'custom') {
+                      if (goalCategory === 'savings') {
+                        updatedGoals.customSavingsGoalName = customGoalNameInput.trim() || 'Custom Savings Goal';
+                      } else {
+                        updatedGoals.customExpenseGoalName = customGoalNameInput.trim() || 'Custom Expense Limit';
+                      }
+                    }
+                    
+                    // Reset completion status if goal is being changed (only for savings goals)
+                    if (goalCategory === 'savings') {
+                      if (goalType === 'monthly' && updatedGoals.monthlySavingsGoal !== goals.monthlySavingsGoal) {
+                        await resetGoalCompletion('monthly');
+                      } else if (goalType === 'yearly' && updatedGoals.yearlySavingsGoal !== goals.yearlySavingsGoal) {
+                        await resetGoalCompletion('yearly');
+                      } else if (goalType === 'custom' && updatedGoals.customSavingsGoal !== goals.customSavingsGoal) {
+                        await resetGoalCompletion('custom');
+                      }
+                    }
+                    
+                    await saveGoals(updatedGoals);
+                    setGoals(updatedGoals);
+                    Alert.alert('Success', `${goalCategory === 'savings' ? 'Goal' : 'Limit'} saved successfully!`);
+                    setShowGoalsModal(false);
+                    setGoalInput('');
+                    setCustomGoalNameInput('');
+                  } catch (error) {
+                    Alert.alert('Error', `Failed to save ${goalCategory === 'savings' ? 'goal' : 'limit'}. Please try again.`);
+                    console.error(error);
+                  }
+                }}
+              >
+                <Text style={styles.modalSaveText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Balance Setting Modal */}
       <Modal
@@ -587,14 +953,17 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   instructionItem: {
-    marginBottom: 12,
-    paddingLeft: 0,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+    gap: 12,
   },
   instructionText: {
-    fontSize: 13,
-    color: '#888888',
+    flex: 1,
+    fontSize: 14,
+    color: Colors.text.secondary,
     lineHeight: 20,
-    letterSpacing: 0.1,
+    fontWeight: '500',
   },
   balanceDisplayRow: {
     flexDirection: 'row',
@@ -724,13 +1093,37 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   featureList: {
-    marginTop: 0,
+    gap: 16,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
   },
   featureText: {
+    flex: 1,
     fontSize: 14,
     color: Colors.text.secondary,
-    marginBottom: 12,
     lineHeight: 20,
+    fontWeight: '500',
+  },
+  highlightBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+  },
+  highlightText: {
+    flex: 1,
+    fontSize: 13,
+    color: Colors.text.primary,
+    lineHeight: 18,
+    fontWeight: '600',
   },
   developerCard: {
     marginTop: 0,

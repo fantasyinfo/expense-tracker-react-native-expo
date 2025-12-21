@@ -13,13 +13,17 @@ import {
   Animated,
   Dimensions,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { formatDate, filterEntriesByPeriod, filterEntriesByDateRange, calculateTotals, formatDateWithMonthName, formatCurrency } from '../utils/dateUtils';
 import { loadEntries, deleteEntry } from '../utils/storage';
 import { getCurrentBankBalance, getCurrentCashBalance } from '../utils/balanceUtils';
+import { loadProfile } from '../utils/profileStorage';
+import { getStreak, checkAchievements, getMotivationalMessage, calculateGoalProgress } from '../utils/engagementUtils';
+import { useModal } from '../context/ModalContext';
+import Colors from '../constants/colors';
 import AddEntryModal from '../components/AddEntryModal';
 import AppFooter from '../components/AppFooter';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
@@ -27,12 +31,13 @@ import DeleteConfirmModal from '../components/DeleteConfirmModal';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const HomeScreen = () => {
+  const { addEntryModalVisible, openAddEntryModal, closeAddEntryModal } = useModal();
+  const navigation = useNavigation();
   const [entries, setEntries] = useState([]);
   const [todayEntries, setTodayEntries] = useState([]);
   const [totals, setTotals] = useState({ expense: 0, income: 0, balance: 0 });
   const [bankBalance, setBankBalance] = useState(null);
   const [cashBalance, setCashBalance] = useState(null);
-  const [modalVisible, setModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [isCustomDateRange, setIsCustomDateRange] = useState(false);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
@@ -42,6 +47,16 @@ const HomeScreen = () => {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState(null);
+  const [userName, setUserName] = useState('User');
+  const [streak, setStreak] = useState({ currentStreak: 0, longestStreak: 0 });
+  const [motivationalMessage, setMotivationalMessage] = useState('');
+  const [dailyProgress, setDailyProgress] = useState({ progress: 0, isCompleted: false, isOverLimit: false });
+  const [weeklyProgress, setWeeklyProgress] = useState({ progress: 0, isCompleted: false, isOverLimit: false });
+  const [monthlyProgress, setMonthlyProgress] = useState({ progress: 0, isCompleted: false, isOverLimit: false });
+  const [dailyExpenseProgress, setDailyExpenseProgress] = useState({ progress: 0, isOverLimit: false });
+  const [achievements, setAchievements] = useState([]);
+  const [showAchievementNotification, setShowAchievementNotification] = useState(false);
+  const [newAchievements, setNewAchievements] = useState([]);
   const scrollY = useRef(new Animated.Value(0)).current;
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const stickyHeaderOpacity = useRef(new Animated.Value(0)).current;
@@ -52,6 +67,10 @@ const HomeScreen = () => {
   const loadData = useCallback(async () => {
     const allEntries = await loadEntries();
     setEntries(allEntries);
+    
+    // Load user profile
+    const profile = await loadProfile();
+    setUserName(profile.name || '');
     
     // Load current balances
     const bankBal = await getCurrentBankBalance();
@@ -72,12 +91,38 @@ const HomeScreen = () => {
     // Calculate totals
     const periodTotals = calculateTotals(filtered);
     setTotals(periodTotals);
+    
+    // Load engagement data
+    const streakData = await getStreak();
+    setStreak(streakData);
+    
+    const message = await getMotivationalMessage();
+    setMotivationalMessage(message);
+    
+    // Load goal progress
+    const dailySavings = await calculateGoalProgress('daily', 'savings');
+    setDailyProgress(dailySavings);
+    
+    const weeklySavings = await calculateGoalProgress('weekly', 'savings');
+    setWeeklyProgress(weeklySavings);
+    
+    const monthlySavings = await calculateGoalProgress('monthly', 'savings');
+    setMonthlyProgress(monthlySavings);
+    
+    const dailyExpense = await calculateGoalProgress('daily', 'expense');
+    setDailyExpenseProgress(dailyExpense);
+    
+    // Load all achievements (but don't show notification on load - only on new entry)
+    const achievementData = await checkAchievements();
+    setAchievements(achievementData.allAchievements);
   }, [isCustomDateRange, startDate, endDate]);
 
   // Reload data when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       loadData();
+      // Also reload profile to update greeting
+      loadProfile().then(profile => setUserName(profile.name || ''));
     }, [loadData])
   );
 
@@ -91,9 +136,44 @@ const HomeScreen = () => {
     setRefreshing(false);
   }, [loadData]);
 
-  const handleEntryAdded = () => {
-    loadData();
-    setModalVisible(false);
+  const handleEntryAdded = async () => {
+    // Close modal first
+    closeAddEntryModal();
+    
+    // Reload data to get updated entries
+    await loadData();
+    
+    // Small delay to ensure data is fully updated
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Check for new achievements AFTER data is reloaded
+    const achievementData = await checkAchievements();
+    const currentMonthlyProgress = await calculateGoalProgress('monthly');
+    console.log('Achievement check result:', {
+      newCount: achievementData.newAchievements.length,
+      newAchievements: achievementData.newAchievements.map(a => ({
+        id: a.id,
+        name: a.name,
+        description: a.description
+      })),
+      monthlyProgress: {
+        currentBalance: currentMonthlyProgress.currentBalance,
+        targetGoal: currentMonthlyProgress.targetGoal,
+        isCompleted: currentMonthlyProgress.isCompleted
+      }
+    });
+    
+    if (achievementData.newAchievements.length > 0) {
+      console.log('Showing achievement modal for:', achievementData.newAchievements);
+      setNewAchievements(achievementData.newAchievements);
+      setShowAchievementNotification(true);
+      // Auto-hide after 8 seconds (longer for better visibility)
+      setTimeout(() => {
+        setShowAchievementNotification(false);
+      }, 8000);
+    } else {
+      console.log('No new achievements found');
+    }
   };
 
   const handleDelete = async (id, entry) => {
@@ -247,6 +327,51 @@ const HomeScreen = () => {
 
   return (
     <View style={styles.container}>
+      {/* Achievement Notification Modal */}
+      {showAchievementNotification && newAchievements.length > 0 && (
+        <Modal
+          visible={showAchievementNotification}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowAchievementNotification(false)}
+        >
+          <View style={styles.achievementModalOverlay}>
+            <View style={styles.achievementModalContent}>
+              <LinearGradient
+                colors={['#FFD700', '#FFA500']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.achievementModalGradient}
+              >
+                <View style={styles.achievementModalHeader}>
+                  <View style={styles.achievementModalIconContainer}>
+                    <Ionicons name="trophy" size={48} color="#FFFFFF" />
+                  </View>
+                  <Text style={styles.achievementModalTitle}>Achievement Unlocked! 🎉</Text>
+                </View>
+                
+                <View style={styles.achievementModalBody}>
+                  {newAchievements.map((achievement, index) => (
+                    <View key={index} style={styles.achievementModalItem}>
+                      <Text style={styles.achievementModalName}>{achievement.name}</Text>
+                      <Text style={styles.achievementModalDescription}>{achievement.description}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                <TouchableOpacity 
+                  style={styles.achievementModalButton}
+                  onPress={() => setShowAchievementNotification(false)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.achievementModalButtonText}>Awesome! 🎊</Text>
+                </TouchableOpacity>
+              </LinearGradient>
+            </View>
+          </View>
+        </Modal>
+      )}
+
       {/* Sticky Compact Header */}
       {showStickyHeader && (
         <Animated.View style={[styles.stickyHeader, { opacity: stickyHeaderOpacity }]}>
@@ -307,13 +432,22 @@ const HomeScreen = () => {
         <Animated.View style={[styles.headerContainer, { transform: [{ translateY: headerTranslateY }] }]}>
           <View style={styles.header}>
             <View style={styles.headerTop}>
-              <View>
-                <Text style={styles.headerGreeting}>Hello 👋</Text>
-                <Text style={styles.headerTitle}>
-                  {isCustomDateRange ? 'Filtered Summary' : "Today's Summary"}
-                </Text>
-              </View>
+            <View>
+              <Text style={styles.headerGreeting}>
+                Hello {userName || 'User'} 👋
+              </Text>
+              <Text style={styles.headerTitle}>
+                {isCustomDateRange ? 'Filtered Summary' : "Today's Summary"}
+              </Text>
+            </View>
               <View style={styles.headerActions}>
+                <TouchableOpacity 
+                  style={styles.headerActionButton} 
+                  onPress={() => navigation.navigate('Goals')}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="flag" size={20} color="#FFFFFF" />
+                </TouchableOpacity>
                 <TouchableOpacity 
                   style={styles.headerActionButton} 
                   onPress={() => setShowFilterModal(true)}
@@ -338,6 +472,75 @@ const HomeScreen = () => {
             </Text>
           </View>
         </Animated.View>
+
+        {/* Horizontal Scrollable Achievement Section */}
+        {(streak.currentStreak > 0 || dailyProgress.targetGoal > 0 || weeklyProgress.targetGoal > 0 || monthlyProgress.targetGoal > 0 || dailyExpenseProgress.targetGoal > 0 || achievements.filter(a => a.unlocked).length > 0) && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.achievementScrollContent}
+            style={styles.achievementScrollContainer}
+          >
+            {streak.currentStreak > 0 && (
+              <View style={styles.engagementItem}>
+                <Ionicons name="flame" size={16} color="#FF6B35" />
+                <Text style={styles.engagementItemText}>{streak.currentStreak}d</Text>
+              </View>
+            )}
+            {dailyProgress.targetGoal > 0 && (
+              <View style={styles.engagementItem}>
+                <Ionicons name="calendar" size={16} color={dailyProgress.isCompleted ? "#FFD700" : Colors.text.secondary} />
+                <Text style={[
+                  styles.engagementItemText,
+                  dailyProgress.isCompleted && styles.engagementItemTextCompleted
+                ]}>
+                  D:{Math.round(dailyProgress.progress)}%
+                </Text>
+              </View>
+            )}
+            {weeklyProgress.targetGoal > 0 && (
+              <View style={styles.engagementItem}>
+                <Ionicons name="calendar-outline" size={16} color={weeklyProgress.isCompleted ? "#FFD700" : Colors.text.secondary} />
+                <Text style={[
+                  styles.engagementItemText,
+                  weeklyProgress.isCompleted && styles.engagementItemTextCompleted
+                ]}>
+                  W:{Math.round(weeklyProgress.progress)}%
+                </Text>
+              </View>
+            )}
+            {monthlyProgress.targetGoal > 0 && (
+              <View style={styles.engagementItem}>
+                <Ionicons name="flag" size={16} color={monthlyProgress.isCompleted ? "#FFD700" : Colors.text.secondary} />
+                <Text style={[
+                  styles.engagementItemText,
+                  monthlyProgress.isCompleted && styles.engagementItemTextCompleted
+                ]}>
+                  M:{Math.round(monthlyProgress.progress)}%
+                </Text>
+              </View>
+            )}
+            {dailyExpenseProgress.targetGoal > 0 && (
+              <View style={styles.engagementItem}>
+                <Ionicons name="warning" size={16} color={dailyExpenseProgress.isOverLimit ? "#FF6B6B" : "#4CAF50"} />
+                <Text style={[
+                  styles.engagementItemText,
+                  dailyExpenseProgress.isOverLimit && styles.engagementItemTextOverLimit
+                ]}>
+                  E:{Math.round(dailyExpenseProgress.progress)}%
+                </Text>
+              </View>
+            )}
+            {achievements.filter(a => a.unlocked).length > 0 && (
+              <View style={styles.engagementItem}>
+                <Ionicons name="trophy" size={16} color="#FFD700" />
+                <Text style={styles.engagementItemText}>
+                  {achievements.filter(a => a.unlocked).length}
+                </Text>
+              </View>
+            )}
+          </ScrollView>
+        )}
 
         {/* Main Balance Card with Gradient */}
         <View style={styles.balanceCardContainer}>
@@ -397,6 +600,7 @@ const HomeScreen = () => {
             </View>
           </LinearGradient>
         </View>
+
 
         {/* Balance Cards Row */}
         <View style={styles.balanceCardsRow}>
@@ -484,26 +688,10 @@ const HomeScreen = () => {
         <AppFooter />
       </ScrollView>
 
-      {/* Floating Add Button */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setModalVisible(true)}
-        activeOpacity={0.9}
-      >
-        <LinearGradient
-          colors={['#667eea', '#764ba2']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.fabGradient}
-        >
-          <Ionicons name="add" size={28} color="#FFFFFF" />
-        </LinearGradient>
-      </TouchableOpacity>
-
       {/* Add Entry Modal */}
       <AddEntryModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
+        visible={addEntryModalVisible}
+        onClose={closeAddEntryModal}
         onSave={handleEntryAdded}
       />
 
@@ -1021,26 +1209,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 40,
   },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 100,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    shadowColor: '#667eea',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 12,
-  },
-  fabGradient: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   filterModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
@@ -1164,6 +1332,133 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#fff',
+  },
+  achievementModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  achievementModalContent: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.5,
+    shadowRadius: 24,
+    elevation: 20,
+  },
+  achievementModalGradient: {
+    padding: 32,
+    alignItems: 'center',
+  },
+  achievementModalHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  achievementModalIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  achievementModalTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    letterSpacing: -0.5,
+  },
+  achievementModalBody: {
+    width: '100%',
+    marginBottom: 24,
+  },
+  achievementModalItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  achievementModalName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  achievementModalDescription: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    opacity: 0.9,
+    textAlign: 'center',
+  },
+  achievementModalButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  achievementModalButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  achievementScrollContainer: {
+    marginBottom: 12,
+  },
+  achievementScrollContent: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    gap: 12,
+    alignItems: 'center',
+  },
+  engagementCardCompact: {
+    marginHorizontal: 20,
+    marginBottom: 12,
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 20,
+  },
+  engagementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+    marginRight: 8,
+    minWidth: 60,
+  },
+  engagementItemText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.text.secondary,
+  },
+  engagementItemTextCompleted: {
+    color: '#FFD700',
+  },
+  engagementItemTextOverLimit: {
+    color: '#FF6B6B',
   },
 });
 

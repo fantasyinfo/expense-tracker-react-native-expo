@@ -69,6 +69,11 @@ export const addEntry = async (entry) => {
   };
   entries.push(newEntry);
   await saveEntries(entries);
+  
+  // Update streak if entry is not a balance adjustment
+  // Note: We'll update streak when entry is added, but avoid circular dependency
+  // The streak will be updated via engagementUtils when needed
+  
   return newEntry;
 };
 

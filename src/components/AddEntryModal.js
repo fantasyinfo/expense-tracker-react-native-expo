@@ -15,6 +15,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDate, formatDateDisplay, parseDate } from '../utils/dateUtils';
 import { addEntry } from '../utils/storage';
+import { updateStreak, checkAchievements } from '../utils/engagementUtils';
 import Colors from '../constants/colors';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -51,6 +52,13 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
     }
 
     await addEntry(entryData);
+
+    // Update streak (only for non-balance-adjustment entries)
+    // Note: Achievement checking will be handled in HomeScreen.handleEntryAdded
+    // to properly show the notification modal
+    if (type !== 'balance_adjustment') {
+      await updateStreak();
+    }
 
     // Reset form
     setAmount('');

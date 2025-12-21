@@ -52,6 +52,7 @@ export const getPeriodDates = (period, referenceDate = new Date()) => {
 
   switch (period) {
     case 'today':
+    case 'daily':
       startDate = new Date(today);
       endDate = new Date(today);
       break;
