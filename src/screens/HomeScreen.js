@@ -11,9 +11,11 @@ import {
   Modal,
   Alert,
   Animated,
+  Dimensions,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { formatDate, filterEntriesByPeriod, filterEntriesByDateRange, calculateTotals, formatDateWithMonthName, formatCurrency } from '../utils/dateUtils';
 import { loadEntries, deleteEntry } from '../utils/storage';
@@ -21,6 +23,8 @@ import { getCurrentBankBalance, getCurrentCashBalance } from '../utils/balanceUt
 import AddEntryModal from '../components/AddEntryModal';
 import AppFooter from '../components/AppFooter';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const HomeScreen = () => {
   const [entries, setEntries] = useState([]);
@@ -145,80 +149,69 @@ const HomeScreen = () => {
 
   const renderEntry = ({ item }) => {
     const isBalanceAdjustment = item.type === 'balance_adjustment';
-    // Default to 'add' if adjustment_type is missing (for backward compatibility)
     const adjustmentIsAdd = isBalanceAdjustment ? (item.adjustment_type === 'add' || !item.adjustment_type) : false;
     
     return (
-      <View style={[
-        styles.entryItem,
-        isBalanceAdjustment 
-          ? styles.entryItemAdjustment
-          : (item.type === 'expense' ? styles.entryItemExpense : styles.entryItemIncome)
-      ]}>
-        <View style={[
-          styles.entryIconContainer,
-          isBalanceAdjustment 
-            ? styles.adjustmentIconBg 
-            : (item.type === 'expense' ? styles.expenseIconBg : styles.incomeIconBg)
-        ]}>
-          <Ionicons
-            name={
-              isBalanceAdjustment 
-                ? (adjustmentIsAdd ? 'add-circle' : 'remove-circle')
-                : (item.type === 'expense' ? 'arrow-down' : 'arrow-up')
-            }
-            size={20}
-            color={
-              isBalanceAdjustment 
-                ? '#FF9800'
-                : (item.type === 'expense' ? '#d32f2f' : '#388e3c')
-            }
-          />
-        </View>
-        <View style={styles.entryContent}>
-          <View style={styles.entryAmountRow}>
-            <Text style={[
-              styles.entryAmount,
-              isBalanceAdjustment 
-                ? styles.adjustmentAmount
-                : (item.type === 'expense' ? styles.expenseAmount : styles.incomeAmount)
-            ]}>
-              {isBalanceAdjustment 
-                ? (adjustmentIsAdd ? '+' : '-')
-                : (item.type === 'expense' ? '-' : '+')
-              }₹{formatCurrency(item.amount)}
+      <TouchableOpacity
+        style={styles.transactionCard}
+        activeOpacity={0.7}
+      >
+        <View style={styles.transactionLeft}>
+          <View style={[
+            styles.transactionIconContainer,
+            isBalanceAdjustment 
+              ? styles.transactionIconAdjustment
+              : (item.type === 'expense' ? styles.transactionIconExpense : styles.transactionIconIncome)
+          ]}>
+            <Ionicons
+              name={
+                isBalanceAdjustment 
+                  ? (adjustmentIsAdd ? 'add-circle' : 'remove-circle')
+                  : (item.type === 'expense' ? 'arrow-down' : 'arrow-up')
+              }
+              size={20}
+              color="#FFFFFF"
+            />
+          </View>
+          <View style={styles.transactionDetails}>
+            <Text style={styles.transactionNote} numberOfLines={1}>
+              {item.note || (isBalanceAdjustment ? 'Balance Adjustment' : (item.type === 'expense' ? 'Expense' : 'Income'))}
             </Text>
-            <View style={styles.modeIndicator}>
-              <Ionicons
-                name={(item.mode || 'upi') === 'upi' ? 'phone-portrait' : 'cash'}
-                size={14}
-                color={(item.mode || 'upi') === 'upi' ? '#007AFF' : '#888888'}
-              />
+            <View style={styles.transactionMeta}>
+              <Text style={styles.transactionDate}>{formatDateWithMonthName(item.date)}</Text>
+              <View style={styles.transactionMode}>
+                <Ionicons
+                  name={(item.mode || 'upi') === 'upi' ? 'phone-portrait' : 'cash'}
+                  size={12}
+                  color={(item.mode || 'upi') === 'upi' ? '#4DABF7' : '#FFD43B'}
+                />
+              </View>
             </View>
           </View>
-          {item.note ? (
-            <Text style={styles.entryNote}>
-              {isBalanceAdjustment && <Text style={styles.adjustmentLabel}>[Balance Adjustment] </Text>}
-              {item.note}
-            </Text>
-          ) : (
-            <Text style={styles.entryDate}>
-              {isBalanceAdjustment && <Text style={styles.adjustmentLabel}>[Balance Adjustment] </Text>}
-              {formatDateWithMonthName(item.date)}
-            </Text>
-          )}
         </View>
-        <TouchableOpacity
-          onPress={() => handleDelete(item.id, item)}
-          style={styles.deleteButton}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="trash-outline" size={18} color="#A0A0A0" />
-        </TouchableOpacity>
-      </View>
+        <View style={styles.transactionRight}>
+          <Text style={[
+            styles.transactionAmount,
+            isBalanceAdjustment 
+              ? styles.transactionAmountAdjustment
+              : (item.type === 'expense' ? styles.transactionAmountExpense : styles.transactionAmountIncome)
+          ]}>
+            {isBalanceAdjustment 
+              ? (adjustmentIsAdd ? '+' : '-')
+              : (item.type === 'expense' ? '-' : '+')
+            }₹{formatCurrency(item.amount)}
+          </Text>
+          <TouchableOpacity
+            onPress={() => handleDelete(item.id, item)}
+            style={styles.transactionDelete}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="trash-outline" size={16} color="#666" />
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
     );
   };
-
 
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -226,15 +219,14 @@ const HomeScreen = () => {
       useNativeDriver: false,
       listener: (event) => {
         const offsetY = event.nativeEvent.contentOffset.y;
-        // Show sticky header when scrolled past 100px
-        if (offsetY > 100 && !showStickyHeader) {
+        if (offsetY > 150 && !showStickyHeader) {
           setShowStickyHeader(true);
           Animated.timing(stickyHeaderOpacity, {
             toValue: 1,
             duration: 200,
             useNativeDriver: true,
           }).start();
-        } else if (offsetY <= 100 && showStickyHeader) {
+        } else if (offsetY <= 150 && showStickyHeader) {
           Animated.timing(stickyHeaderOpacity, {
             toValue: 0,
             duration: 200,
@@ -247,14 +239,22 @@ const HomeScreen = () => {
     }
   );
 
+  const headerTranslateY = scrollY.interpolate({
+    inputRange: [0, 150],
+    outputRange: [0, -150],
+    extrapolate: 'clamp',
+  });
+
   return (
     <View style={styles.container}>
-      {/* Sticky Compact Header - Shows only Expense and Income when scrolling */}
+      {/* Sticky Compact Header */}
       {showStickyHeader && (
         <Animated.View style={[styles.stickyHeader, { opacity: stickyHeaderOpacity }]}>
           <View style={styles.stickyHeaderContent}>
             <View style={styles.stickyHeaderItem}>
-              <Ionicons name="arrow-down" size={16} color="#FF6B6B" />
+              <View style={styles.stickyHeaderIconExpense}>
+                <Ionicons name="arrow-down" size={14} color="#FF6B6B" />
+              </View>
               <View style={styles.stickyHeaderTextContainer}>
                 <Text style={styles.stickyHeaderLabel}>Expense</Text>
                 <Text 
@@ -269,7 +269,9 @@ const HomeScreen = () => {
             </View>
             <View style={styles.stickyHeaderDivider} />
             <View style={styles.stickyHeaderItem}>
-              <Ionicons name="arrow-up" size={16} color="#51CF66" />
+              <View style={styles.stickyHeaderIconIncome}>
+                <Ionicons name="arrow-up" size={14} color="#51CF66" />
+              </View>
               <View style={styles.stickyHeaderTextContainer}>
                 <Text style={styles.stickyHeaderLabel}>Income</Text>
                 <Text 
@@ -286,197 +288,199 @@ const HomeScreen = () => {
         </Animated.View>
       )}
 
-      {/* Scrollable Content Area */}
       <ScrollView 
-        style={styles.scrollableContent}
-        contentContainerStyle={styles.scrollableContentContainer}
-        showsVerticalScrollIndicator={true}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            tintColor="#007AFF"
+            colors={['#007AFF']}
+          />
         }
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        {/* Professional Header - Now Scrollable */}
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <View style={styles.headerTextContainer}>
-              <Text style={styles.headerTitle}>
-                {isCustomDateRange ? 'Filtered Summary' : "Today's Summary"}
-              </Text>
-              <Text style={styles.headerSubtitle}>
-                {isCustomDateRange 
-                  ? `${formatDateWithMonthName(formatDate(startDate))} to ${formatDateWithMonthName(formatDate(endDate))}`
-                  : formatDateWithMonthName(today)
-                }
-              </Text>
+        {/* Modern Header */}
+        <Animated.View style={[styles.headerContainer, { transform: [{ translateY: headerTranslateY }] }]}>
+          <View style={styles.header}>
+            <View style={styles.headerTop}>
+              <View>
+                <Text style={styles.headerGreeting}>Hello 👋</Text>
+                <Text style={styles.headerTitle}>
+                  {isCustomDateRange ? 'Filtered Summary' : "Today's Summary"}
+                </Text>
+              </View>
+              <View style={styles.headerActions}>
+                <TouchableOpacity 
+                  style={styles.headerActionButton} 
+                  onPress={() => setShowFilterModal(true)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="filter" size={20} color="#FFFFFF" />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.headerActionButton} 
+                  onPress={onRefresh}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="refresh" size={20} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
             </View>
+            <Text style={styles.headerDate}>
+              {isCustomDateRange 
+                ? `${formatDateWithMonthName(formatDate(startDate))} - ${formatDateWithMonthName(formatDate(endDate))}`
+                : formatDateWithMonthName(today)
+              }
+            </Text>
           </View>
-          <View style={styles.headerActions}>
-            <TouchableOpacity 
-              style={styles.filterButton} 
-              onPress={() => setShowFilterModal(true)}
-              activeOpacity={0.7}
+        </Animated.View>
+
+        {/* Main Balance Card with Gradient */}
+        <View style={styles.balanceCardContainer}>
+          <LinearGradient
+            colors={totals.balance >= 0 
+              ? ['#667eea', '#764ba2'] 
+              : ['#f093fb', '#f5576c']
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.balanceCard}
+          >
+            <View style={styles.balanceCardHeader}>
+              <Text style={styles.balanceCardTitle}>Net Balance</Text>
+              <View style={styles.balanceCardChip}>
+                <View style={styles.chipPattern} />
+              </View>
+            </View>
+            <Text 
+              style={styles.balanceCardAmount}
+              numberOfLines={1}
+              adjustsFontSizeToFit={true}
+              minimumFontScale={0.6}
             >
-              <Ionicons name="filter" size={18} color="#888888" />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.refreshButton} 
-              onPress={onRefresh}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="refresh" size={18} color="#888888" />
-            </TouchableOpacity>
-          </View>
+              ₹{formatCurrency(totals.balance)}
+            </Text>
+            <View style={styles.balanceCardFooter}>
+              <View style={styles.balanceCardStat}>
+                <Ionicons name="arrow-down" size={16} color="rgba(255,255,255,0.8)" />
+                <View style={styles.balanceCardStatContent}>
+                  <Text style={styles.balanceCardStatLabel}>Expense</Text>
+                  <Text 
+                    style={styles.balanceCardStatValue}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit={true}
+                    minimumFontScale={0.8}
+                  >
+                    ₹{formatCurrency(totals.expense)}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.balanceCardDivider} />
+              <View style={styles.balanceCardStat}>
+                <Ionicons name="arrow-up" size={16} color="rgba(255,255,255,0.8)" />
+                <View style={styles.balanceCardStatContent}>
+                  <Text style={styles.balanceCardStatLabel}>Income</Text>
+                  <Text 
+                    style={styles.balanceCardStatValue}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit={true}
+                    minimumFontScale={0.8}
+                  >
+                    ₹{formatCurrency(totals.income)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </LinearGradient>
         </View>
 
-        {/* ATM Card Style Design - Now Scrollable */}
-        <View style={styles.fixedSummarySection}>
-        <View style={styles.atmCard}>
-          {/* Card Header */}
-          <View style={styles.atmCardHeader}>
-            <View style={styles.atmCardHeaderLeft}>
-              <Text style={styles.atmCardTitle}>Balance Overview</Text>
-              <Text style={styles.atmCardSubtitle}>
-                {isCustomDateRange 
-                  ? `${formatDateWithMonthName(formatDate(startDate))} - ${formatDateWithMonthName(formatDate(endDate))}`
-                  : formatDateWithMonthName(today)
-                }
-              </Text>
+        {/* Balance Cards Row */}
+        <View style={styles.balanceCardsRow}>
+          <View style={styles.balanceCardSmall}>
+            <View style={styles.balanceCardSmallHeader}>
+              <View style={[styles.balanceCardSmallIcon, { backgroundColor: 'rgba(77, 171, 247, 0.15)' }]}>
+                <Ionicons name="phone-portrait" size={20} color="#4DABF7" />
+              </View>
+              <Text style={styles.balanceCardSmallLabel}>UPI Balance</Text>
             </View>
-            <View style={styles.atmCardChip}>
-              <View style={styles.chipInner} />
-            </View>
-          </View>
-
-          {/* Main Balance Display */}
-          <View style={styles.atmCardMainBalance}>
-            <Text style={styles.atmCardBalanceLabel}>Net Balance</Text>
             <Text 
               style={[
-                styles.atmCardBalanceAmount,
-                totals.balance < 0 && styles.atmCardBalanceAmountNegative
+                styles.balanceCardSmallAmount,
+                bankBalance !== null && bankBalance < 0 && styles.balanceCardSmallAmountNegative
               ]}
               numberOfLines={1}
               adjustsFontSizeToFit={true}
               minimumFontScale={0.7}
             >
-              ₹{formatCurrency(totals.balance)}
+              {bankBalance !== null 
+                ? `₹${formatCurrency(Math.abs(bankBalance))}`
+                : '₹0.00'
+              }
             </Text>
           </View>
 
-          {/* Bottom Section - Income, Expense, UPI, Cash */}
-          <View style={styles.atmCardBottom}>
-            <View style={styles.atmCardRow}>
-              <View style={styles.atmCardItem}>
-                <View style={styles.atmCardItemHeader}>
-                  <Ionicons name="arrow-down" size={14} color="#FF6B6B" />
-                  <Text style={styles.atmCardItemLabel}>Expense</Text>
-                </View>
-                <Text 
-                  style={styles.atmCardItemValue}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit={true}
-                  minimumFontScale={0.75}
-                >
-                  ₹{formatCurrency(totals.expense)}
-                </Text>
+          <View style={styles.balanceCardSmall}>
+            <View style={styles.balanceCardSmallHeader}>
+              <View style={[styles.balanceCardSmallIcon, { backgroundColor: 'rgba(255, 212, 59, 0.15)' }]}>
+                <Ionicons name="cash" size={20} color="#FFD43B" />
               </View>
-              
-              <View style={styles.atmCardItem}>
-                <View style={styles.atmCardItemHeader}>
-                  <Ionicons name="arrow-up" size={14} color="#51CF66" />
-                  <Text style={styles.atmCardItemLabel}>Income</Text>
-                </View>
-                <Text 
-                  style={[styles.atmCardItemValue, styles.atmCardItemValueIncome]}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit={true}
-                  minimumFontScale={0.75}
-                >
-                  ₹{formatCurrency(totals.income)}
-                </Text>
-              </View>
+              <Text style={styles.balanceCardSmallLabel}>Cash Balance</Text>
             </View>
-
-            <View style={styles.atmCardRow}>
-              <View style={styles.atmCardItem}>
-                <View style={styles.atmCardItemHeader}>
-                  <Ionicons name="phone-portrait" size={14} color="#4DABF7" />
-                  <Text style={styles.atmCardItemLabel}>UPI Balance</Text>
-                </View>
-                <Text 
-                  style={[
-                    styles.atmCardItemValue,
-                    bankBalance !== null && bankBalance < 0 && styles.atmCardItemValueNegative
-                  ]}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit={true}
-                  minimumFontScale={0.75}
-                >
-                  {bankBalance !== null 
-                    ? `₹${formatCurrency(Math.abs(bankBalance))}`
-                    : '₹0.00'
-                  }
-                </Text>
-              </View>
-              
-              <View style={styles.atmCardItem}>
-                <View style={styles.atmCardItemHeader}>
-                  <Ionicons name="cash" size={14} color="#FFD43B" />
-                  <Text style={styles.atmCardItemLabel}>Cash Balance</Text>
-                </View>
-                <Text 
-                  style={[
-                    styles.atmCardItemValue,
-                    cashBalance !== null && cashBalance < 0 && styles.atmCardItemValueNegative
-                  ]}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit={true}
-                  minimumFontScale={0.75}
-                >
-                  {cashBalance !== null 
-                    ? `₹${formatCurrency(Math.abs(cashBalance))}`
-                    : '₹0.00'
-                  }
-                </Text>
-              </View>
-            </View>
+            <Text 
+              style={[
+                styles.balanceCardSmallAmount,
+                cashBalance !== null && cashBalance < 0 && styles.balanceCardSmallAmountNegative
+              ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit={true}
+              minimumFontScale={0.7}
+            >
+              {cashBalance !== null 
+                ? `₹${formatCurrency(Math.abs(cashBalance))}`
+                : '₹0.00'
+              }
+            </Text>
           </View>
         </View>
-      </View>
 
-        {/* Entries List Header */}
-        <View style={styles.listHeader}>
-          <Text style={styles.listTitle}>
-            {isCustomDateRange ? 'Filtered Entries' : "Today's Entries"}
-          </Text>
-          <Text style={styles.listCount}>{todayEntries.length}</Text>
+        {/* Transactions Section */}
+        <View style={styles.transactionsSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              {isCustomDateRange ? 'Filtered Entries' : "Today's Transactions"}
+            </Text>
+            <View style={styles.sectionBadge}>
+              <Text style={styles.sectionBadgeText}>{todayEntries.length}</Text>
+            </View>
+          </View>
+
+          {todayEntries.length > 0 ? (
+            <View style={styles.transactionsList}>
+              {todayEntries.map((item) => (
+                <View key={item.id}>
+                  {renderEntry({ item })}
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIcon}>
+                <Ionicons name="wallet-outline" size={56} color="#3a3a3a" />
+              </View>
+              <Text style={styles.emptyTitle}>
+                {isCustomDateRange ? 'No entries found' : 'No transactions today'}
+              </Text>
+              <Text style={styles.emptySubtitle}>
+                {isCustomDateRange ? 'Try a different date range' : 'Start tracking your expenses and income'}
+              </Text>
+            </View>
+          )}
         </View>
 
-        {/* Entries List */}
-        {todayEntries.length > 0 ? (
-          <View style={styles.entriesContainer}>
-            {todayEntries.map((item) => {
-              const entryComponent = renderEntry({ item });
-              return <View key={item.id}>{entryComponent}</View>;
-            })}
-          </View>
-        ) : (
-          <View style={styles.emptyContainer}>
-            <View style={styles.emptyIconContainer}>
-              <Ionicons name="wallet-outline" size={48} color="#3a3a3a" />
-            </View>
-            <Text style={styles.emptyText}>
-              {isCustomDateRange ? 'No entries found' : 'No entries today'}
-            </Text>
-            <Text style={styles.emptySubtext}>
-              {isCustomDateRange ? 'Try a different date range' : 'Start tracking your expenses and income'}
-            </Text>
-          </View>
-        )}
-
-        {/* Footer */}
         <AppFooter />
       </ScrollView>
 
@@ -486,7 +490,14 @@ const HomeScreen = () => {
         onPress={() => setModalVisible(true)}
         activeOpacity={0.9}
       >
-        <Ionicons name="add" size={28} color="#1C1C1E" />
+        <LinearGradient
+          colors={['#667eea', '#764ba2']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.fabGradient}
+        >
+          <Ionicons name="add" size={28} color="#FFFFFF" />
+        </LinearGradient>
       </TouchableOpacity>
 
       {/* Add Entry Modal */}
@@ -622,25 +633,31 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1C1C1E',
+    backgroundColor: '#0A0A0A',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100,
   },
   stickyHeader: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#1C1C1E',
+    backgroundColor: '#0A0A0A',
     borderBottomWidth: 1,
-    borderBottomColor: '#2a2a2a',
+    borderBottomColor: '#1a1a1a',
     zIndex: 1000,
-    paddingTop: 8,
-    paddingBottom: 8,
+    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    paddingBottom: 12,
     paddingHorizontal: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   stickyHeaderContent: {
     flexDirection: 'row',
@@ -651,17 +668,33 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
+  },
+  stickyHeaderIconExpense: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stickyHeaderIconIncome: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(81, 207, 102, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   stickyHeaderTextContainer: {
     flex: 1,
   },
   stickyHeaderLabel: {
     fontSize: 10,
-    color: '#888888',
-    fontWeight: '500',
+    color: '#888',
+    fontWeight: '600',
     marginBottom: 2,
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   stickyHeaderValue: {
@@ -675,60 +708,336 @@ const styles = StyleSheet.create({
   },
   stickyHeaderDivider: {
     width: 1,
-    height: 32,
-    backgroundColor: '#2a2a2a',
-    marginHorizontal: 12,
+    height: 36,
+    backgroundColor: '#1a1a1a',
+    marginHorizontal: 16,
+  },
+  headerContainer: {
+    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    backgroundColor: '#0A0A0A',
   },
   header: {
+    marginBottom: 8,
+  },
+  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingTop: 20,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-    backgroundColor: '#1C1C1E',
-    borderBottomWidth: 1,
-    borderBottomColor: '#2a2a2a',
+    marginBottom: 8,
   },
-  headerContent: {
-    flex: 1,
-    paddingRight: 12,
-  },
-  headerTextContainer: {
-    flex: 1,
+  headerGreeting: {
+    fontSize: 14,
+    color: '#888',
+    fontWeight: '500',
+    marginBottom: 4,
   },
   headerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: '800',
     color: '#FFFFFF',
-    marginBottom: 4,
-    letterSpacing: 0.2,
-    textTransform: 'uppercase',
+    letterSpacing: -0.5,
   },
-  headerSubtitle: {
-    fontSize: 12,
-    color: '#888888',
-    fontWeight: '400',
+  headerDate: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '500',
   },
   headerActions: {
     flexDirection: 'row',
     gap: 8,
-    alignItems: 'flex-start',
-    paddingTop: 2,
   },
-  filterButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 0,
-    backgroundColor: 'transparent',
+  headerActionButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#1a1a1a',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  refreshButton: {
-    width: 32,
+  balanceCardContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  balanceCard: {
+    borderRadius: 24,
+    padding: 24,
+    minHeight: 200,
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  balanceCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  balanceCardTitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  balanceCardChip: {
+    width: 48,
     height: 32,
-    borderRadius: 0,
-    backgroundColor: 'transparent',
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  chipPattern: {
+    width: 36,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  balanceCardAmount: {
+    fontSize: 42,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -1,
+    marginBottom: 24,
+  },
+  balanceCardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.15)',
+  },
+  balanceCardStat: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  balanceCardStatContent: {
+    flex: 1,
+  },
+  balanceCardStatLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '500',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  balanceCardStatValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+  },
+  balanceCardDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    marginHorizontal: 16,
+  },
+  balanceCardsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 12,
+    marginBottom: 24,
+  },
+  balanceCardSmall: {
+    flex: 1,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#222',
+  },
+  balanceCardSmallHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 10,
+  },
+  balanceCardSmallIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  balanceCardSmallLabel: {
+    fontSize: 11,
+    color: '#888',
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  balanceCardSmallAmount: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+  },
+  balanceCardSmallAmountNegative: {
+    color: '#FF6B6B',
+  },
+  transactionsSection: {
+    paddingHorizontal: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+  },
+  sectionBadge: {
+    backgroundColor: '#1a1a1a',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#222',
+  },
+  sectionBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#888',
+  },
+  transactionsList: {
+    gap: 8,
+  },
+  transactionCard: {
+    flexDirection: 'row',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#222',
+    alignItems: 'center',
+  },
+  transactionLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  transactionIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  transactionIconExpense: {
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+  },
+  transactionIconIncome: {
+    backgroundColor: 'rgba(81, 207, 102, 0.15)',
+  },
+  transactionIconAdjustment: {
+    backgroundColor: 'rgba(255, 152, 0, 0.15)',
+  },
+  transactionDetails: {
+    flex: 1,
+  },
+  transactionNote: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  transactionMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  transactionDate: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+  },
+  transactionMode: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#1a1a1a',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  transactionRight: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  transactionAmount: {
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+  },
+  transactionAmountExpense: {
+    color: '#FF6B6B',
+  },
+  transactionAmountIncome: {
+    color: '#51CF66',
+  },
+  transactionAmountAdjustment: {
+    color: '#FF9800',
+  },
+  transactionDelete: {
+    padding: 4,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyIcon: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#1a1a1a',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    paddingHorizontal: 40,
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 100,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 12,
+  },
+  fabGradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -738,48 +1047,46 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   filterModalContent: {
-    backgroundColor: '#2C2C2E',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    paddingBottom: 32,
+    backgroundColor: '#1a1a1a',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
     maxHeight: '80%',
   },
   filterModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   filterModalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 24,
+    fontWeight: '700',
     color: '#FFFFFF',
-    letterSpacing: -0.3,
+    letterSpacing: -0.5,
   },
   filterCloseButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'transparent',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#222',
     alignItems: 'center',
     justifyContent: 'center',
   },
   filterOptions: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   filterOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: '#1C1C1E',
-    borderWidth: 0,
-    gap: 10,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#222',
+    gap: 12,
   },
   filterOptionActive: {
-    backgroundColor: '#1976d2',
-    borderColor: '#1976d2',
+    backgroundColor: '#667eea',
   },
   filterOptionText: {
     fontSize: 16,
@@ -790,39 +1097,40 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   filterSectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#A0A0A0',
-    marginBottom: 10,
-    marginTop: 4,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#888',
+    marginBottom: 12,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   datePickerRow: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   datePickerButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1C1C1E',
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 0,
-    gap: 10,
+    backgroundColor: '#222',
+    padding: 16,
+    borderRadius: 12,
+    gap: 12,
   },
   datePickerTextContainer: {
     flex: 1,
   },
   datePickerLabel: {
-    fontSize: 12,
-    color: '#888888',
+    fontSize: 11,
+    color: '#888',
     marginBottom: 4,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   datePickerValue: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: '#ffffff',
   },
@@ -833,10 +1141,9 @@ const styles = StyleSheet.create({
   },
   filterResetButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: '#1C1C1E',
-    borderWidth: 0,
+    paddingVertical: 16,
+    borderRadius: 12,
+    backgroundColor: '#222',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -847,10 +1154,9 @@ const styles = StyleSheet.create({
   },
   filterApplyButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: '#007AFF',
-    borderWidth: 0,
+    paddingVertical: 16,
+    borderRadius: 12,
+    backgroundColor: '#667eea',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -858,278 +1164,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#fff',
-  },
-  fixedSummarySection: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
-    backgroundColor: '#1C1C1E',
-  },
-  atmCard: {
-    backgroundColor: '#2C2C2E',
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 0,
-    // Gradient-like effect with shadow
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-    // Subtle gradient background effect
-    overflow: 'hidden',
-  },
-  atmCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 24,
-  },
-  atmCardHeaderLeft: {
-    flex: 1,
-  },
-  atmCardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 4,
-    letterSpacing: 0.3,
-  },
-  atmCardSubtitle: {
-    fontSize: 12,
-    color: '#A0A0A0',
-    fontWeight: '400',
-  },
-  atmCardChip: {
-    width: 40,
-    height: 28,
-    borderRadius: 6,
-    backgroundColor: '#FFD700',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 12,
-  },
-  chipInner: {
-    width: 32,
-    height: 20,
-    borderRadius: 4,
-    backgroundColor: '#FFA500',
-  },
-  atmCardMainBalance: {
-    marginBottom: 24,
-    paddingBottom: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: '#3a3a3a',
-  },
-  atmCardBalanceLabel: {
-    fontSize: 12,
-    color: '#A0A0A0',
-    fontWeight: '500',
-    marginBottom: 8,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  atmCardBalanceAmount: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#51CF66',
-    letterSpacing: -0.5,
-  },
-  atmCardBalanceAmountNegative: {
-    color: '#FF6B6B',
-  },
-  atmCardBottom: {
-    gap: 16,
-  },
-  atmCardRow: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  atmCardItem: {
-    flex: 1,
-  },
-  atmCardItemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-    gap: 6,
-  },
-  atmCardItemLabel: {
-    fontSize: 11,
-    color: '#A0A0A0',
-    fontWeight: '500',
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
-  },
-  atmCardItemValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: -0.3,
-  },
-  atmCardItemValueIncome: {
-    color: '#51CF66',
-  },
-  atmCardItemValueNegative: {
-    color: '#FF6B6B',
-  },
-  scrollableContent: {
-    flex: 1,
-  },
-  scrollableContentContainer: {
-    paddingBottom: 20,
-  },
-  listHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    paddingTop: 8,
-  },
-  listTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#888888',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  listCount: {
-    fontSize: 12,
-    color: '#888888',
-    fontWeight: '500',
-  },
-  entriesContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-  },
-  entryItem: {
-    flexDirection: 'row',
-    backgroundColor: '#2C2C2E',
-    padding: 16,
-    marginBottom: 1,
-    borderRadius: 0,
-    alignItems: 'center',
-    borderWidth: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1C1C1E',
-    borderLeftWidth: 3,
-    borderLeftColor: 'transparent',
-  },
-  entryIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  expenseIconBg: {
-    backgroundColor: 'transparent',
-  },
-  incomeIconBg: {
-    backgroundColor: 'transparent',
-  },
-  adjustmentIconBg: {
-    backgroundColor: 'transparent',
-  },
-  entryItemExpense: {
-    borderLeftColor: '#d32f2f',
-  },
-  entryItemIncome: {
-    borderLeftColor: '#388e3c',
-  },
-  entryItemAdjustment: {
-    borderLeftColor: '#FF9800',
-  },
-  adjustmentAmount: {
-    color: '#FF9800',
-  },
-  adjustmentLabel: {
-    fontSize: 11,
-    color: '#FF9800',
-    fontWeight: '600',
-  },
-  entryContent: {
-    flex: 1,
-  },
-  entryAmountRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 3,
-    gap: 8,
-  },
-  entryAmount: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    letterSpacing: -0.3,
-  },
-  modeIndicator: {
-    padding: 2,
-  },
-  entryNote: {
-    fontSize: 13,
-    color: '#A0A0A0',
-    fontWeight: '400',
-  },
-  entryDate: {
-    fontSize: 12,
-    color: '#808080',
-    fontWeight: '400',
-  },
-  deleteButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyContainer: {
-    padding: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#2C2C2E',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  emptyText: {
-    fontSize: 15,
-    color: '#888888',
-    marginTop: 0,
-    fontWeight: '600',
-    letterSpacing: 0.2,
-  },
-  emptySubtext: {
-    fontSize: 13,
-    color: '#666666',
-    marginTop: 8,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 0,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
   },
 });
 

@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Modal,
   TextInput,
+  Platform,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +27,8 @@ import {
 } from '../utils/balanceUtils';
 import AppFooter from '../components/AppFooter';
 import EntriesReportModal from '../components/EntriesReportModal';
+import Colors from '../constants/colors';
+import { formatCurrency } from '../utils/dateUtils';
 
 const CollapsibleSection = ({ title, children, defaultExpanded = false }) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
@@ -41,7 +44,7 @@ const CollapsibleSection = ({ title, children, defaultExpanded = false }) => {
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
           size={18}
-          color="#888888"
+          color={Colors.text.secondary}
         />
       </TouchableOpacity>
       {expanded && <View style={styles.collapsibleContent}>{children}</View>}
@@ -207,7 +210,7 @@ const SettingsScreen = () => {
         <Text style={styles.settingTitle}>{title}</Text>
         <Text style={styles.settingDescription}>{description}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={18} color="#888888" />
+      <Ionicons name="chevron-forward" size={18} color={Colors.text.secondary} />
     </TouchableOpacity>
   );
 
@@ -230,7 +233,7 @@ const SettingsScreen = () => {
                   styles.balanceDisplayAmount,
                   bankBalance < 0 && styles.balanceDisplayAmountNegative
                 ]}>
-                  ₹{bankBalance.toFixed(2)}
+                  ₹{formatCurrency(bankBalance)}
                 </Text>
               </View>
             )}
@@ -241,7 +244,7 @@ const SettingsScreen = () => {
                   styles.balanceDisplayAmount,
                   cashBalance < 0 && styles.balanceDisplayAmountNegative
                 ]}>
-                  ₹{cashBalance.toFixed(2)}
+                  ₹{formatCurrency(cashBalance)}
                 </Text>
               </View>
             )}
@@ -414,7 +417,7 @@ const SettingsScreen = () => {
       {exporting && (
         <View style={styles.loadingOverlay}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#1976d2" />
+            <ActivityIndicator size="large" color={Colors.accent.primary} />
             <Text style={styles.loadingText}>Exporting data...</Text>
           </View>
         </View>
@@ -445,7 +448,7 @@ const SettingsScreen = () => {
                 onPress={() => setShowBalanceModal(false)}
                 style={styles.modalCloseButton}
               >
-                <Ionicons name="close" size={20} color="#888888" />
+                <Ionicons name="close" size={24} color={Colors.text.secondary} />
               </TouchableOpacity>
             </View>
 
@@ -457,7 +460,7 @@ const SettingsScreen = () => {
               <TextInput
                 style={styles.input}
                 placeholder="Enter balance amount"
-                placeholderTextColor="#666666"
+                placeholderTextColor={Colors.text.tertiary}
                 value={balanceInput}
                 onChangeText={setBalanceInput}
                 keyboardType="numeric"
@@ -492,33 +495,27 @@ const SettingsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: Colors.background.primary,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-    backgroundColor: '#1C1C1E',
-    borderBottomWidth: 1,
-    borderBottomColor: '#2a2a2a',
+    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    backgroundColor: Colors.background.primary,
   },
   headerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
-    letterSpacing: 0.2,
-    textTransform: 'uppercase',
+    fontSize: 28,
+    fontWeight: '800',
+    color: Colors.text.primary,
+    letterSpacing: -0.5,
   },
   collapsibleSection: {
-    marginHorizontal: 0,
-    marginBottom: 0,
-    backgroundColor: '#1C1C1E',
-    borderRadius: 0,
-    borderWidth: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2a2a2a',
+    marginHorizontal: 20,
+    marginBottom: 16,
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
     overflow: 'hidden',
   },
   collapsibleHeader: {
@@ -526,14 +523,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
-    paddingVertical: 16,
   },
   collapsibleTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#888888',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.text.primary,
   },
   collapsibleContent: {
     paddingHorizontal: 20,
@@ -545,13 +539,12 @@ const styles = StyleSheet.create({
   settingCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2C2C2E',
+    backgroundColor: Colors.background.primary,
     padding: 16,
-    borderRadius: 0,
-    marginBottom: 1,
-    borderWidth: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1C1C1E',
+    borderRadius: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
   },
   settingCardDisabled: {
     opacity: 0.5,
@@ -560,41 +553,38 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   settingTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.text.primary,
     marginBottom: 4,
-    letterSpacing: -0.2,
   },
   settingDescription: {
-    fontSize: 12,
-    color: '#888888',
-    letterSpacing: 0.1,
+    fontSize: 13,
+    color: Colors.text.secondary,
   },
   infoCard: {
-    backgroundColor: '#2C2C2E',
-    padding: 16,
-    borderRadius: 0,
-    borderWidth: 0,
+    backgroundColor: Colors.background.primary,
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
   },
   appName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.text.primary,
     marginBottom: 4,
-    letterSpacing: -0.2,
   },
   appVersion: {
-    fontSize: 12,
-    color: '#888888',
+    fontSize: 13,
+    color: Colors.text.secondary,
     marginBottom: 12,
-    fontWeight: '400',
+    fontWeight: '500',
   },
   infoDescription: {
-    fontSize: 13,
-    color: '#888888',
+    fontSize: 14,
+    color: Colors.text.secondary,
     lineHeight: 20,
-    letterSpacing: 0.1,
   },
   instructionItem: {
     marginBottom: 12,
@@ -613,24 +603,25 @@ const styles = StyleSheet.create({
   },
   balanceDisplayCard: {
     flex: 1,
-    backgroundColor: '#2C2C2E',
-    padding: 14,
-    borderRadius: 0,
-    borderWidth: 0,
+    backgroundColor: Colors.background.primary,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
     alignItems: 'center',
   },
   balanceDisplayLabel: {
-    fontSize: 10,
-    color: '#888888',
-    marginTop: 0,
-    marginBottom: 6,
-    fontWeight: '500',
-    letterSpacing: 0.3,
+    fontSize: 11,
+    color: Colors.text.secondary,
+    marginBottom: 8,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   balanceDisplayAmount: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.text.primary,
     letterSpacing: -0.3,
   },
   balanceDisplayAmountNegative: {
@@ -638,61 +629,58 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: Colors.background.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#1C1C1E',
-    borderRadius: 0,
+    backgroundColor: Colors.background.modal,
+    borderRadius: 24,
     padding: 24,
     width: '90%',
     maxWidth: 400,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: Colors.border.primary,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    paddingBottom: 16,
+    alignItems: 'flex-start',
+    marginBottom: 20,
+    paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#2a2a2a',
+    borderBottomColor: Colors.border.primary,
   },
   modalTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#ffffff',
-    letterSpacing: 0.2,
-    textTransform: 'uppercase',
+    fontSize: 22,
+    fontWeight: '700',
+    color: Colors.text.primary,
+    letterSpacing: -0.3,
   },
   modalCloseButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 0,
-    backgroundColor: 'transparent',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.background.secondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalDescription: {
-    fontSize: 13,
-    color: '#888888',
-    marginBottom: 20,
+    fontSize: 14,
+    color: Colors.text.secondary,
+    marginBottom: 24,
     lineHeight: 20,
-    letterSpacing: 0.1,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2a2a2a',
-    borderRadius: 0,
-    paddingHorizontal: 0,
-    paddingVertical: 14,
-    marginBottom: 20,
-    backgroundColor: 'transparent',
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
   },
   inputIcon: {
     marginRight: 12,
@@ -700,9 +688,8 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#ffffff',
-    padding: 0,
-    fontWeight: '500',
+    color: Colors.text.primary,
+    fontWeight: '600',
   },
   modalActions: {
     flexDirection: 'row',
@@ -710,104 +697,88 @@ const styles = StyleSheet.create({
   },
   modalCancelButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 0,
-    backgroundColor: '#2C2C2E',
+    paddingVertical: 16,
+    borderRadius: 16,
+    backgroundColor: Colors.background.secondary,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#3a3a3a',
+    borderColor: Colors.border.primary,
   },
   modalCancelText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#888888',
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.text.secondary,
   },
   modalSaveButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 0,
-    backgroundColor: '#2C2C2E',
+    paddingVertical: 16,
+    borderRadius: 16,
+    backgroundColor: Colors.accent.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#3a3a3a',
   },
   modalSaveText: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: '#FFFFFF',
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
   },
   featureList: {
     marginTop: 0,
   },
   featureText: {
-    fontSize: 13,
-    color: '#888888',
-    marginBottom: 10,
+    fontSize: 14,
+    color: Colors.text.secondary,
+    marginBottom: 12,
     lineHeight: 20,
-    letterSpacing: 0.1,
   },
   developerCard: {
     marginTop: 0,
   },
   developerName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.text.primary,
     marginBottom: 4,
-    letterSpacing: -0.2,
   },
   madeByText: {
-    fontSize: 12,
-    color: '#888888',
+    fontSize: 13,
+    color: Colors.text.secondary,
     marginBottom: 16,
-    fontWeight: '400',
-    letterSpacing: 0.2,
+    fontWeight: '500',
   },
   contactSection: {
-    backgroundColor: '#2C2C2E',
-    padding: 16,
-    borderRadius: 0,
-    borderWidth: 0,
+    backgroundColor: Colors.background.secondary,
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
   },
   contactTitle: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#888888',
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text.secondary,
     marginBottom: 12,
-    textAlign: 'left',
-    letterSpacing: 0.1,
   },
   contactButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2C2C2E',
-    paddingVertical: 12,
+    backgroundColor: Colors.accent.primary,
+    paddingVertical: 16,
     paddingHorizontal: 20,
-    borderRadius: 0,
+    borderRadius: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#3a3a3a',
   },
   contactButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: '#FFFFFF',
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
   },
   contactNote: {
-    fontSize: 12,
-    color: '#888888',
-    textAlign: 'left',
+    fontSize: 13,
+    color: Colors.text.secondary,
     lineHeight: 18,
-    letterSpacing: 0.1,
   },
   loadingOverlay: {
     position: 'absolute',
@@ -815,20 +786,23 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: Colors.background.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingContainer: {
-    backgroundColor: '#1e1e1e',
-    padding: 24,
-    borderRadius: 16,
+    backgroundColor: Colors.background.modal,
+    padding: 32,
+    borderRadius: 24,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: 16,
     fontSize: 16,
-    color: '#b0b0b0',
+    color: Colors.text.secondary,
+    fontWeight: '600',
   },
 });
 

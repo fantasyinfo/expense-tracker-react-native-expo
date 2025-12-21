@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import Colors from '../constants/colors';
 
 const AppFooter = () => {
   return (
@@ -13,20 +14,17 @@ const AppFooter = () => {
 
 const styles = StyleSheet.create({
   footer: {
-    paddingVertical: 16,
+    paddingVertical: 24,
     paddingHorizontal: 20,
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#2a2a2a',
-    backgroundColor: '#1C1C1E',
+    marginTop: 32,
   },
   footerText: {
-    fontSize: 10,
-    color: '#666666',
-    fontWeight: '400',
+    fontSize: 12,
+    color: Colors.text.tertiary,
+    fontWeight: '500',
     letterSpacing: 0.3,
   },
 });
 
 export default AppFooter;
-

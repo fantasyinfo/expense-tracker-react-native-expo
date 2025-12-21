@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, StatusBar, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -8,6 +8,7 @@ import LoadingScreen from './src/components/LoadingScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import SummaryScreen from './src/screens/SummaryScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import Colors from './src/constants/colors';
 
 const Tab = createBottomTabNavigator();
 
@@ -26,36 +27,27 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar 
         barStyle="light-content" 
-        backgroundColor="#1C1C1E"
+        backgroundColor={Colors.background.primary}
         translucent={false}
       />
       <NavigationContainer>
         <Tab.Navigator
           screenOptions={({ route }) => ({
-            headerStyle: {
-              backgroundColor: '#1976d2',
-              elevation: 0,
-              shadowOpacity: 0,
-            },
-            headerTintColor: '#fff',
-            headerTitleStyle: {
-              fontWeight: '700',
-              fontSize: 20,
-            },
-            tabBarActiveTintColor: '#007AFF',
-            tabBarInactiveTintColor: '#A0A0A0',
+            headerShown: false,
+            tabBarActiveTintColor: Colors.tabBar.active,
+            tabBarInactiveTintColor: Colors.tabBar.inactive,
             tabBarStyle: {
-              backgroundColor: '#1C1C1E',
+              backgroundColor: Colors.tabBar.background,
               borderTopWidth: 1,
-              borderTopColor: '#2C2C2E',
-              paddingBottom: 8,
+              borderTopColor: Colors.tabBar.border,
+              paddingBottom: Platform.OS === 'ios' ? 20 : 8,
               paddingTop: 8,
-              height: 64,
+              height: Platform.OS === 'ios' ? 88 : 64,
               elevation: 8,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: -2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
+              shadowOpacity: 0.2,
+              shadowRadius: 8,
             },
             tabBarLabelStyle: {
               fontSize: 12,
@@ -81,7 +73,6 @@ export default function App() {
             name="Home"
             component={HomeScreen}
             options={{
-              headerShown: false,
               tabBarLabel: 'Today',
             }}
           />
@@ -89,7 +80,6 @@ export default function App() {
             name="Summary"
             component={SummaryScreen}
             options={{
-              headerShown: false,
               tabBarLabel: 'Summary',
             }}
           />
@@ -97,7 +87,6 @@ export default function App() {
             name="Settings"
             component={SettingsScreen}
             options={{
-              headerShown: false,
               tabBarLabel: 'Settings',
             }}
           />

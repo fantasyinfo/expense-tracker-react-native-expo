@@ -7,11 +7,17 @@ import {
   TextInput,
   TouchableOpacity,
   Platform,
+  ScrollView,
+  Dimensions,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDate, formatDateDisplay, parseDate } from '../utils/dateUtils';
 import { addEntry } from '../utils/storage';
+import Colors from '../constants/colors';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const AddEntryModal = ({ visible, onClose, onSave }) => {
   const [amount, setAmount] = useState('');
@@ -20,7 +26,7 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
   const [mode, setMode] = useState('upi');
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [adjustmentType, setAdjustmentType] = useState('add'); // 'add' or 'subtract' for balance adjustments
+  const [adjustmentType, setAdjustmentType] = useState('add');
 
   const handleSave = async () => {
     const parsedAmount = parseFloat(amount);
@@ -36,7 +42,6 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
       date: formatDate(date),
     };
 
-    // Add adjustment_type for balance adjustments (required field)
     if (type === 'balance_adjustment') {
       if (!adjustmentType || (adjustmentType !== 'add' && adjustmentType !== 'subtract')) {
         console.error('Invalid adjustment_type:', adjustmentType);
@@ -87,200 +92,289 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Add Entry</Text>
+            <View>
+              <Text style={styles.modalTitle}>Add Entry</Text>
+              <Text style={styles.modalSubtitle}>Record a new transaction</Text>
+            </View>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <Ionicons name="close" size={20} color="#888888" />
+              <Ionicons name="close" size={24} color={Colors.text.secondary} />
             </TouchableOpacity>
           </View>
 
-          {/* Professional Type Toggle */}
-          <View style={styles.typeContainer}>
-            <TouchableOpacity
-              style={[
-                styles.typeButton,
-                type === 'expense' && styles.typeButtonActiveExpense,
-              ]}
-              onPress={() => setType('expense')}
+          <View style={styles.scrollViewContainer}>
+            <ScrollView 
+              style={styles.scrollView}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+              nestedScrollEnabled={true}
             >
-              <Text
-                style={[
-                  styles.typeButtonText,
-                  type === 'expense' && styles.typeButtonTextActive,
-                ]}
-              >
-                Expense
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.typeButton,
-                type === 'income' && styles.typeButtonActiveIncome,
-              ]}
-              onPress={() => setType('income')}
-            >
-              <Text
-                style={[
-                  styles.typeButtonText,
-                  type === 'income' && styles.typeButtonTextActive,
-                ]}
-              >
-                Income
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.typeButton,
-                type === 'balance_adjustment' && styles.typeButtonActiveAdjustment,
-              ]}
-              onPress={() => setType('balance_adjustment')}
-            >
-              <Text
-                style={[
-                  styles.typeButtonText,
-                  type === 'balance_adjustment' && styles.typeButtonTextActive,
-                ]}
-              >
-                Adjust
-              </Text>
-            </TouchableOpacity>
-          </View>
+            {/* Type Toggle */}
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Transaction Type</Text>
+              <View style={styles.typeContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.typeButton,
+                    type === 'expense' && styles.typeButtonActiveExpense,
+                  ]}
+                  onPress={() => setType('expense')}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons 
+                    name="arrow-down" 
+                    size={18} 
+                    color={type === 'expense' ? '#FFFFFF' : Colors.status.expense} 
+                  />
+                  <Text
+                    style={[
+                      styles.typeButtonText,
+                      type === 'expense' && styles.typeButtonTextActive,
+                    ]}
+                  >
+                    Expense
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.typeButton,
+                    type === 'income' && styles.typeButtonActiveIncome,
+                  ]}
+                  onPress={() => setType('income')}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons 
+                    name="arrow-up" 
+                    size={18} 
+                    color={type === 'income' ? '#FFFFFF' : Colors.status.income} 
+                  />
+                  <Text
+                    style={[
+                      styles.typeButtonText,
+                      type === 'income' && styles.typeButtonTextActive,
+                    ]}
+                  >
+                    Income
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.typeButton,
+                    type === 'balance_adjustment' && styles.typeButtonActiveAdjustment,
+                  ]}
+                  onPress={() => setType('balance_adjustment')}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons 
+                    name="swap-vertical" 
+                    size={18} 
+                    color={type === 'balance_adjustment' ? '#FFFFFF' : Colors.status.adjustment} 
+                  />
+                  <Text
+                    style={[
+                      styles.typeButtonText,
+                      type === 'balance_adjustment' && styles.typeButtonTextActive,
+                    ]}
+                  >
+                    Adjust
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
 
-          {/* Adjustment Type Toggle - Only show for balance adjustments */}
-          {type === 'balance_adjustment' && (
-            <View style={styles.adjustmentContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.adjustmentButton,
-                  adjustmentType === 'add' && styles.adjustmentButtonActive,
-                ]}
-                onPress={() => setAdjustmentType('add')}
-              >
-                <Text
+            {/* Adjustment Type Toggle */}
+            {type === 'balance_adjustment' && (
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>Adjustment Type</Text>
+                <View style={styles.adjustmentContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.adjustmentButton,
+                      adjustmentType === 'add' && styles.adjustmentButtonActive,
+                    ]}
+                    onPress={() => setAdjustmentType('add')}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons 
+                      name="add-circle" 
+                      size={18} 
+                      color={adjustmentType === 'add' ? '#FFFFFF' : Colors.status.income} 
+                    />
+                    <Text
+                      style={[
+                        styles.adjustmentButtonText,
+                        adjustmentType === 'add' && styles.adjustmentButtonTextActive,
+                      ]}
+                    >
+                      Add
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.adjustmentButton,
+                      adjustmentType === 'subtract' && styles.adjustmentButtonActive,
+                    ]}
+                    onPress={() => setAdjustmentType('subtract')}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons 
+                      name="remove-circle" 
+                      size={18} 
+                      color={adjustmentType === 'subtract' ? '#FFFFFF' : Colors.status.expense} 
+                    />
+                    <Text
+                      style={[
+                        styles.adjustmentButtonText,
+                        adjustmentType === 'subtract' && styles.adjustmentButtonTextActive,
+                      ]}
+                    >
+                      Subtract
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* Amount Input */}
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Amount *</Text>
+              <View style={styles.inputContainer}>
+                <View style={styles.inputIconContainer}>
+                  <Ionicons name="cash-outline" size={20} color={Colors.text.secondary} />
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="0.00"
+                  placeholderTextColor={Colors.text.tertiary}
+                  value={amount}
+                  onChangeText={setAmount}
+                  keyboardType="numeric"
+                  autoFocus={true}
+                />
+              </View>
+            </View>
+
+            {/* Note Input */}
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Note (Optional)</Text>
+              <View style={styles.inputContainer}>
+                <View style={styles.inputIconContainer}>
+                  <Ionicons name="document-text-outline" size={20} color={Colors.text.secondary} />
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Add a note..."
+                  placeholderTextColor={Colors.text.tertiary}
+                  value={note}
+                  onChangeText={setNote}
+                  multiline={false}
+                />
+              </View>
+            </View>
+
+            {/* Payment Method Toggle */}
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Payment Method</Text>
+              <View style={styles.modeContainer}>
+                <TouchableOpacity
                   style={[
-                    styles.adjustmentButtonText,
-                    adjustmentType === 'add' && styles.adjustmentButtonTextActive,
+                    styles.modeButton,
+                    mode === 'upi' && styles.modeButtonActive,
                   ]}
+                  onPress={() => setMode('upi')}
+                  activeOpacity={0.7}
                 >
-                  Add to Balance
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.adjustmentButton,
-                  adjustmentType === 'subtract' && styles.adjustmentButtonActive,
-                ]}
-                onPress={() => setAdjustmentType('subtract')}
-              >
-                <Text
+                  <Ionicons 
+                    name="phone-portrait" 
+                    size={18} 
+                    color={mode === 'upi' ? '#FFFFFF' : Colors.payment.upi} 
+                  />
+                  <Text
+                    style={[
+                      styles.modeButtonText,
+                      mode === 'upi' && styles.modeButtonTextActive,
+                    ]}
+                  >
+                    UPI
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
                   style={[
-                    styles.adjustmentButtonText,
-                    adjustmentType === 'subtract' && styles.adjustmentButtonTextActive,
+                    styles.modeButton,
+                    mode === 'cash' && styles.modeButtonActive,
                   ]}
+                  onPress={() => setMode('cash')}
+                  activeOpacity={0.7}
                 >
-                  Subtract from Balance
-                </Text>
+                  <Ionicons 
+                    name="cash" 
+                    size={18} 
+                    color={mode === 'cash' ? '#FFFFFF' : Colors.payment.cash} 
+                  />
+                  <Text
+                    style={[
+                      styles.modeButtonText,
+                      mode === 'cash' && styles.modeButtonTextActive,
+                    ]}
+                  >
+                    Cash
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Date Input */}
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Date</Text>
+              <TouchableOpacity
+                style={styles.inputContainer}
+                onPress={() => setShowDatePicker(true)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.inputIconContainer}>
+                  <Ionicons name="calendar-outline" size={20} color={Colors.text.secondary} />
+                </View>
+                <Text style={styles.dateText}>{formatDateDisplay(formatDate(date))}</Text>
+                <Ionicons name="chevron-forward" size={20} color={Colors.text.secondary} />
               </TouchableOpacity>
             </View>
-          )}
 
-          {/* Amount Input */}
-          <View style={styles.inputContainer}>
-            <Ionicons name="cash-outline" size={20} color="#b0b0b0" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Amount *"
-              placeholderTextColor="#999"
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="numeric"
-              autoFocus={true}
-            />
+            {/* Date Picker */}
+            {showDatePicker && (
+              <DateTimePicker
+                value={date}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleDateChange}
+                maximumDate={new Date()}
+                themeVariant="dark"
+                textColor={Platform.OS === 'android' ? '#FFFFFF' : undefined}
+              />
+            )}
+            </ScrollView>
           </View>
-
-          {/* Note Input */}
-          <View style={styles.inputContainer}>
-            <Ionicons name="document-text-outline" size={20} color="#b0b0b0" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Note (optional)"
-              placeholderTextColor="#999"
-              value={note}
-              onChangeText={setNote}
-              multiline={false}
-            />
-          </View>
-
-          {/* Professional Mode Toggle */}
-          <View style={styles.modeContainer}>
-            <TouchableOpacity
-              style={[
-                styles.modeButton,
-                mode === 'upi' && styles.modeButtonActive,
-              ]}
-              onPress={() => setMode('upi')}
-            >
-              <Text
-                style={[
-                  styles.modeButtonText,
-                  mode === 'upi' && styles.modeButtonTextActive,
-                ]}
-              >
-                UPI
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.modeButton,
-                mode === 'cash' && styles.modeButtonActive,
-              ]}
-              onPress={() => setMode('cash')}
-            >
-              <Text
-                style={[
-                  styles.modeButtonText,
-                  mode === 'cash' && styles.modeButtonTextActive,
-                ]}
-              >
-                Cash
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Date Input */}
-          <TouchableOpacity
-            style={styles.inputContainer}
-            onPress={() => setShowDatePicker(true)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="calendar-outline" size={20} color="#b0b0b0" style={styles.inputIcon} />
-            <Text style={styles.dateText}>{formatDateDisplay(formatDate(date))}</Text>
-            <Ionicons name="chevron-forward" size={20} color="#888888" />
-          </TouchableOpacity>
-
-          {/* Date Picker */}
-          {showDatePicker && (
-            <DateTimePicker
-              value={date}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={handleDateChange}
-              maximumDate={new Date()}
-              themeVariant="dark"
-              textColor={Platform.OS === 'android' ? '#FFFFFF' : undefined}
-            />
-          )}
 
           {/* Save Button */}
           <TouchableOpacity
-            style={[
-              styles.saveButton,
-              (!amount || parseFloat(amount) <= 0) && styles.saveButtonDisabled,
-            ]}
+            style={styles.saveButtonContainer}
             onPress={handleSave}
             disabled={!amount || parseFloat(amount) <= 0}
+            activeOpacity={0.8}
           >
-            <Ionicons name="checkmark-circle" size={20} color="#fff" style={styles.saveIcon} />
-            <Text style={styles.saveButtonText}>Save Entry</Text>
+            {(!amount || parseFloat(amount) <= 0) ? (
+              <View style={[styles.saveButton, styles.saveButtonDisabled]}>
+                <Text style={styles.saveButtonTextDisabled}>Save Entry</Text>
+              </View>
+            ) : (
+              <LinearGradient
+                colors={Colors.accent.gradient.positive}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.saveButton}
+              >
+                <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                <Text style={styles.saveButtonText}>Save Entry</Text>
+              </LinearGradient>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -291,189 +385,215 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: Colors.background.overlay,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#1C1C1E',
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    padding: 20,
-    paddingBottom: 32,
+    backgroundColor: Colors.background.modal,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 24,
+    paddingHorizontal: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
     maxHeight: '90%',
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+    borderBottomWidth: 0,
+    flexDirection: 'column',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingBottom: 16,
+    alignItems: 'flex-start',
+    marginBottom: 24,
+    paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#2a2a2a',
+    borderBottomColor: Colors.border.primary,
   },
   modalTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#ffffff',
-    letterSpacing: 0.2,
-    textTransform: 'uppercase',
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.text.primary,
+    marginBottom: 4,
+    letterSpacing: -0.5,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: Colors.text.secondary,
+    fontWeight: '500',
   },
   closeButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 0,
-    backgroundColor: 'transparent',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.background.secondary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  scrollViewContainer: {
+    height: SCREEN_HEIGHT * 0.5,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    color: Colors.text.secondary,
+    fontWeight: '600',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   typeContainer: {
     flexDirection: 'row',
-    marginBottom: 20,
-    borderRadius: 0,
-    backgroundColor: '#2C2C2E',
-    padding: 2,
-    gap: 2,
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 16,
+    padding: 4,
+    gap: 4,
   },
   typeButton: {
     flex: 1,
-    paddingVertical: 12,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 0,
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
   },
   typeButtonActiveExpense: {
-    backgroundColor: '#2C2C2E',
-    borderBottomWidth: 2,
-    borderBottomColor: '#d32f2f',
+    backgroundColor: Colors.status.expense,
   },
   typeButtonActiveIncome: {
-    backgroundColor: '#2C2C2E',
-    borderBottomWidth: 2,
-    borderBottomColor: '#388e3c',
+    backgroundColor: Colors.status.income,
   },
   typeButtonActiveAdjustment: {
-    backgroundColor: '#2C2C2E',
-    borderBottomWidth: 2,
-    borderBottomColor: '#FF9800',
-  },
-  adjustmentContainer: {
-    flexDirection: 'row',
-    marginBottom: 20,
-    borderRadius: 0,
-    backgroundColor: '#2C2C2E',
-    padding: 2,
-    gap: 2,
-  },
-  adjustmentButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 0,
-  },
-  adjustmentButtonActive: {
-    backgroundColor: '#2C2C2E',
-    borderBottomWidth: 2,
-    borderBottomColor: '#888888',
-  },
-  adjustmentButtonText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#888888',
-  },
-  adjustmentButtonTextActive: {
-    color: '#FFFFFF',
+    backgroundColor: Colors.status.adjustment,
   },
   typeButtonText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#888888',
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text.secondary,
   },
   typeButtonTextActive: {
     color: '#FFFFFF',
   },
-  modeContainer: {
+  adjustmentContainer: {
     flexDirection: 'row',
-    marginBottom: 20,
-    borderRadius: 0,
-    backgroundColor: '#2C2C2E',
-    padding: 2,
-    gap: 2,
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 16,
+    padding: 4,
+    gap: 4,
   },
-  modeButton: {
+  adjustmentButton: {
     flex: 1,
-    paddingVertical: 12,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 0,
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
   },
-  modeButtonActive: {
-    backgroundColor: '#2C2C2E',
-    borderBottomWidth: 2,
-    borderBottomColor: '#007AFF',
+  adjustmentButtonActive: {
+    backgroundColor: Colors.accent.primary,
   },
-  modeButtonText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#888888',
+  adjustmentButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text.secondary,
   },
-  modeButtonTextActive: {
+  adjustmentButtonTextActive: {
     color: '#FFFFFF',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2a2a2a',
-    borderRadius: 0,
-    paddingHorizontal: 0,
-    paddingVertical: 14,
-    marginBottom: 20,
-    backgroundColor: 'transparent',
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
   },
-  inputIcon: {
+  inputIconContainer: {
     marginRight: 12,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#ffffff',
-    padding: 0,
-    fontWeight: '500',
+    color: Colors.text.primary,
+    fontWeight: '600',
   },
   dateText: {
     flex: 1,
     fontSize: 16,
-    color: '#ffffff',
-    fontWeight: '500',
+    color: Colors.text.primary,
+    fontWeight: '600',
+  },
+  modeContainer: {
+    flexDirection: 'row',
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 16,
+    padding: 4,
+    gap: 4,
+  },
+  modeButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  modeButtonActive: {
+    backgroundColor: Colors.accent.primary,
+  },
+  modeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text.secondary,
+  },
+  modeButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  saveButtonContainer: {
+    marginTop: 8,
   },
   saveButton: {
     flexDirection: 'row',
-    backgroundColor: '#2C2C2E',
-    paddingVertical: 16,
-    borderRadius: 0,
+    paddingVertical: 18,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: '#3a3a3a',
     gap: 8,
+    shadowColor: Colors.accent.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   saveButtonDisabled: {
-    backgroundColor: '#1C1C1E',
-    borderColor: '#2a2a2a',
-    opacity: 0.5,
-  },
-  saveIcon: {
-    marginRight: 4,
+    backgroundColor: Colors.background.secondary,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   saveButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  saveButtonTextDisabled: {
+    color: Colors.text.tertiary,
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
 
