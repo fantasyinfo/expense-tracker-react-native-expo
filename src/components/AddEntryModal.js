@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -16,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { formatDate, formatDateDisplay, parseDate } from '../utils/dateUtils';
 import { addEntry, updateEntry } from '../utils/storage';
 import { updateStreak, checkAchievements } from '../utils/engagementUtils';
+import { loadTemplates, addTemplate, deleteTemplate } from '../utils/templateStorage';
 import Colors from '../constants/colors';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -28,26 +30,53 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [adjustmentType, setAdjustmentType] = useState('add');
+  const [templates, setTemplates] = useState([]);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const prevEditEntryRef = useRef(null);
 
-  // Load edit entry data when modal opens with editEntry
+  // Load templates when modal opens
   useEffect(() => {
-    if (editEntry && visible) {
+    if (visible) {
+      loadTemplatesData();
+    }
+  }, [visible]);
+
+  const loadTemplatesData = async () => {
+    const loadedTemplates = await loadTemplates();
+    setTemplates(loadedTemplates);
+  };
+
+  // Load edit entry data when editEntry changes
+  useEffect(() => {
+    if (editEntry) {
+      // Pre-fill form with edit entry data whenever editEntry is available
       setAmount(editEntry.amount?.toString() || '');
       setNote(editEntry.note || '');
       setType(editEntry.type || 'expense');
       setMode(editEntry.mode || 'upi');
       setDate(parseDate(editEntry.date || formatDate(new Date())));
       setAdjustmentType(editEntry.adjustment_type || 'add');
-    } else if (!editEntry && visible) {
-      // Reset form for new entry
-      setAmount('');
-      setNote('');
-      setType('expense');
-      setMode('upi');
-      setDate(new Date());
-      setAdjustmentType('add');
+      prevEditEntryRef.current = editEntry;
     }
-  }, [editEntry, visible]);
+  }, [editEntry]);
+
+  // Handle modal visibility changes
+  useEffect(() => {
+    if (visible) {
+      // If modal opens without editEntry and we weren't previously editing, reset form
+      if (!editEntry && prevEditEntryRef.current === null) {
+        setAmount('');
+        setNote('');
+        setType('expense');
+        setMode('upi');
+        setDate(new Date());
+        setAdjustmentType('add');
+      }
+    } else {
+      // Reset ref when modal closes
+      prevEditEntryRef.current = null;
+    }
+  }, [visible, editEntry]);
 
   const handleSave = async () => {
     const parsedAmount = parseFloat(amount);
@@ -96,7 +125,48 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
     onSave();
   };
 
+  const handleSaveAsTemplate = async () => {
+    const parsedAmount = parseFloat(amount);
+    if (!amount || isNaN(parsedAmount) || parsedAmount <= 0 || !note.trim()) {
+      Alert.alert('Invalid Template', 'Please enter both amount and note to save as template');
+      return;
+    }
+
+    const templateData = {
+      amount: parsedAmount,
+      note: note.trim(),
+      type,
+      mode,
+    };
+
+    if (type === 'balance_adjustment') {
+      templateData.adjustment_type = adjustmentType;
+    }
+
+    await addTemplate(templateData);
+    await loadTemplatesData();
+    Alert.alert('Success', 'Template saved successfully!');
+  };
+
+  const handleUseTemplate = (template) => {
+    setAmount(template.amount?.toString() || '');
+    setNote(template.note || '');
+    setType(template.type || 'expense');
+    setMode(template.mode || 'upi');
+    setDate(new Date()); // Always use today's date for templates
+    if (template.type === 'balance_adjustment') {
+      setAdjustmentType(template.adjustment_type || 'add');
+    }
+    setShowTemplates(false);
+  };
+
+  const handleDeleteTemplate = async (templateId) => {
+    await deleteTemplate(templateId);
+    await loadTemplatesData();
+  };
+
   const handleClose = () => {
+    // Reset form when closing
     setAmount('');
     setNote('');
     setType('expense');
@@ -104,6 +174,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
     setDate(new Date());
     setAdjustmentType('add');
     setShowDatePicker(false);
+    prevEditEntryRef.current = null;
     onClose();
   };
 
@@ -142,6 +213,75 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
               contentContainerStyle={styles.scrollContent}
               nestedScrollEnabled={true}
             >
+            {/* Quick Templates Section */}
+            {!editEntry && templates.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.templateHeader}>
+                  <Text style={styles.sectionLabel}>Quick Templates</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowTemplates(!showTemplates)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons 
+                      name={showTemplates ? "chevron-up" : "chevron-down"} 
+                      size={20} 
+                      color={Colors.text.secondary} 
+                    />
+                  </TouchableOpacity>
+                </View>
+                {showTemplates && (
+                  <View style={styles.templatesContainer}>
+                    {templates.map((template) => (
+                      <TouchableOpacity
+                        key={template.id}
+                        style={styles.templateButton}
+                        onPress={() => handleUseTemplate(template)}
+                        onLongPress={() => {
+                          Alert.alert(
+                            'Delete Template',
+                            `Delete "${template.note}" template?`,
+                            [
+                              { text: 'Cancel', style: 'cancel' },
+                              {
+                                text: 'Delete',
+                                style: 'destructive',
+                                onPress: () => handleDeleteTemplate(template.id),
+                              },
+                            ]
+                          );
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.templateButtonContent}>
+                          <View style={styles.templateButtonLeft}>
+                            <Text style={styles.templateNote} numberOfLines={1}>
+                              {template.note}
+                            </Text>
+                            <View style={styles.templateMeta}>
+                              <Ionicons
+                                name={template.type === 'expense' ? 'arrow-down' : 'arrow-up'}
+                                size={12}
+                                color={template.type === 'expense' ? Colors.status.expense : Colors.status.income}
+                              />
+                              <Text style={styles.templateAmount}>
+                                ₹{template.amount}
+                              </Text>
+                              <Ionicons
+                                name={template.mode === 'upi' ? 'phone-portrait' : 'cash'}
+                                size={12}
+                                color={template.mode === 'upi' ? Colors.payment.upi : Colors.payment.cash}
+                              />
+                            </View>
+                          </View>
+                          <Ionicons name="add-circle" size={20} color={Colors.accent.primary} />
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+
             {/* Type Toggle */}
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>Transaction Type</Text>
@@ -387,6 +527,18 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
             </ScrollView>
           </View>
 
+          {/* Save as Template Button (only when not editing) */}
+          {!editEntry && amount && parseFloat(amount) > 0 && note.trim() && (
+            <TouchableOpacity
+              style={styles.saveTemplateButton}
+              onPress={handleSaveAsTemplate}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="bookmark-outline" size={18} color={Colors.accent.primary} />
+              <Text style={styles.saveTemplateButtonText}>Save as Template</Text>
+            </TouchableOpacity>
+          )}
+
           {/* Save Button */}
           <TouchableOpacity
             style={styles.saveButtonContainer}
@@ -628,6 +780,64 @@ const styles = StyleSheet.create({
     color: Colors.text.tertiary,
     fontSize: 16,
     fontWeight: '700',
+  },
+  saveTemplateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: Colors.background.secondary,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+    marginBottom: 8,
+    gap: 8,
+  },
+  saveTemplateButtonText: {
+    color: Colors.accent.primary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  templateHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  templatesContainer: {
+    gap: 8,
+  },
+  templateButton: {
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+  },
+  templateButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  templateButtonLeft: {
+    flex: 1,
+  },
+  templateNote: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text.primary,
+    marginBottom: 4,
+  },
+  templateMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  templateAmount: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.text.secondary,
   },
 });
 

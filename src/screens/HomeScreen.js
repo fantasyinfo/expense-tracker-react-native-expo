@@ -54,6 +54,8 @@ const HomeScreen = () => {
   const [entryToDelete, setEntryToDelete] = useState(null);
   const [entryToEdit, setEntryToEdit] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [longPressMenuVisible, setLongPressMenuVisible] = useState(false);
+  const [selectedEntryForMenu, setSelectedEntryForMenu] = useState(null);
   const [userName, setUserName] = useState('User');
   const [streak, setStreak] = useState({ currentStreak: 0, longestStreak: 0 });
   const [motivationalMessage, setMotivationalMessage] = useState('');
@@ -203,6 +205,17 @@ const HomeScreen = () => {
     openAddEntryModal();
   };
 
+  const handleDuplicate = (entry) => {
+    // Create a duplicate entry with today's date
+    const duplicateEntry = {
+      ...entry,
+      id: undefined, // Remove id so it creates a new entry
+      date: formatDate(new Date()), // Set date to today
+    };
+    setEntryToEdit(duplicateEntry);
+    openAddEntryModal();
+  };
+
   const handleDelete = async (id, entry) => {
     setEntryToDelete({ id, ...entry });
     setDeleteModalVisible(true);
@@ -264,6 +277,10 @@ const HomeScreen = () => {
       <TouchableOpacity
         style={styles.transactionCard}
         activeOpacity={0.7}
+        onLongPress={() => {
+          setSelectedEntryForMenu(item);
+          setLongPressMenuVisible(true);
+        }}
       >
         <View style={styles.transactionLeft}>
           <View style={[
@@ -910,6 +927,62 @@ const HomeScreen = () => {
         onConfirm={confirmDelete}
         onCancel={cancelDelete}
       />
+
+      {/* Long Press Menu Modal */}
+      <Modal
+        visible={longPressMenuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setLongPressMenuVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.longPressMenuOverlay}
+          activeOpacity={1}
+          onPress={() => setLongPressMenuVisible(false)}
+        >
+          <View style={styles.longPressMenuContent}>
+            <TouchableOpacity
+              style={styles.longPressMenuItem}
+              onPress={() => {
+                if (selectedEntryForMenu) {
+                  handleEdit(selectedEntryForMenu);
+                  setLongPressMenuVisible(false);
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="create-outline" size={20} color={Colors.text.primary} />
+              <Text style={styles.longPressMenuText}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.longPressMenuItem}
+              onPress={() => {
+                if (selectedEntryForMenu) {
+                  handleDuplicate(selectedEntryForMenu);
+                  setLongPressMenuVisible(false);
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="copy-outline" size={20} color={Colors.text.primary} />
+              <Text style={styles.longPressMenuText}>Duplicate</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.longPressMenuItem, styles.longPressMenuItemDanger]}
+              onPress={() => {
+                if (selectedEntryForMenu) {
+                  handleDelete(selectedEntryForMenu.id, selectedEntryForMenu);
+                  setLongPressMenuVisible(false);
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="trash-outline" size={20} color={Colors.status.expense} />
+              <Text style={[styles.longPressMenuText, styles.longPressMenuTextDanger]}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -1613,6 +1686,41 @@ const styles = StyleSheet.create({
   },
   engagementItemTextOverLimit: {
     color: '#FF6B6B',
+  },
+  longPressMenuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  longPressMenuContent: {
+    backgroundColor: Colors.background.modal,
+    borderRadius: 20,
+    padding: 8,
+    minWidth: 200,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+  },
+  longPressMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    gap: 12,
+    borderRadius: 12,
+  },
+  longPressMenuItemDanger: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.border.primary,
+    marginTop: 4,
+  },
+  longPressMenuText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text.primary,
+  },
+  longPressMenuTextDanger: {
+    color: Colors.status.expense,
   },
 });
 

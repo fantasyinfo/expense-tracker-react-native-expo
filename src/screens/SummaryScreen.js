@@ -108,6 +108,17 @@ const SummaryScreen = () => {
     openAddEntryModal();
   };
 
+  const handleDuplicate = (entry) => {
+    // Create a duplicate entry with today's date
+    const duplicateEntry = {
+      ...entry,
+      id: undefined, // Remove id so it creates a new entry
+      date: formatDate(new Date()), // Set date to today
+    };
+    setEntryToEdit(duplicateEntry);
+    openAddEntryModal();
+  };
+
   const handleEntryAdded = async () => {
     closeAddEntryModal();
     setEntryToEdit(null);
@@ -776,6 +787,7 @@ const SummaryScreen = () => {
         entries={filteredEntries}
         onClose={() => setShowEntriesModal(false)}
         onEdit={handleEdit}
+        onDuplicate={handleDuplicate}
         title={`Entries Report - ${isCustomDateRange 
           ? `${formatDateWithMonthName(formatDate(startDate))} to ${formatDateWithMonthName(formatDate(endDate))}`
           : getPeriodLabel(selectedPeriod || 'monthly')

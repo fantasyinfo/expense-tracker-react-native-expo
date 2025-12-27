@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { formatDateWithMonthName, calculateTotals, formatCurrency } from '../utils/dateUtils';
 import Colors from '../constants/colors';
 
-const EntriesReportModal = ({ visible, entries, onClose, onEdit, title = 'Entries Report' }) => {
+const EntriesReportModal = ({ visible, entries, onClose, onEdit, onDuplicate, title = 'Entries Report' }) => {
   const groupedEntries = useMemo(() => {
     const grouped = {};
     entries.forEach(entry => {
@@ -118,15 +118,26 @@ const EntriesReportModal = ({ visible, entries, onClose, onEdit, title = 'Entrie
               : (entry.type === 'expense' ? '-' : '+')
             }₹{formatCurrency(entry.amount)}
           </Text>
-          {onEdit && (
-            <TouchableOpacity
-              onPress={() => onEdit(entry)}
-              style={styles.transactionEdit}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="create-outline" size={16} color={Colors.text.secondary} />
-            </TouchableOpacity>
-          )}
+          <View style={styles.transactionActions}>
+            {onEdit && (
+              <TouchableOpacity
+                onPress={() => onEdit(entry)}
+                style={styles.transactionEdit}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="create-outline" size={16} color={Colors.text.secondary} />
+              </TouchableOpacity>
+            )}
+            {onDuplicate && (
+              <TouchableOpacity
+                onPress={() => onDuplicate(entry)}
+                style={styles.transactionEdit}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="copy-outline" size={16} color={Colors.text.secondary} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
     );
@@ -644,9 +655,13 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: 8,
   },
+  transactionActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+  },
   transactionEdit: {
     padding: 4,
-    marginTop: 4,
   },
   transactionAmount: {
     fontSize: 15,
