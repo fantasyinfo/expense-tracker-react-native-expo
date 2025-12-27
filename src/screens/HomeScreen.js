@@ -12,12 +12,13 @@ import {
   Alert,
   Animated,
   Dimensions,
+  TextInput,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { formatDate, filterEntriesByPeriod, filterEntriesByDateRange, calculateTotals, formatDateWithMonthName, formatCurrency } from '../utils/dateUtils';
+import { formatDate, filterEntriesByPeriod, filterEntriesByDateRange, calculateTotals, formatDateWithMonthName, formatCurrency, formatDateDisplay } from '../utils/dateUtils';
 import { loadEntries, deleteEntry } from '../utils/storage';
 import { getCurrentBankBalance, getCurrentCashBalance } from '../utils/balanceUtils';
 import { loadProfile } from '../utils/profileStorage';
@@ -51,6 +52,8 @@ const HomeScreen = () => {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState(null);
+  const [entryToEdit, setEntryToEdit] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [userName, setUserName] = useState('User');
   const [streak, setStreak] = useState({ currentStreak: 0, longestStreak: 0 });
   const [motivationalMessage, setMotivationalMessage] = useState('');
@@ -89,6 +92,19 @@ const HomeScreen = () => {
     } else {
       filtered = filterEntriesByPeriod(allEntries, 'today');
     }
+    
+    // Apply search filter if query exists
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(entry => {
+        const noteMatch = entry.note?.toLowerCase().includes(query);
+        const amountMatch = entry.amount?.toString().includes(query);
+        const dateMatch = formatDateWithMonthName(entry.date).toLowerCase().includes(query) ||
+                         formatDateDisplay(entry.date).toLowerCase().includes(query);
+        return noteMatch || amountMatch || dateMatch;
+      });
+    }
+    
     const sorted = filtered.sort((a, b) => parseInt(b.id) - parseInt(a.id));
     setTodayEntries(sorted);
     
@@ -119,7 +135,7 @@ const HomeScreen = () => {
     // Load all achievements (but don't show notification on load - only on new entry)
     const achievementData = await checkAchievements();
     setAchievements(achievementData.allAchievements);
-  }, [isCustomDateRange, startDate, endDate]);
+  }, [isCustomDateRange, startDate, endDate, searchQuery]);
 
   // Reload data when screen comes into focus
   useFocusEffect(
@@ -143,6 +159,7 @@ const HomeScreen = () => {
   const handleEntryAdded = async () => {
     // Close modal first
     closeAddEntryModal();
+    setEntryToEdit(null); // Clear edit entry
     
     // Reload data to get updated entries
     await loadData();
@@ -180,6 +197,11 @@ const HomeScreen = () => {
     }
   };
 
+
+  const handleEdit = (entry) => {
+    setEntryToEdit(entry);
+    openAddEntryModal();
+  };
 
   const handleDelete = async (id, entry) => {
     setEntryToDelete({ id, ...entry });
@@ -316,13 +338,22 @@ const HomeScreen = () => {
               : (item.type === 'expense' ? '-' : '+')
             }₹{formatCurrency(item.amount)}
           </Text>
-          <TouchableOpacity
-            onPress={() => handleDelete(item.id, item)}
-            style={styles.transactionDelete}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="trash-outline" size={16} color="#666" />
-          </TouchableOpacity>
+          <View style={styles.transactionActions}>
+            <TouchableOpacity
+              onPress={() => handleEdit(item)}
+              style={styles.transactionEdit}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="create-outline" size={16} color="#666" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => handleDelete(item.id, item)}
+              style={styles.transactionDelete}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="trash-outline" size={16} color="#666" />
+            </TouchableOpacity>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -507,6 +538,31 @@ const HomeScreen = () => {
             </Text>
           </View>
         </Animated.View>
+
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchInputContainer}>
+            <Ionicons name="search-outline" size={20} color={Colors.text.secondary} style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search by note, amount, or date..."
+              placeholderTextColor={Colors.text.tertiary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setSearchQuery('')}
+                style={styles.searchClearButton}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close-circle" size={20} color={Colors.text.secondary} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
 
         {/* Horizontal Scrollable Achievement Section */}
         {(streak.currentStreak > 0 || dailyProgress.targetGoal > 0 || weeklyProgress.targetGoal > 0 || monthlyProgress.targetGoal > 0 || dailyExpenseProgress.targetGoal > 0 || achievements.filter(a => a.unlocked).length > 0) && (
@@ -726,8 +782,12 @@ const HomeScreen = () => {
       {/* Add Entry Modal */}
       <AddEntryModal
         visible={addEntryModalVisible}
-        onClose={closeAddEntryModal}
+        onClose={() => {
+          closeAddEntryModal();
+          setEntryToEdit(null);
+        }}
         onSave={handleEntryAdded}
+        editEntry={entryToEdit}
       />
 
 
@@ -1238,7 +1298,43 @@ const styles = StyleSheet.create({
   transactionAmountDeposit: {
     color: '#51CF66',
   },
+  transactionActions: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  transactionEdit: {
+    padding: 4,
+  },
   transactionDelete: {
+    padding: 4,
+  },
+  searchContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+  },
+  searchIcon: {
+    marginRight: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: Colors.text.primary,
+    fontWeight: '500',
+  },
+  searchClearButton: {
+    marginLeft: 8,
     padding: 4,
   },
   emptyState: {

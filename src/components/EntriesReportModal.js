@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { formatDateWithMonthName, calculateTotals, formatCurrency } from '../utils/dateUtils';
 import Colors from '../constants/colors';
 
-const EntriesReportModal = ({ visible, entries, onClose, title = 'Entries Report' }) => {
+const EntriesReportModal = ({ visible, entries, onClose, onEdit, title = 'Entries Report' }) => {
   const groupedEntries = useMemo(() => {
     const grouped = {};
     entries.forEach(entry => {
@@ -118,6 +118,15 @@ const EntriesReportModal = ({ visible, entries, onClose, title = 'Entries Report
               : (entry.type === 'expense' ? '-' : '+')
             }₹{formatCurrency(entry.amount)}
           </Text>
+          {onEdit && (
+            <TouchableOpacity
+              onPress={() => onEdit(entry)}
+              style={styles.transactionEdit}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="create-outline" size={16} color={Colors.text.secondary} />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );
@@ -633,6 +642,11 @@ const styles = StyleSheet.create({
   },
   transactionRight: {
     alignItems: 'flex-end',
+    gap: 8,
+  },
+  transactionEdit: {
+    padding: 4,
+    marginTop: 4,
   },
   transactionAmount: {
     fontSize: 15,

@@ -10,13 +10,16 @@ import {
   Platform,
   Modal,
   Alert,
+  TextInput,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LineChart, BarChart } from 'react-native-chart-kit';
-import { filterEntriesByPeriod, filterEntriesByDateRange, calculateTotals, formatDateWithMonthName, formatDate, formatCurrency } from '../utils/dateUtils';
+import { filterEntriesByPeriod, filterEntriesByDateRange, calculateTotals, formatDateWithMonthName, formatDate, formatCurrency, formatDateDisplay } from '../utils/dateUtils';
 import { loadEntries } from '../utils/storage';
+import { useModal } from '../context/ModalContext';
+import AddEntryModal from '../components/AddEntryModal';
 import { prepareExpenseIncomeChart, prepareMonthlyChart, preparePaymentMethodChart } from '../utils/chartUtils';
 import AppFooter from '../components/AppFooter';
 import EntriesReportModal from '../components/EntriesReportModal';
@@ -26,9 +29,16 @@ const PERIODS = ['today', 'weekly', 'monthly', 'quarterly', 'yearly'];
 const screenWidth = Dimensions.get('window').width;
 
 const SummaryScreen = () => {
+  const { 
+    addEntryModalVisible, 
+    openAddEntryModal, 
+    closeAddEntryModal,
+  } = useModal();
   const [entries, setEntries] = useState([]);
   const [selectedPeriod, setSelectedPeriod] = useState('monthly');
   const [filteredEntries, setFilteredEntries] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [entryToEdit, setEntryToEdit] = useState(null);
   const [totals, setTotals] = useState({ 
     expense: 0, 
     income: 0, 
@@ -60,6 +70,19 @@ const SummaryScreen = () => {
     } else {
       filtered = filterEntriesByPeriod(allEntries, selectedPeriod);
     }
+    
+    // Apply search filter if query exists
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(entry => {
+        const noteMatch = entry.note?.toLowerCase().includes(query);
+        const amountMatch = entry.amount?.toString().includes(query);
+        const dateMatch = formatDateWithMonthName(entry.date).toLowerCase().includes(query) ||
+                         formatDateDisplay(entry.date).toLowerCase().includes(query);
+        return noteMatch || amountMatch || dateMatch;
+      });
+    }
+    
     setFilteredEntries(filtered);
     const periodTotals = calculateTotals(filtered);
     setTotals(periodTotals);
@@ -78,7 +101,18 @@ const SummaryScreen = () => {
 
   useEffect(() => {
     updateFilteredData(entries);
-  }, [selectedPeriod, isCustomDateRange, startDate, endDate, entries]);
+  }, [selectedPeriod, isCustomDateRange, startDate, endDate, entries, searchQuery]);
+
+  const handleEdit = (entry) => {
+    setEntryToEdit(entry);
+    openAddEntryModal();
+  };
+
+  const handleEntryAdded = async () => {
+    closeAddEntryModal();
+    setEntryToEdit(null);
+    await loadData();
+  };
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -283,6 +317,31 @@ const SummaryScreen = () => {
           )}
         </View>
       )}
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInputContainer}>
+          <Ionicons name="search-outline" size={20} color={Colors.text.secondary} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by note, amount, or date..."
+            placeholderTextColor={Colors.text.tertiary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              style={styles.searchClearButton}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close-circle" size={20} color={Colors.text.secondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
 
       {/* Totals Display */}
       <View style={styles.totalsSection}>
@@ -702,10 +761,21 @@ const SummaryScreen = () => {
       )}
 
       {/* Entries Report Modal */}
+      <AddEntryModal
+        visible={addEntryModalVisible}
+        onClose={() => {
+          closeAddEntryModal();
+          setEntryToEdit(null);
+        }}
+        onSave={handleEntryAdded}
+        editEntry={entryToEdit}
+      />
+
       <EntriesReportModal
         visible={showEntriesModal}
         entries={filteredEntries}
         onClose={() => setShowEntriesModal(false)}
+        onEdit={handleEdit}
         title={`Entries Report - ${isCustomDateRange 
           ? `${formatDateWithMonthName(formatDate(startDate))} to ${formatDateWithMonthName(formatDate(endDate))}`
           : getPeriodLabel(selectedPeriod || 'monthly')
@@ -1141,6 +1211,34 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.text.primary,
     letterSpacing: -0.3,
+  },
+  searchContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+  },
+  searchIcon: {
+    marginRight: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: Colors.text.primary,
+    fontWeight: '500',
+  },
+  searchClearButton: {
+    marginLeft: 8,
+    padding: 4,
   },
 });
 

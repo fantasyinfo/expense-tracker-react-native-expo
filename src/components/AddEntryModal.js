@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,13 +14,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDate, formatDateDisplay, parseDate } from '../utils/dateUtils';
-import { addEntry } from '../utils/storage';
+import { addEntry, updateEntry } from '../utils/storage';
 import { updateStreak, checkAchievements } from '../utils/engagementUtils';
 import Colors from '../constants/colors';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const AddEntryModal = ({ visible, onClose, onSave }) => {
+const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [type, setType] = useState('expense');
@@ -28,6 +28,26 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [adjustmentType, setAdjustmentType] = useState('add');
+
+  // Load edit entry data when modal opens with editEntry
+  useEffect(() => {
+    if (editEntry && visible) {
+      setAmount(editEntry.amount?.toString() || '');
+      setNote(editEntry.note || '');
+      setType(editEntry.type || 'expense');
+      setMode(editEntry.mode || 'upi');
+      setDate(parseDate(editEntry.date || formatDate(new Date())));
+      setAdjustmentType(editEntry.adjustment_type || 'add');
+    } else if (!editEntry && visible) {
+      // Reset form for new entry
+      setAmount('');
+      setNote('');
+      setType('expense');
+      setMode('upi');
+      setDate(new Date());
+      setAdjustmentType('add');
+    }
+  }, [editEntry, visible]);
 
   const handleSave = async () => {
     const parsedAmount = parseFloat(amount);
@@ -51,13 +71,19 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
       entryData.adjustment_type = adjustmentType;
     }
 
-    await addEntry(entryData);
+    if (editEntry && editEntry.id) {
+      // Update existing entry
+      await updateEntry(editEntry.id, entryData);
+    } else {
+      // Add new entry
+      await addEntry(entryData);
 
-    // Update streak (only for non-balance-adjustment entries)
-    // Note: Achievement checking will be handled in HomeScreen.handleEntryAdded
-    // to properly show the notification modal
-    if (type !== 'balance_adjustment') {
-      await updateStreak();
+      // Update streak (only for non-balance-adjustment entries)
+      // Note: Achievement checking will be handled in HomeScreen.handleEntryAdded
+      // to properly show the notification modal
+      if (type !== 'balance_adjustment') {
+        await updateStreak();
+      }
     }
 
     // Reset form
@@ -101,8 +127,8 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <View>
-              <Text style={styles.modalTitle}>Add Entry</Text>
-              <Text style={styles.modalSubtitle}>Record a new transaction</Text>
+              <Text style={styles.modalTitle}>{editEntry ? 'Edit Entry' : 'Add Entry'}</Text>
+              <Text style={styles.modalSubtitle}>{editEntry ? 'Update transaction details' : 'Record a new transaction'}</Text>
             </View>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={Colors.text.secondary} />
@@ -370,7 +396,7 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
           >
             {(!amount || parseFloat(amount) <= 0) ? (
               <View style={[styles.saveButton, styles.saveButtonDisabled]}>
-                <Text style={styles.saveButtonTextDisabled}>Save Entry</Text>
+                <Text style={styles.saveButtonTextDisabled}>{editEntry ? 'Update Entry' : 'Save Entry'}</Text>
               </View>
             ) : (
               <LinearGradient
@@ -380,7 +406,7 @@ const AddEntryModal = ({ visible, onClose, onSave }) => {
                 style={styles.saveButton}
               >
                 <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
-                <Text style={styles.saveButtonText}>Save Entry</Text>
+                <Text style={styles.saveButtonText}>{editEntry ? 'Update Entry' : 'Save Entry'}</Text>
               </LinearGradient>
             )}
           </TouchableOpacity>

@@ -78,6 +78,24 @@ export const addEntry = async (entry) => {
 };
 
 /**
+ * Update an existing entry by id
+ */
+export const updateEntry = async (id, updatedEntry) => {
+  const entries = await loadEntries();
+  const index = entries.findIndex(entry => entry.id === id);
+  if (index !== -1) {
+    entries[index] = {
+      ...entries[index],
+      ...updatedEntry,
+      id, // Preserve the original id
+    };
+    await saveEntries(entries);
+    return entries[index];
+  }
+  return null;
+};
+
+/**
  * Delete an entry by id
  */
 export const deleteEntry = async (id) => {
