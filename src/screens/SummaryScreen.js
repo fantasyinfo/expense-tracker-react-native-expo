@@ -15,12 +15,14 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { LineChart, BarChart } from 'react-native-chart-kit';
+import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
 import { filterEntriesByPeriod, filterEntriesByDateRange, calculateTotals, formatDateWithMonthName, formatDate, formatCurrency, formatDateDisplay } from '../utils/dateUtils';
-import { loadEntries } from '../utils/storage';
+import { loadEntries, deleteEntry } from '../utils/storage';
 import { useModal } from '../context/ModalContext';
 import AddEntryModal from '../components/AddEntryModal';
 import { prepareExpenseIncomeChart, prepareMonthlyChart, preparePaymentMethodChart } from '../utils/chartUtils';
+import { prepareCategoryChart, getCategoryStats } from '../utils/categoryChartUtils';
+import { loadCategories } from '../utils/categoryStorage';
 import AppFooter from '../components/AppFooter';
 import EntriesReportModal from '../components/EntriesReportModal';
 import Colors from '../constants/colors';
@@ -39,6 +41,10 @@ const SummaryScreen = () => {
   const [filteredEntries, setFilteredEntries] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [entryToEdit, setEntryToEdit] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(null);
+  const [categoryChartData, setCategoryChartData] = useState(null);
+  const [showCategoryChart, setShowCategoryChart] = useState(false);
   const [totals, setTotals] = useState({ 
     expense: 0, 
     income: 0, 
@@ -60,6 +66,11 @@ const SummaryScreen = () => {
   const loadData = useCallback(async () => {
     const allEntries = await loadEntries();
     setEntries(allEntries);
+    
+    // Load categories
+    const loadedCategories = await loadCategories();
+    setCategories(loadedCategories);
+    
     updateFilteredData(allEntries);
   }, [selectedPeriod, isCustomDateRange, startDate, endDate]);
 
@@ -69,6 +80,11 @@ const SummaryScreen = () => {
       filtered = filterEntriesByDateRange(allEntries, startDate, endDate);
     } else {
       filtered = filterEntriesByPeriod(allEntries, selectedPeriod);
+    }
+    
+    // Apply category filter if selected
+    if (selectedCategoryFilter) {
+      filtered = filtered.filter(entry => entry.category_id === selectedCategoryFilter);
     }
     
     // Apply search filter if query exists
@@ -101,7 +117,20 @@ const SummaryScreen = () => {
 
   useEffect(() => {
     updateFilteredData(entries);
-  }, [selectedPeriod, isCustomDateRange, startDate, endDate, entries, searchQuery]);
+  }, [selectedPeriod, isCustomDateRange, startDate, endDate, entries, searchQuery, selectedCategoryFilter]);
+
+  // Update category chart when filtered entries change
+  useEffect(() => {
+    const updateCategoryChart = async () => {
+      if (filteredEntries.length > 0) {
+        const chartData = await prepareCategoryChart(filteredEntries);
+        setCategoryChartData(chartData);
+      } else {
+        setCategoryChartData(null);
+      }
+    };
+    updateCategoryChart();
+  }, [filteredEntries]);
 
   const handleEdit = (entry) => {
     setEntryToEdit(entry);
@@ -472,6 +501,62 @@ const SummaryScreen = () => {
         </View>
       </View>
 
+      {/* Category Chart Section */}
+      {categoryChartData && categoryChartData.labels.length > 0 && (
+        <View style={styles.chartsSection}>
+          <View style={styles.chartHeader}>
+            <Text style={styles.sectionTitle}>Category Breakdown</Text>
+            <TouchableOpacity
+              onPress={() => setShowCategoryChart(!showCategoryChart)}
+              activeOpacity={0.7}
+            >
+              <Ionicons 
+                name={showCategoryChart ? "chevron-up" : "chevron-down"} 
+                size={20} 
+                color={Colors.text.secondary} 
+              />
+            </TouchableOpacity>
+          </View>
+          {showCategoryChart && (
+            <View style={styles.chartContainer}>
+              <BarChart
+                data={{
+                  labels: categoryChartData.labels,
+                  datasets: categoryChartData.datasets,
+                }}
+                width={screenWidth - 64}
+                height={220}
+                chartConfig={{
+                  ...chartConfig,
+                  color: (opacity = 1, index) => {
+                    const color = categoryChartData.colors[index] || Colors.accent.primary;
+                    const rgb = color.match(/\d+/g);
+                    if (rgb && rgb.length >= 3) {
+                      return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${opacity})`;
+                    }
+                    return `rgba(102, 126, 234, ${opacity})`;
+                  },
+                }}
+                yAxisLabel="₹"
+                yAxisSuffix=""
+                showValuesOnTopOfBars
+                style={styles.chart}
+              />
+              <View style={styles.categoryLegend}>
+                {categoryChartData.categoryData.map((item) => (
+                  <View key={item.id} style={styles.categoryLegendItem}>
+                    <View style={[styles.categoryLegendColor, { backgroundColor: item.color }]} />
+                    <Text style={styles.categoryLegendText} numberOfLines={1}>
+                      {item.name}: ₹{formatCurrency(item.amount)} ({item.count} {item.count === 1 ? 'entry' : 'entries'})
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
+      )}
+
       {/* Charts Section */}
       {entries.length > 0 && (
         <View style={styles.chartsSection}>
@@ -788,6 +873,24 @@ const SummaryScreen = () => {
         onClose={() => setShowEntriesModal(false)}
         onEdit={handleEdit}
         onDuplicate={handleDuplicate}
+        onDelete={(entry) => {
+          // Handle delete in SummaryScreen if needed
+          Alert.alert(
+            'Delete Entry',
+            'Are you sure you want to delete this entry?',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Delete',
+                style: 'destructive',
+                onPress: async () => {
+                  await deleteEntry(entry.id);
+                  loadData();
+                },
+              },
+            ]
+          );
+        }}
         title={`Entries Report - ${isCustomDateRange 
           ? `${formatDateWithMonthName(formatDate(startDate))} to ${formatDateWithMonthName(formatDate(endDate))}`
           : getPeriodLabel(selectedPeriod || 'monthly')
@@ -1223,6 +1326,56 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.text.primary,
     letterSpacing: -0.3,
+  },
+  categoryFilterContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+  },
+  categoryFilterScroll: {
+    gap: 8,
+    paddingRight: 20,
+  },
+  categoryFilterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: Colors.background.secondary,
+    borderWidth: 1.5,
+    borderColor: Colors.border.primary,
+    marginRight: 8,
+    gap: 6,
+  },
+  categoryFilterButtonActive: {
+    backgroundColor: Colors.background.primary,
+  },
+  categoryFilterText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.text.secondary,
+  },
+  categoryFilterTextActive: {
+    fontWeight: '700',
+  },
+  categoryLegend: {
+    marginTop: 16,
+    gap: 8,
+  },
+  categoryLegendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  categoryLegendColor: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  categoryLegendText: {
+    fontSize: 12,
+    color: Colors.text.secondary,
+    fontWeight: '600',
   },
   searchContainer: {
     paddingHorizontal: 20,

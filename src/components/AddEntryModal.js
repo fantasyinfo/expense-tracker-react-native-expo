@@ -18,6 +18,7 @@ import { formatDate, formatDateDisplay, parseDate } from '../utils/dateUtils';
 import { addEntry, updateEntry } from '../utils/storage';
 import { updateStreak, checkAchievements } from '../utils/engagementUtils';
 import { loadTemplates, addTemplate, deleteTemplate } from '../utils/templateStorage';
+import { loadCategories, getCategoriesByType } from '../utils/categoryStorage';
 import Colors from '../constants/colors';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -32,12 +33,15 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
   const [adjustmentType, setAdjustmentType] = useState('add');
   const [templates, setTemplates] = useState([]);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const prevEditEntryRef = useRef(null);
 
-  // Load templates when modal opens
+  // Load templates and categories when modal opens
   useEffect(() => {
     if (visible) {
       loadTemplatesData();
+      loadCategoriesData();
     }
   }, [visible]);
 
@@ -45,6 +49,20 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
     const loadedTemplates = await loadTemplates();
     setTemplates(loadedTemplates);
   };
+
+  const loadCategoriesData = async () => {
+    const loadedCategories = await getCategoriesByType(type);
+    setCategories(loadedCategories);
+  };
+
+  // Reload categories when type changes
+  useEffect(() => {
+    if (visible) {
+      loadCategoriesData();
+      // Reset category when type changes
+      setSelectedCategory(null);
+    }
+  }, [type, visible]);
 
   // Load edit entry data when editEntry changes
   useEffect(() => {
@@ -56,7 +74,10 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
       setMode(editEntry.mode || 'upi');
       setDate(parseDate(editEntry.date || formatDate(new Date())));
       setAdjustmentType(editEntry.adjustment_type || 'add');
+      setSelectedCategory(editEntry.category_id || null);
       prevEditEntryRef.current = editEntry;
+      // Load categories for the entry type
+      getCategoriesByType(editEntry.type || 'expense').then(cats => setCategories(cats));
     }
   }, [editEntry]);
 
@@ -90,6 +111,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
       type,
       mode,
       date: formatDate(date),
+      category_id: selectedCategory || null,
     };
 
     if (type === 'balance_adjustment') {
@@ -173,6 +195,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
     setMode('upi');
     setDate(new Date());
     setAdjustmentType('add');
+    setSelectedCategory(null);
     setShowDatePicker(false);
     prevEditEntryRef.current = null;
     onClose();
@@ -444,6 +467,51 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
                 />
               </View>
             </View>
+
+            {/* Category Selection */}
+            {type !== 'balance_adjustment' && (
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>Category (Optional)</Text>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.categoryScrollContent}
+                >
+                  {categories.map((category) => (
+                    <TouchableOpacity
+                      key={category.id}
+                      style={[
+                        styles.categoryButton,
+                        selectedCategory === category.id && styles.categoryButtonActive,
+                        { borderColor: category.color }
+                      ]}
+                      onPress={() => setSelectedCategory(
+                        selectedCategory === category.id ? null : category.id
+                      )}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[
+                        styles.categoryIconContainer,
+                        { backgroundColor: selectedCategory === category.id ? category.color : `${category.color}20` }
+                      ]}>
+                        <Ionicons 
+                          name={category.icon} 
+                          size={18} 
+                          color={selectedCategory === category.id ? '#FFFFFF' : category.color} 
+                        />
+                      </View>
+                      <Text style={[
+                        styles.categoryButtonText,
+                        selectedCategory === category.id && styles.categoryButtonTextActive,
+                        { color: selectedCategory === category.id ? category.color : Colors.text.secondary }
+                      ]}>
+                        {category.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
 
             {/* Payment Method Toggle */}
             <View style={styles.section}>
@@ -838,6 +906,38 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: Colors.text.secondary,
+  },
+  categoryScrollContent: {
+    paddingRight: 20,
+    gap: 8,
+  },
+  categoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    backgroundColor: Colors.background.secondary,
+    marginRight: 8,
+    gap: 8,
+  },
+  categoryButtonActive: {
+    backgroundColor: Colors.background.primary,
+  },
+  categoryIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  categoryButtonTextActive: {
+    fontWeight: '700',
   },
 });
 

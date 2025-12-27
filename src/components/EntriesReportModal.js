@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,10 +9,32 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { formatDateWithMonthName, calculateTotals, formatCurrency } from '../utils/dateUtils';
+import { formatDateWithMonthName, formatDateShort, calculateTotals, formatCurrency } from '../utils/dateUtils';
+import { loadCategories } from '../utils/categoryStorage';
 import Colors from '../constants/colors';
 
-const EntriesReportModal = ({ visible, entries, onClose, onEdit, onDuplicate, title = 'Entries Report' }) => {
+const EntriesReportModal = ({ visible, entries, onClose, onEdit, onDuplicate, onDelete, title = 'Entries Report' }) => {
+  const [categories, setCategories] = useState([]);
+  const [actionMenuVisible, setActionMenuVisible] = useState(false);
+  const [selectedEntryForMenu, setSelectedEntryForMenu] = useState(null);
+
+  useEffect(() => {
+    if (visible) {
+      loadCategories().then(setCategories);
+    }
+  }, [visible]);
+
+  const handleMenuAction = (action, entry) => {
+    setActionMenuVisible(false);
+    setSelectedEntryForMenu(null);
+    if (action === 'edit' && onEdit) {
+      onEdit(entry);
+    } else if (action === 'duplicate' && onDuplicate) {
+      onDuplicate(entry);
+    } else if (action === 'delete' && onDelete) {
+      onDelete(entry);
+    }
+  };
   const groupedEntries = useMemo(() => {
     const grouped = {};
     entries.forEach(entry => {
@@ -43,101 +65,116 @@ const EntriesReportModal = ({ visible, entries, onClose, onEdit, onDuplicate, ti
     const isCashDeposit = entry.type === 'cash_deposit';
     const adjustmentIsAdd = isBalanceAdjustment ? (entry.adjustment_type === 'add' || !entry.adjustment_type) : false;
     
+    // Get category for this entry
+    const category = entry.category_id ? categories.find(cat => cat.id === entry.category_id) : null;
+    
     return (
       <View style={styles.transactionCard} key={entry.id}>
         <View style={styles.transactionLeft}>
-          <View style={[
-            styles.transactionIconContainer,
-            isCashWithdrawal || isCashDeposit
-              ? (isCashWithdrawal ? styles.transactionIconWithdrawal : styles.transactionIconDeposit)
-              : (isBalanceAdjustment 
-                  ? styles.transactionIconAdjustment
-                  : (entry.type === 'expense' ? styles.transactionIconExpense : styles.transactionIconIncome))
-          ]}>
-            <Ionicons
-              name={
-                isCashWithdrawal || isCashDeposit
-                  ? 'swap-horizontal'
-                  : (isBalanceAdjustment 
-                      ? (adjustmentIsAdd ? 'add-circle' : 'remove-circle')
-                      : (entry.type === 'expense' ? 'arrow-down' : 'arrow-up'))
-              }
-              size={18}
-              color="#FFFFFF"
-            />
-          </View>
+          {category ? (
+            <View style={[styles.transactionIconContainer, { backgroundColor: `${category.color}20` }]}>
+              <Ionicons
+                name={category.icon}
+                size={18}
+                color={category.color}
+              />
+            </View>
+          ) : (
+            <View style={[
+              styles.transactionIconContainer,
+              isCashWithdrawal || isCashDeposit
+                ? (isCashWithdrawal ? styles.transactionIconWithdrawal : styles.transactionIconDeposit)
+                : (isBalanceAdjustment 
+                    ? styles.transactionIconAdjustment
+                    : (entry.type === 'expense' ? styles.transactionIconExpense : styles.transactionIconIncome))
+            ]}>
+              <Ionicons
+                name={
+                  isCashWithdrawal || isCashDeposit
+                    ? 'swap-horizontal'
+                    : (isBalanceAdjustment 
+                        ? (adjustmentIsAdd ? 'add-circle' : 'remove-circle')
+                        : (entry.type === 'expense' ? 'arrow-down' : 'arrow-up'))
+                }
+                size={18}
+                color="#FFFFFF"
+              />
+            </View>
+          )}
           <View style={styles.transactionDetails}>
             <Text style={styles.transactionNote} numberOfLines={1}>
               {entry.note || (isCashWithdrawal ? 'Cash Withdrawal' : (isCashDeposit ? 'Cash Deposit' : (isBalanceAdjustment ? 'Balance Adjustment' : (entry.type === 'expense' ? 'Expense' : 'Income'))))}
             </Text>
             <View style={styles.transactionMeta}>
-              <Text style={styles.transactionDate}>{formatDateWithMonthName(entry.date)}</Text>
-              {isCashWithdrawal ? (
-                <View style={styles.transactionModeContainer}>
-                  <View style={styles.transactionMode}>
-                    <Ionicons name="phone-portrait" size={12} color={Colors.payment.upi} />
+              <View style={styles.transactionMetaLeft}>
+                <Text style={styles.transactionDate}>{formatDateShort(entry.date)}</Text>
+                {category && (
+                  <View style={[styles.categoryBadge, { backgroundColor: `${category.color}20` }]}>
+                    <Ionicons name={category.icon} size={10} color={category.color} />
+                    <Text style={[styles.categoryBadgeText, { color: category.color }]}>{category.name}</Text>
                   </View>
-                  <Text style={styles.transactionModeText}>→</Text>
-                  <View style={styles.transactionMode}>
-                    <Ionicons name="cash" size={12} color={Colors.payment.cash} />
-                  </View>
-                </View>
-              ) : isCashDeposit ? (
-                <View style={styles.transactionModeContainer}>
-                  <View style={styles.transactionMode}>
-                    <Ionicons name="cash" size={12} color={Colors.payment.cash} />
-                  </View>
-                  <Text style={styles.transactionModeText}>→</Text>
-                  <View style={styles.transactionMode}>
-                    <Ionicons name="phone-portrait" size={12} color={Colors.payment.upi} />
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.transactionMode}>
-                  <Ionicons
-                    name={(entry.mode || 'upi') === 'upi' ? 'phone-portrait' : 'cash'}
-                    size={12}
-                    color={(entry.mode || 'upi') === 'upi' ? Colors.payment.upi : Colors.payment.cash}
-                  />
-                </View>
-              )}
+                )}
+              </View>
             </View>
           </View>
         </View>
         <View style={styles.transactionRight}>
-          <Text style={[
-            styles.transactionAmount,
-            isCashWithdrawal || isCashDeposit
-              ? (isCashWithdrawal ? styles.transactionAmountWithdrawal : styles.transactionAmountDeposit)
-              : (isBalanceAdjustment 
-                  ? styles.transactionAmountAdjustment
-                  : (entry.type === 'expense' ? styles.transactionAmountExpense : styles.transactionAmountIncome))
-          ]}>
-            {isCashWithdrawal || isCashDeposit || isBalanceAdjustment
-              ? (isCashWithdrawal || isCashDeposit ? '' : (adjustmentIsAdd ? '+' : '-'))
-              : (entry.type === 'expense' ? '-' : '+')
-            }₹{formatCurrency(entry.amount)}
-          </Text>
-          <View style={styles.transactionActions}>
-            {onEdit && (
-              <TouchableOpacity
-                onPress={() => onEdit(entry)}
-                style={styles.transactionEdit}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="create-outline" size={16} color={Colors.text.secondary} />
-              </TouchableOpacity>
+          <View style={styles.transactionRightTop}>
+            {isCashWithdrawal ? (
+              <View style={styles.transactionModeContainer}>
+                <View style={styles.transactionMode}>
+                  <Ionicons name="phone-portrait" size={14} color={Colors.payment.upi} />
+                </View>
+                <Text style={styles.transactionModeText}>→</Text>
+                <View style={styles.transactionMode}>
+                  <Ionicons name="cash" size={14} color={Colors.payment.cash} />
+                </View>
+              </View>
+            ) : isCashDeposit ? (
+              <View style={styles.transactionModeContainer}>
+                <View style={styles.transactionMode}>
+                  <Ionicons name="cash" size={14} color={Colors.payment.cash} />
+                </View>
+                <Text style={styles.transactionModeText}>→</Text>
+                <View style={styles.transactionMode}>
+                  <Ionicons name="phone-portrait" size={14} color={Colors.payment.upi} />
+                </View>
+              </View>
+            ) : (
+              <View style={styles.transactionMode}>
+                <Ionicons
+                  name={(entry.mode || 'upi') === 'upi' ? 'phone-portrait' : 'cash'}
+                  size={14}
+                  color={(entry.mode || 'upi') === 'upi' ? Colors.payment.upi : Colors.payment.cash}
+                />
+              </View>
             )}
-            {onDuplicate && (
-              <TouchableOpacity
-                onPress={() => onDuplicate(entry)}
-                style={styles.transactionEdit}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="copy-outline" size={16} color={Colors.text.secondary} />
-              </TouchableOpacity>
-            )}
+            <Text style={[
+              styles.transactionAmount,
+              isCashWithdrawal || isCashDeposit
+                ? (isCashWithdrawal ? styles.transactionAmountWithdrawal : styles.transactionAmountDeposit)
+                : (isBalanceAdjustment 
+                    ? styles.transactionAmountAdjustment
+                    : (entry.type === 'expense' ? styles.transactionAmountExpense : styles.transactionAmountIncome))
+            ]}>
+              {isCashWithdrawal || isCashDeposit || isBalanceAdjustment
+                ? (isCashWithdrawal || isCashDeposit ? '' : (adjustmentIsAdd ? '+' : '-'))
+                : (entry.type === 'expense' ? '-' : '+')
+              }₹{formatCurrency(entry.amount)}
+            </Text>
           </View>
+          {(onEdit || onDuplicate || onDelete) && (
+            <TouchableOpacity
+              onPress={() => {
+                setSelectedEntryForMenu(entry);
+                setActionMenuVisible(true);
+              }}
+              style={styles.transactionMoreButton}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="ellipsis-vertical" size={20} color={Colors.text.secondary} />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );
@@ -349,6 +386,59 @@ const EntriesReportModal = ({ visible, entries, onClose, onEdit, onDuplicate, ti
           </ScrollView>
         </View>
       </View>
+
+      {/* Action Menu Modal */}
+      <Modal
+        visible={actionMenuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setActionMenuVisible(false);
+          setSelectedEntryForMenu(null);
+        }}
+      >
+        <TouchableOpacity
+          style={styles.actionMenuOverlay}
+          activeOpacity={1}
+          onPress={() => {
+            setActionMenuVisible(false);
+            setSelectedEntryForMenu(null);
+          }}
+        >
+          <View style={styles.actionMenuContainer}>
+            {onEdit && (
+              <TouchableOpacity
+                style={styles.actionMenuItem}
+                onPress={() => handleMenuAction('edit', selectedEntryForMenu)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="create-outline" size={20} color={Colors.text.primary} />
+                <Text style={styles.actionMenuText}>Edit</Text>
+              </TouchableOpacity>
+            )}
+            {onDuplicate && (
+              <TouchableOpacity
+                style={styles.actionMenuItem}
+                onPress={() => handleMenuAction('duplicate', selectedEntryForMenu)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="copy-outline" size={20} color={Colors.text.primary} />
+                <Text style={styles.actionMenuText}>Duplicate</Text>
+              </TouchableOpacity>
+            )}
+            {onDelete && (
+              <TouchableOpacity
+                style={[styles.actionMenuItem, styles.actionMenuItemDanger]}
+                onPress={() => handleMenuAction('delete', selectedEntryForMenu)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
+                <Text style={[styles.actionMenuText, styles.actionMenuTextDanger]}>Delete</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </Modal>
   );
 };
@@ -593,11 +683,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   transactionIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   transactionIconExpense: {
     backgroundColor: Colors.iconBackground.expense,
@@ -626,42 +717,128 @@ const styles = StyleSheet.create({
   },
   transactionDetails: {
     flex: 1,
+    minWidth: 0,
   },
   transactionNote: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 4,
+    marginBottom: 8,
+    lineHeight: 20,
   },
   transactionMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
+    gap: 10,
+    flexWrap: 'wrap',
   },
   transactionDate: {
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.text.secondary,
     fontWeight: '500',
   },
   transactionMode: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: Colors.background.secondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  transactionModeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginRight: 4,
+  },
+  transactionModeText: {
+    fontSize: 10,
+    color: Colors.text.secondary,
+    marginHorizontal: 2,
+  },
   transactionRight: {
     alignItems: 'flex-end',
     gap: 8,
+    flexShrink: 0,
   },
-  transactionActions: {
+  transactionRightTop: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
+  },
+  transactionAmount: {
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+  },
+  transactionMoreButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.background.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+  },
+  transactionMetaLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  categoryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    gap: 5,
+    marginLeft: 8,
+  },
+  categoryBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  actionMenuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionMenuContainer: {
+    backgroundColor: Colors.background.primary,
+    borderRadius: 16,
+    padding: 8,
+    minWidth: 180,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  actionMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 12,
+    borderRadius: 12,
+  },
+  actionMenuItemDanger: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.border.primary,
     marginTop: 4,
   },
-  transactionEdit: {
-    padding: 4,
+  actionMenuText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text.primary,
+  },
+  actionMenuTextDanger: {
+    color: '#FF6B6B',
   },
   transactionAmount: {
     fontSize: 15,

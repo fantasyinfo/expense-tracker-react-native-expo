@@ -23,17 +23,22 @@ export const parseCSV = (csvContent) => {
     // Verify header row matches export format exactly
     if (lines.length > 0) {
       const header = lines[0].trim();
-      const expectedHeader = 'Date,Type,Amount,Payment Method,Note';
+      // Support both old format (without Category) and new format (with Category)
+      const expectedHeaderOld = 'Date,Type,Amount,Payment Method,Note';
+      const expectedHeaderNew = 'Date,Type,Amount,Payment Method,Category,Note';
       console.log('=== Header Validation ===');
-      console.log('Expected:', expectedHeader);
+      console.log('Expected (old):', expectedHeaderOld);
+      console.log('Expected (new):', expectedHeaderNew);
       console.log('Actual:', header);
-      console.log('Match:', header === expectedHeader ? '✅ YES' : '❌ NO');
       
-      if (header !== expectedHeader) {
-        console.warn(`⚠️ Header mismatch! Expected: "${expectedHeader}", Got: "${header}"`);
+      const isOldFormat = header === expectedHeaderOld;
+      const isNewFormat = header === expectedHeaderNew;
+      
+      if (!isOldFormat && !isNewFormat) {
+        console.warn(`⚠️ Header mismatch! Expected: "${expectedHeaderOld}" or "${expectedHeaderNew}", Got: "${header}"`);
         // Still try to parse, but log warning
       } else {
-        console.log('✅ Header matches export format exactly');
+        console.log(`✅ Header matches export format (${isNewFormat ? 'new with Category' : 'old without Category'})`);
       }
     }
     
@@ -76,129 +81,151 @@ export const parseCSV = (csvContent) => {
       console.log(`Raw line: "${line}"`);
       console.log(`Parsed values (${values.length}):`, values);
       
-      if (values.length >= 3) {
-        const [dateStr, typeStr, amountStr, paymentMethodStr, noteStr] = values;
-        
-        console.log(`  Parsing: date="${dateStr}", type="${typeStr}", amount="${amountStr}"`);
-        
-        // Skip if invalid
-        if (!dateStr || !typeStr || !amountStr) {
-          console.log(`  Skipped: Missing required fields`);
-          skippedCount++;
-          continue;
-        }
-        
-        // Parse date - Export uses formatDateDisplay which returns DD/MM/YYYY format
-        // This is the PRIMARY format we expect from exports
-        let date;
-        try {
-          // PRIMARY format: DD/MM/YYYY (from formatDateDisplay in export)
-          // This matches exactly what exportToExcel produces
-          if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-            const [day, month, year] = dateStr.split('/');
-            date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-            console.log(`  ✅ Date parsed (DD/MM/YYYY - Export format): ${dateStr} -> ${date}`);
-          } 
-          // Secondary format: YYYY-MM-DD (internal format, for compatibility)
-          else if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            date = dateStr;
-            console.log(`  ✅ Date parsed (YYYY-MM-DD - Internal format): ${date}`);
-          } 
-          // Fallback: Try parsing as Date object (for other formats)
-          else {
-            const parsedDate = new Date(dateStr);
-            if (!isNaN(parsedDate.getTime())) {
-              const year = parsedDate.getFullYear();
-              const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
-              const day = String(parsedDate.getDate()).padStart(2, '0');
-              date = `${year}-${month}-${day}`;
-              console.log(`  ⚠️ Date parsed (Fallback Date object): ${dateStr} -> ${date}`);
-            } else {
-              console.log(`  ❌ Skipped: Invalid date format: ${dateStr}`);
-              skippedCount++;
-              continue; // Skip invalid date
-            }
-          }
-        } catch (e) {
-          console.log(`  ❌ Skipped: Date parsing error: ${e.message}, dateStr: ${dateStr}`);
-          skippedCount++;
-          continue; // Skip invalid date
-        }
-        
-        // Parse amount
-        const amount = parseFloat(amountStr.replace(/[₹,\s]/g, ''));
-        if (isNaN(amount) || amount <= 0) {
-          console.log(`  Skipped: Invalid amount: ${amountStr} -> ${amount}`);
-          skippedCount++;
-          continue;
-        }
-        
-        console.log(`  Amount parsed: ${amountStr} -> ${amount}`);
-        
-        // Determine type and mode
-        let type, mode, adjustmentType;
-        const typeLower = typeStr.toLowerCase();
-        
-        if (typeLower.includes('expense')) {
-          type = 'expense';
-        } else if (typeLower.includes('income')) {
-          type = 'income';
-        } else if (typeLower.includes('balance adjustment')) {
-          type = 'balance_adjustment';
-          // Try to determine adjustment type from amount or note
-          adjustmentType = 'add'; // Default
-        } else if (typeLower.includes('cash withdrawal')) {
-          type = 'cash_withdrawal';
-        } else if (typeLower.includes('cash deposit')) {
-          type = 'cash_deposit';
-        } else {
-          console.log(`  Skipped: Unknown type: ${typeStr}`);
-          skippedCount++;
-          continue; // Skip unknown types
-        }
-        
-        console.log(`  Type determined: ${type}`);
-        
-        // Determine mode from payment method
-        if (paymentMethodStr) {
-          if (paymentMethodStr.includes('UPI → Cash') || paymentMethodStr.includes('Cash → UPI')) {
-            // Mode is handled by type (cash_withdrawal/cash_deposit)
-            mode = 'upi'; // Default, but won't be used for transfers
-          } else if (paymentMethodStr.toLowerCase().includes('cash')) {
-            mode = 'cash';
-          } else {
-            mode = 'upi';
-          }
-        } else {
-          mode = 'upi'; // Default
-        }
-        
-        // Parse note (restore semicolons to commas)
-        const note = (noteStr || '').replace(/;/g, ',');
-        
-        // Create entry
-        const entry = {
-          id: Date.now().toString() + Math.random().toString(36).substr(2, 9), // Unique ID
-          amount,
-          note: note || undefined,
-          type,
-          mode: type === 'cash_withdrawal' || type === 'cash_deposit' ? undefined : mode,
-          date,
-        };
-        
-        if (type === 'balance_adjustment' && adjustmentType) {
-          entry.adjustment_type = adjustmentType;
-        }
-        
-        console.log(`  Entry created:`, entry);
-        entries.push(entry);
+      // Expected format: Date,Type,Amount,Payment Method,Category,Note (new) or Date,Type,Amount,Payment Method,Note (old)
+      let dateStr, typeStr, amountStr, paymentMethodStr, categoryStr, noteStr;
+      
+      if (values.length >= 6) {
+        // New format with Category
+        [dateStr, typeStr, amountStr, paymentMethodStr, categoryStr, noteStr] = values;
+      } else if (values.length >= 5) {
+        // Old format without Category
+        [dateStr, typeStr, amountStr, paymentMethodStr, noteStr] = values;
+        categoryStr = ''; // No category in old format
+      } else if (values.length >= 3) {
+        // Minimum required fields
+        [dateStr, typeStr, amountStr] = values;
+        paymentMethodStr = '';
+        categoryStr = '';
+        noteStr = '';
       } else {
         console.log(`  Skipped: Not enough values (${values.length} < 3)`);
         skippedCount++;
+        continue;
       }
+      
+      console.log(`  Parsing: date="${dateStr}", type="${typeStr}", amount="${amountStr}"`);
+      
+      // Skip if invalid
+      if (!dateStr || !typeStr || !amountStr) {
+        console.log(`  Skipped: Missing required fields`);
+        skippedCount++;
+        continue;
+      }
+      
+      // Parse date - Export uses formatDateDisplay which returns DD/MM/YYYY format
+      // This is the PRIMARY format we expect from exports
+      let date;
+      try {
+        // PRIMARY format: DD/MM/YYYY (from formatDateDisplay in export)
+        // This matches exactly what exportToExcel produces
+        if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+          const [day, month, year] = dateStr.split('/');
+          date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+          console.log(`  ✅ Date parsed (DD/MM/YYYY - Export format): ${dateStr} -> ${date}`);
+        } 
+        // Secondary format: YYYY-MM-DD (internal format, for compatibility)
+        else if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          date = dateStr;
+          console.log(`  ✅ Date parsed (YYYY-MM-DD - Internal format): ${date}`);
+        } 
+        // Fallback: Try parsing as Date object (for other formats)
+        else {
+          const parsedDate = new Date(dateStr);
+          if (!isNaN(parsedDate.getTime())) {
+            const year = parsedDate.getFullYear();
+            const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+            const day = String(parsedDate.getDate()).padStart(2, '0');
+            date = `${year}-${month}-${day}`;
+            console.log(`  ⚠️ Date parsed (Fallback Date object): ${dateStr} -> ${date}`);
+          } else {
+            console.log(`  ❌ Skipped: Invalid date format: ${dateStr}`);
+            skippedCount++;
+            continue; // Skip invalid date
+          }
+        }
+      } catch (e) {
+        console.log(`  ❌ Skipped: Date parsing error: ${e.message}, dateStr: ${dateStr}`);
+        skippedCount++;
+        continue; // Skip invalid date
+      }
+      
+      // Parse amount
+      const amount = parseFloat(amountStr.replace(/[₹,\s]/g, ''));
+      if (isNaN(amount) || amount <= 0) {
+        console.log(`  Skipped: Invalid amount: ${amountStr} -> ${amount}`);
+        skippedCount++;
+        continue;
+      }
+      
+      console.log(`  Amount parsed: ${amountStr} -> ${amount}`);
+      
+      // Determine type and mode
+      let type, mode, adjustmentType;
+      const typeLower = typeStr.toLowerCase();
+      
+      if (typeLower.includes('expense')) {
+        type = 'expense';
+      } else if (typeLower.includes('income')) {
+        type = 'income';
+      } else if (typeLower.includes('balance adjustment')) {
+        type = 'balance_adjustment';
+        // Try to determine adjustment type from amount or note
+        adjustmentType = 'add'; // Default
+      } else if (typeLower.includes('cash withdrawal')) {
+        type = 'cash_withdrawal';
+      } else if (typeLower.includes('cash deposit')) {
+        type = 'cash_deposit';
+      } else {
+        console.log(`  Skipped: Unknown type: ${typeStr}`);
+        skippedCount++;
+        continue; // Skip unknown types
+      }
+      
+      console.log(`  Type determined: ${type}`);
+      
+      // Determine mode from payment method
+      if (paymentMethodStr) {
+        if (paymentMethodStr.includes('UPI → Cash') || paymentMethodStr.includes('Cash → UPI')) {
+          // Mode is handled by type (cash_withdrawal/cash_deposit)
+          mode = 'upi'; // Default, but won't be used for transfers
+        } else if (paymentMethodStr.toLowerCase().includes('cash')) {
+          mode = 'cash';
+        } else {
+          mode = 'upi';
+        }
+      } else {
+        mode = 'upi'; // Default
+      }
+      
+      // Parse note (restore semicolons to commas)
+      const note = (noteStr || '').replace(/;/g, ',');
+      
+      // Parse category (if provided)
+      const category_id = categoryStr && categoryStr.trim() ? categoryStr.trim() : undefined;
+      
+      // Create entry
+      const entry = {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9), // Unique ID
+        amount,
+        note: note || undefined,
+        type,
+        mode: type === 'cash_withdrawal' || type === 'cash_deposit' ? undefined : mode,
+        date,
+      };
+      
+      if (category_id) {
+        entry.category_id = category_id;
+      }
+      
+      if (type === 'balance_adjustment' && adjustmentType) {
+        entry.adjustment_type = adjustmentType;
+      }
+      
+      console.log(`  Entry created:`, entry);
+      entries.push(entry);
     }
     
-        console.log(`\n=== CSV Import Summary ===`);
+    console.log(`\n=== CSV Import Summary ===`);
     console.log(`Total lines in file: ${lines.length}`);
     console.log(`Data lines processed: ${processedCount}`);
     console.log(`✅ Entries created: ${entries.length}`);

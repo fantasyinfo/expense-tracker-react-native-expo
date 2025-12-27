@@ -35,6 +35,21 @@ export const formatDateWithMonthName = (dateString) => {
 };
 
 /**
+ * Format date in short format (e.g., "27 Dec 25")
+ */
+export const formatDateShort = (dateString) => {
+  const date = parseDate(dateString);
+  const day = date.getDate();
+  const monthNames = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+  const month = monthNames[date.getMonth()];
+  const year = String(date.getFullYear()).slice(-2);
+  return `${day} ${month} ${year}`;
+};
+
+/**
  * Parse YYYY-MM-DD string to Date object
  */
 export const parseDate = (dateString) => {

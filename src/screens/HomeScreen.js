@@ -18,8 +18,9 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { formatDate, filterEntriesByPeriod, filterEntriesByDateRange, calculateTotals, formatDateWithMonthName, formatCurrency, formatDateDisplay } from '../utils/dateUtils';
+import { formatDate, filterEntriesByPeriod, filterEntriesByDateRange, calculateTotals, formatDateWithMonthName, formatDateShort, formatCurrency, formatDateDisplay } from '../utils/dateUtils';
 import { loadEntries, deleteEntry } from '../utils/storage';
+import { loadCategories, getCategoryById } from '../utils/categoryStorage';
 import { getCurrentBankBalance, getCurrentCashBalance } from '../utils/balanceUtils';
 import { loadProfile } from '../utils/profileStorage';
 import { getStreak, checkAchievements, getMotivationalMessage, calculateGoalProgress } from '../utils/engagementUtils';
@@ -56,6 +57,8 @@ const HomeScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [longPressMenuVisible, setLongPressMenuVisible] = useState(false);
   const [selectedEntryForMenu, setSelectedEntryForMenu] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(null);
   const [userName, setUserName] = useState('User');
   const [streak, setStreak] = useState({ currentStreak: 0, longestStreak: 0 });
   const [motivationalMessage, setMotivationalMessage] = useState('');
@@ -81,6 +84,10 @@ const HomeScreen = () => {
     const profile = await loadProfile();
     setUserName(profile.name || '');
     
+    // Load categories
+    const loadedCategories = await loadCategories();
+    setCategories(loadedCategories);
+    
     // Load current balances
     const bankBal = await getCurrentBankBalance();
     const cashBal = await getCurrentCashBalance();
@@ -93,6 +100,11 @@ const HomeScreen = () => {
       filtered = filterEntriesByDateRange(allEntries, startDate, endDate);
     } else {
       filtered = filterEntriesByPeriod(allEntries, 'today');
+    }
+    
+    // Apply category filter if selected
+    if (selectedCategoryFilter) {
+      filtered = filtered.filter(entry => entry.category_id === selectedCategoryFilter);
     }
     
     // Apply search filter if query exists
@@ -137,7 +149,7 @@ const HomeScreen = () => {
     // Load all achievements (but don't show notification on load - only on new entry)
     const achievementData = await checkAchievements();
     setAchievements(achievementData.allAchievements);
-  }, [isCustomDateRange, startDate, endDate, searchQuery]);
+  }, [isCustomDateRange, startDate, endDate, searchQuery, selectedCategoryFilter]);
 
   // Reload data when screen comes into focus
   useFocusEffect(
@@ -273,6 +285,9 @@ const HomeScreen = () => {
     const isCashDeposit = item.type === 'cash_deposit';
     const adjustmentIsAdd = isBalanceAdjustment ? (item.adjustment_type === 'add' || !item.adjustment_type) : false;
     
+    // Get category for this entry
+    const category = item.category_id ? categories.find(cat => cat.id === item.category_id) : null;
+    
     return (
       <TouchableOpacity
         style={styles.transactionCard}
@@ -283,94 +298,108 @@ const HomeScreen = () => {
         }}
       >
         <View style={styles.transactionLeft}>
-          <View style={[
-            styles.transactionIconContainer,
-            isCashWithdrawal || isCashDeposit
-              ? (isCashWithdrawal ? styles.transactionIconWithdrawal : styles.transactionIconDeposit)
-              : (isBalanceAdjustment 
-                  ? styles.transactionIconAdjustment
-                  : (item.type === 'expense' ? styles.transactionIconExpense : styles.transactionIconIncome))
-          ]}>
-            <Ionicons
-              name={
-                isCashWithdrawal || isCashDeposit
-                  ? 'swap-horizontal'
-                  : (isBalanceAdjustment 
-                      ? (adjustmentIsAdd ? 'add-circle' : 'remove-circle')
-                      : (item.type === 'expense' ? 'arrow-down' : 'arrow-up'))
-              }
-              size={20}
-              color="#FFFFFF"
-            />
-          </View>
+          {category ? (
+            <View style={[styles.transactionIconContainer, { backgroundColor: `${category.color}20` }]}>
+              <Ionicons
+                name={category.icon}
+                size={20}
+                color={category.color}
+              />
+            </View>
+          ) : (
+            <View style={[
+              styles.transactionIconContainer,
+              isCashWithdrawal || isCashDeposit
+                ? (isCashWithdrawal ? styles.transactionIconWithdrawal : styles.transactionIconDeposit)
+                : (isBalanceAdjustment 
+                    ? styles.transactionIconAdjustment
+                    : (item.type === 'expense' ? styles.transactionIconExpense : styles.transactionIconIncome))
+            ]}>
+              <Ionicons
+                name={
+                  isCashWithdrawal || isCashDeposit
+                    ? 'swap-horizontal'
+                    : (isBalanceAdjustment 
+                        ? (adjustmentIsAdd ? 'add-circle' : 'remove-circle')
+                        : (item.type === 'expense' ? 'arrow-down' : 'arrow-up'))
+                }
+                size={20}
+                color="#FFFFFF"
+              />
+            </View>
+          )}
           <View style={styles.transactionDetails}>
             <Text style={styles.transactionNote} numberOfLines={1}>
               {item.note || (isCashWithdrawal ? 'Cash Withdrawal' : (isCashDeposit ? 'Cash Deposit' : (isBalanceAdjustment ? 'Balance Adjustment' : (item.type === 'expense' ? 'Expense' : 'Income'))))}
             </Text>
             <View style={styles.transactionMeta}>
-              <Text style={styles.transactionDate}>{formatDateWithMonthName(item.date)}</Text>
-              {isCashWithdrawal ? (
-                <View style={styles.transactionModeContainer}>
-                  <View style={styles.transactionMode}>
-                    <Ionicons name="phone-portrait" size={12} color="#4DABF7" />
+              <View style={styles.transactionMetaLeft}>
+                <Text style={styles.transactionDate}>{formatDateShort(item.date)}</Text>
+                {category && (
+                  <View style={[styles.categoryBadge, { backgroundColor: `${category.color}20` }]}>
+                    <Ionicons name={category.icon} size={10} color={category.color} />
+                    <Text style={[styles.categoryBadgeText, { color: category.color }]}>{category.name}</Text>
                   </View>
-                  <Text style={styles.transactionModeText}>→</Text>
-                  <View style={styles.transactionMode}>
-                    <Ionicons name="cash" size={12} color="#FFD43B" />
-                  </View>
-                </View>
-              ) : isCashDeposit ? (
-                <View style={styles.transactionModeContainer}>
-                  <View style={styles.transactionMode}>
-                    <Ionicons name="cash" size={12} color="#FFD43B" />
-                  </View>
-                  <Text style={styles.transactionModeText}>→</Text>
-                  <View style={styles.transactionMode}>
-                    <Ionicons name="phone-portrait" size={12} color="#4DABF7" />
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.transactionMode}>
-                  <Ionicons
-                    name={(item.mode || 'upi') === 'upi' ? 'phone-portrait' : 'cash'}
-                    size={12}
-                    color={(item.mode || 'upi') === 'upi' ? '#4DABF7' : '#FFD43B'}
-                  />
-                </View>
-              )}
+                )}
+              </View>
             </View>
           </View>
         </View>
         <View style={styles.transactionRight}>
-          <Text style={[
-            styles.transactionAmount,
-            isCashWithdrawal || isCashDeposit
-              ? (isCashWithdrawal ? styles.transactionAmountWithdrawal : styles.transactionAmountDeposit)
-              : (isBalanceAdjustment 
-                  ? styles.transactionAmountAdjustment
-                  : (item.type === 'expense' ? styles.transactionAmountExpense : styles.transactionAmountIncome))
-          ]}>
-            {isCashWithdrawal || isCashDeposit || isBalanceAdjustment
-              ? (isCashWithdrawal || isCashDeposit ? '' : (adjustmentIsAdd ? '+' : '-'))
-              : (item.type === 'expense' ? '-' : '+')
-            }₹{formatCurrency(item.amount)}
-          </Text>
-          <View style={styles.transactionActions}>
-            <TouchableOpacity
-              onPress={() => handleEdit(item)}
-              style={styles.transactionEdit}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="create-outline" size={16} color="#666" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => handleDelete(item.id, item)}
-              style={styles.transactionDelete}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="trash-outline" size={16} color="#666" />
-            </TouchableOpacity>
+          <View style={styles.transactionRightTop}>
+            {isCashWithdrawal ? (
+              <View style={styles.transactionModeContainer}>
+                <View style={styles.transactionMode}>
+                  <Ionicons name="phone-portrait" size={14} color="#4DABF7" />
+                </View>
+                <Text style={styles.transactionModeText}>→</Text>
+                <View style={styles.transactionMode}>
+                  <Ionicons name="cash" size={14} color="#FFD43B" />
+                </View>
+              </View>
+            ) : isCashDeposit ? (
+              <View style={styles.transactionModeContainer}>
+                <View style={styles.transactionMode}>
+                  <Ionicons name="cash" size={14} color="#FFD43B" />
+                </View>
+                <Text style={styles.transactionModeText}>→</Text>
+                <View style={styles.transactionMode}>
+                  <Ionicons name="phone-portrait" size={14} color="#4DABF7" />
+                </View>
+              </View>
+            ) : (
+              <View style={styles.transactionMode}>
+                <Ionicons
+                  name={(item.mode || 'upi') === 'upi' ? 'phone-portrait' : 'cash'}
+                  size={14}
+                  color={(item.mode || 'upi') === 'upi' ? '#4DABF7' : '#FFD43B'}
+                />
+              </View>
+            )}
+            <Text style={[
+              styles.transactionAmount,
+              isCashWithdrawal || isCashDeposit
+                ? (isCashWithdrawal ? styles.transactionAmountWithdrawal : styles.transactionAmountDeposit)
+                : (isBalanceAdjustment 
+                    ? styles.transactionAmountAdjustment
+                    : (item.type === 'expense' ? styles.transactionAmountExpense : styles.transactionAmountIncome))
+            ]}>
+              {isCashWithdrawal || isCashDeposit || isBalanceAdjustment
+                ? (isCashWithdrawal || isCashDeposit ? '' : (adjustmentIsAdd ? '+' : '-'))
+                : (item.type === 'expense' ? '-' : '+')
+              }₹{formatCurrency(item.amount)}
+            </Text>
           </View>
+          <TouchableOpacity
+            onPress={() => {
+              setSelectedEntryForMenu(item);
+              setLongPressMenuVisible(true);
+            }}
+            style={styles.transactionMoreButton}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="ellipsis-vertical" size={20} color={Colors.text.secondary} />
+          </TouchableOpacity>
         </View>
       </TouchableOpacity>
     );
@@ -579,6 +608,60 @@ const HomeScreen = () => {
               </TouchableOpacity>
             )}
           </View>
+        </View>
+
+        {/* Category Filter */}
+        <View style={styles.categoryFilterContainer}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoryFilterScroll}
+          >
+            <TouchableOpacity
+              style={[
+                styles.categoryFilterButton,
+                !selectedCategoryFilter && styles.categoryFilterButtonActive
+              ]}
+              onPress={() => setSelectedCategoryFilter(null)}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.categoryFilterText,
+                !selectedCategoryFilter && styles.categoryFilterTextActive
+              ]}>
+                All
+              </Text>
+            </TouchableOpacity>
+            {categories
+              .filter(cat => cat.type === 'expense' || cat.type === 'income')
+              .map((category) => (
+                <TouchableOpacity
+                  key={category.id}
+                  style={[
+                    styles.categoryFilterButton,
+                    selectedCategoryFilter === category.id && styles.categoryFilterButtonActive,
+                    selectedCategoryFilter === category.id && { borderColor: category.color }
+                  ]}
+                  onPress={() => setSelectedCategoryFilter(
+                    selectedCategoryFilter === category.id ? null : category.id
+                  )}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons 
+                    name={category.icon} 
+                    size={14} 
+                    color={selectedCategoryFilter === category.id ? category.color : Colors.text.secondary} 
+                  />
+                  <Text style={[
+                    styles.categoryFilterText,
+                    selectedCategoryFilter === category.id && styles.categoryFilterTextActive,
+                    selectedCategoryFilter === category.id && { color: category.color }
+                  ]}>
+                    {category.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+          </ScrollView>
         </View>
 
         {/* Horizontal Scrollable Achievement Section */}
@@ -1278,22 +1361,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a1a',
     borderRadius: 16,
     padding: 16,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#222',
     alignItems: 'center',
+    minHeight: 80,
   },
   transactionLeft: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
+    marginRight: 12,
   },
   transactionIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   transactionIconExpense: {
     backgroundColor: 'rgba(255, 107, 107, 0.15)',
@@ -1322,27 +1409,31 @@ const styles = StyleSheet.create({
   },
   transactionDetails: {
     flex: 1,
+    minWidth: 0,
   },
   transactionNote: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
-    marginBottom: 4,
+    marginBottom: 8,
+    lineHeight: 20,
   },
   transactionMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
+    gap: 10,
+    flexWrap: 'wrap',
   },
   transactionDate: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 13,
+    color: '#888',
     fontWeight: '500',
   },
   transactionMode: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: '#1a1a1a',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1350,11 +1441,27 @@ const styles = StyleSheet.create({
   transactionRight: {
     alignItems: 'flex-end',
     gap: 8,
+    flexShrink: 0,
+  },
+  transactionRightTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   transactionAmount: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
     letterSpacing: -0.3,
+  },
+  transactionMoreButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.background.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
   },
   transactionAmountExpense: {
     color: '#FF6B6B',
@@ -1370,17 +1477,6 @@ const styles = StyleSheet.create({
   },
   transactionAmountDeposit: {
     color: '#51CF66',
-  },
-  transactionActions: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-  },
-  transactionEdit: {
-    padding: 4,
-  },
-  transactionDelete: {
-    padding: 4,
   },
   searchContainer: {
     paddingHorizontal: 20,
@@ -1409,6 +1505,55 @@ const styles = StyleSheet.create({
   searchClearButton: {
     marginLeft: 8,
     padding: 4,
+  },
+  categoryFilterContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+  },
+  categoryFilterScroll: {
+    gap: 8,
+    paddingRight: 20,
+  },
+  categoryFilterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: Colors.background.secondary,
+    borderWidth: 1.5,
+    borderColor: Colors.border.primary,
+    marginRight: 8,
+    gap: 6,
+  },
+  categoryFilterButtonActive: {
+    backgroundColor: Colors.background.primary,
+  },
+  categoryFilterText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.text.secondary,
+  },
+  categoryFilterTextActive: {
+    fontWeight: '700',
+  },
+  transactionMetaLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  categoryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    gap: 5,
+    marginLeft: 8,
+  },
+  categoryBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
   emptyState: {
     alignItems: 'center',

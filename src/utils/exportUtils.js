@@ -35,7 +35,7 @@ const saveFileToDevice = async (fileUri, fileName, mimeType) => {
 export const exportToExcel = async (entries, options = {}) => {
   try {
     // Prepare CSV data
-    let csvContent = 'Date,Type,Amount,Payment Method,Note\n';
+    let csvContent = 'Date,Type,Amount,Payment Method,Category,Note\n';
     
     entries.forEach((entry) => {
       const date = formatDateDisplay(entry.date);
@@ -62,8 +62,9 @@ export const exportToExcel = async (entries, options = {}) => {
       } else {
         paymentMethod = (entry.mode || 'upi') === 'upi' ? 'UPI' : 'Cash';
       }
+      const category = entry.category_id || '';
       const note = (entry.note || '').replace(/,/g, ';'); // Replace commas in notes
-      csvContent += `${date},${type},${amount},${paymentMethod},${note}\n`;
+      csvContent += `${date},${type},${amount},${paymentMethod},${category},${note}\n`;
     });
 
     // Add summary
