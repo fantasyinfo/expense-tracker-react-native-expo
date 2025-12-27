@@ -37,6 +37,7 @@ import { useModal } from '../context/ModalContext';
 import ImportModal from '../components/ImportModal';
 import BackupSettingsModal from '../components/BackupSettingsModal';
 import ExportFilterModal from '../components/ExportFilterModal';
+import UserGuideScreen from './UserGuideScreen';
 import { createManualBackup, getLastBackupTime, formatBackupDate } from '../utils/backupUtils';
 
 const CollapsibleSection = ({ title, children, defaultExpanded = false }) => {
@@ -104,6 +105,7 @@ const SettingsScreen = () => {
   const [exportFormat, setExportFormat] = useState('csv'); // 'csv' or 'json'
   const [lastBackupTime, setLastBackupTime] = useState(null);
   const [backupCreating, setBackupCreating] = useState(false);
+  const [showUserGuide, setShowUserGuide] = useState(false);
 
   const loadData = useCallback(async () => {
     const allEntries = await loadEntries();
@@ -700,8 +702,19 @@ const SettingsScreen = () => {
         </View>
       </CollapsibleSection>
 
+      {/* User Guide Section */}
+      <CollapsibleSection title="User Guide" defaultExpanded={false}>
+        <View style={styles.sectionContent}>
+          <SettingCard
+            title="📖 Complete User Guide"
+            description="Step-by-step guide with all features explained in detail"
+            onPress={() => setShowUserGuide(true)}
+          />
+        </View>
+      </CollapsibleSection>
+
       {/* How to Use Section */}
-      <CollapsibleSection title="How to Use">
+      <CollapsibleSection title="How to Use" defaultExpanded={false}>
         <View style={styles.sectionContent}>
           <View style={styles.instructionItem}>
             <Ionicons name="add-circle" size={20} color={Colors.accent.primary} />
@@ -972,6 +985,12 @@ const SettingsScreen = () => {
         onExport={handleExport}
         entries={entries}
         format={exportFormat}
+      />
+
+      {/* User Guide Screen */}
+      <UserGuideScreen
+        visible={showUserGuide}
+        onClose={() => setShowUserGuide(false)}
       />
 
       {/* Balance Setting Modal */}

@@ -81,11 +81,19 @@ Each entry has:
 
 ## How to Use
 
+📖 **For a complete step-by-step guide, please see [USER_GUIDE.md](./USER_GUIDE.md)** - A comprehensive guide covering:
+- Getting started for beginners
+- Day-by-day usage instructions  
+- Complete feature documentation
+- Tips & best practices
+- Troubleshooting
+
+**Quick Start:**
 1. Tap the **+** button to add a new expense or income entry
 2. Select **Expense** or **Income**, enter amount and optional note
 3. View your **Today** summary on the home screen
 4. Check **Summary** tab for weekly, monthly, quarterly, or yearly reports with charts
-5. Export your data as **Excel** or **JSON** file for backup
+5. Export your data as **Excel**, **JSON**, or **PDF** file for backup
 
 ## Features List
 
