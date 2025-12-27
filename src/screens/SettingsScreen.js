@@ -15,6 +15,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { loadEntries } from '../utils/storage';
 import { exportToExcel, exportToJSON } from '../utils/exportUtils';
+import { exportToPDF } from '../utils/pdfUtils';
 import { shareApp, shareViaWhatsApp, shareViaSMS, openDriveDownload, shareDriveDownload } from '../utils/shareUtils';
 import { 
   getInitialBankBalance, 
@@ -153,6 +154,15 @@ const SettingsScreen = () => {
     setShowExportFilterModal(true);
   };
 
+  const handleExportPDF = () => {
+    if (entries.length === 0) {
+      Alert.alert('No Data', 'There are no entries to export.');
+      return;
+    }
+    setExportFormat('pdf');
+    setShowExportFilterModal(true);
+  };
+
   const handleExport = async (exportOptions) => {
     setExporting(true);
     try {
@@ -161,18 +171,26 @@ const SettingsScreen = () => {
         result = await exportToExcel(exportOptions.entries, {
           action: exportOptions.action,
           dateRange: exportOptions.dateRange,
+          entryType: exportOptions.entryType,
         });
-      } else {
+      } else if (exportOptions.format === 'json') {
         result = await exportToJSON(exportOptions.entries, {
           action: exportOptions.action,
           dateRange: exportOptions.dateRange,
+          entryType: exportOptions.entryType,
+        });
+      } else if (exportOptions.format === 'pdf') {
+        result = await exportToPDF(exportOptions.entries, {
+          action: exportOptions.action,
+          dateRange: exportOptions.dateRange,
+          entryType: exportOptions.entryType,
         });
       }
 
       if (result.saved) {
         Alert.alert('Success', result.message || 'Data exported and saved to device successfully!');
       } else {
-        Alert.alert('Success', 'Data exported successfully!');
+        Alert.alert('Success', result.message || 'Data exported successfully!');
       }
     } catch (error) {
       Alert.alert('Error', error.message || 'Failed to export data. Please try again.');
@@ -505,6 +523,12 @@ const SettingsScreen = () => {
             title="Export to JSON"
             description="Download data as .json file"
             onPress={handleExportJSON}
+            disabled={entryCount === 0}
+          />
+          <SettingCard
+            title="Export to PDF"
+            description="Generate PDF report (HTML format)"
+            onPress={handleExportPDF}
             disabled={entryCount === 0}
           />
         </View>

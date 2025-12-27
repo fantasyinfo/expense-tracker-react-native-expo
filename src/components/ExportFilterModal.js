@@ -19,6 +19,7 @@ const ExportFilterModal = ({ visible, onClose, onExport, entries, format }) => {
   const [exportAction, setExportAction] = useState('share'); // 'share' or 'save'
   const [filterType, setFilterType] = useState('all'); // 'all', 'period', 'custom'
   const [selectedPeriod, setSelectedPeriod] = useState('monthly'); // 'today', 'weekly', 'monthly', 'yearly'
+  const [entryType, setEntryType] = useState('all'); // 'all', 'expense', 'income', 'withdrawal', 'deposit'
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
@@ -70,15 +71,28 @@ const ExportFilterModal = ({ visible, onClose, onExport, entries, format }) => {
       });
     }
 
-    if (filteredEntries.length === 0) {
-      Alert.alert('No Data', 'No entries found for the selected date range.');
+    // Apply entry type filter
+    let typeFilteredEntries = filteredEntries;
+    if (entryType !== 'all') {
+      if (entryType === 'withdrawal') {
+        typeFilteredEntries = filteredEntries.filter(e => e.type === 'cash_withdrawal');
+      } else if (entryType === 'deposit') {
+        typeFilteredEntries = filteredEntries.filter(e => e.type === 'cash_deposit');
+      } else {
+        typeFilteredEntries = filteredEntries.filter(e => e.type === entryType);
+      }
+    }
+
+    if (typeFilteredEntries.length === 0) {
+      Alert.alert('No Data', 'No entries found for the selected filters.');
       return;
     }
 
     onExport({
-      entries: filteredEntries,
+      entries: typeFilteredEntries,
       action: exportAction,
       dateRange,
+      entryType,
       format,
     });
 
@@ -108,9 +122,11 @@ const ExportFilterModal = ({ visible, onClose, onExport, entries, format }) => {
   };
 
   const getFilteredCount = () => {
-    if (filterType === 'all') return entries.length;
+    let dateFiltered = entries;
     
-    if (filterType === 'period') {
+    if (filterType === 'all') {
+      dateFiltered = entries;
+    } else if (filterType === 'period') {
       const today = new Date();
       let start, end;
 
@@ -136,19 +152,30 @@ const ExportFilterModal = ({ visible, onClose, onExport, entries, format }) => {
           return entries.length;
       }
 
-      return entries.filter(entry => {
+      dateFiltered = entries.filter(entry => {
         const entryDate = new Date(entry.date);
         return entryDate >= start && entryDate <= end;
-      }).length;
+      });
     } else if (filterType === 'custom') {
       const start = formatDate(startDate);
       const end = formatDate(endDate);
-      return entries.filter(entry => {
+      dateFiltered = entries.filter(entry => {
         return entry.date >= start && entry.date <= end;
-      }).length;
+      });
     }
-
-    return entries.length;
+    
+    // Apply entry type filter
+    if (entryType !== 'all') {
+      if (entryType === 'withdrawal') {
+        dateFiltered = dateFiltered.filter(e => e.type === 'cash_withdrawal');
+      } else if (entryType === 'deposit') {
+        dateFiltered = dateFiltered.filter(e => e.type === 'cash_deposit');
+      } else {
+        dateFiltered = dateFiltered.filter(e => e.type === entryType);
+      }
+    }
+    
+    return dateFiltered.length;
   };
 
   return (
@@ -162,7 +189,9 @@ const ExportFilterModal = ({ visible, onClose, onExport, entries, format }) => {
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <View>
-              <Text style={styles.modalTitle}>Export {format === 'csv' ? 'Excel' : 'JSON'}</Text>
+              <Text style={styles.modalTitle}>
+                Export {format === 'csv' ? 'Excel' : format === 'json' ? 'JSON' : 'PDF'}
+              </Text>
               <Text style={styles.modalSubtitle}>Configure export options</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -171,9 +200,54 @@ const ExportFilterModal = ({ visible, onClose, onExport, entries, format }) => {
           </View>
 
           <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+            {/* Entry Type Filter */}
+            <View style={styles.section}>
+              <View style={styles.sectionLabelContainer}>
+                <Ionicons name="filter" size={14} color={Colors.text.secondary} />
+                <Text style={styles.sectionLabel}>Entry Type</Text>
+              </View>
+              <View style={styles.filterTypeContainer}>
+                {[
+                  { type: 'all', icon: 'apps', label: 'All' },
+                  { type: 'expense', icon: 'arrow-down-circle', label: 'Expense' },
+                  { type: 'income', icon: 'arrow-up-circle', label: 'Income' },
+                  { type: 'withdrawal', icon: 'swap-horizontal', label: 'Withdraw' },
+                  { type: 'deposit', icon: 'add-circle', label: 'Deposit' },
+                ].map(({ type, icon, label }) => (
+                  <TouchableOpacity
+                    key={type}
+                    style={[
+                      styles.filterTypeButton,
+                      entryType === type && styles.filterTypeButtonActive,
+                    ]}
+                    onPress={() => setEntryType(type)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons 
+                      name={icon} 
+                      size={18} 
+                      color={entryType === type ? '#FFFFFF' : Colors.text.secondary} 
+                    />
+                    <Text
+                      style={[
+                        styles.filterTypeButtonText,
+                        entryType === type && styles.filterTypeButtonTextActive,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
             {/* Export Action Selection */}
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Export Action</Text>
+              <View style={styles.sectionLabelContainer}>
+                <Ionicons name="cloud-upload" size={14} color={Colors.text.secondary} />
+                <Text style={styles.sectionLabel}>Export Action</Text>
+              </View>
               <View style={styles.actionContainer}>
                 <TouchableOpacity
                   style={[
@@ -185,7 +259,7 @@ const ExportFilterModal = ({ visible, onClose, onExport, entries, format }) => {
                 >
                   <Ionicons 
                     name="share-social" 
-                    size={20} 
+                    size={22} 
                     color={exportAction === 'share' ? '#FFFFFF' : Colors.text.secondary} 
                   />
                   <Text
@@ -193,6 +267,7 @@ const ExportFilterModal = ({ visible, onClose, onExport, entries, format }) => {
                       styles.actionButtonText,
                       exportAction === 'share' && styles.actionButtonTextActive,
                     ]}
+                    numberOfLines={1}
                   >
                     Share
                   </Text>
@@ -207,7 +282,7 @@ const ExportFilterModal = ({ visible, onClose, onExport, entries, format }) => {
                 >
                   <Ionicons 
                     name="download" 
-                    size={20} 
+                    size={22} 
                     color={exportAction === 'save' ? '#FFFFFF' : Colors.text.secondary} 
                   />
                   <Text
@@ -215,8 +290,9 @@ const ExportFilterModal = ({ visible, onClose, onExport, entries, format }) => {
                       styles.actionButtonText,
                       exportAction === 'save' && styles.actionButtonTextActive,
                     ]}
+                    numberOfLines={1}
                   >
-                    Save to Device
+                    Save
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -224,7 +300,10 @@ const ExportFilterModal = ({ visible, onClose, onExport, entries, format }) => {
 
             {/* Date Filter Selection */}
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Date Filter</Text>
+              <View style={styles.sectionLabelContainer}>
+                <Ionicons name="calendar" size={14} color={Colors.text.secondary} />
+                <Text style={styles.sectionLabel}>Date Filter</Text>
+              </View>
               <View style={styles.filterTypeContainer}>
                 <TouchableOpacity
                   style={[
@@ -283,9 +362,17 @@ const ExportFilterModal = ({ visible, onClose, onExport, entries, format }) => {
             {/* Period Selection */}
             {filterType === 'period' && (
               <View style={styles.section}>
-                <Text style={styles.sectionLabel}>Select Period</Text>
+                <View style={styles.sectionLabelContainer}>
+                  <Ionicons name="time" size={14} color={Colors.text.secondary} />
+                  <Text style={styles.sectionLabel}>Select Period</Text>
+                </View>
                 <View style={styles.periodContainer}>
-                  {['today', 'weekly', 'monthly', 'yearly'].map((period) => (
+                  {[
+                    { period: 'today', icon: 'today', label: 'Today' },
+                    { period: 'weekly', icon: 'calendar', label: 'Week' },
+                    { period: 'monthly', icon: 'calendar-outline', label: 'Month' },
+                    { period: 'yearly', icon: 'calendar-sharp', label: 'Year' },
+                  ].map(({ period, icon, label }) => (
                     <TouchableOpacity
                       key={period}
                       style={[
@@ -295,13 +382,19 @@ const ExportFilterModal = ({ visible, onClose, onExport, entries, format }) => {
                       onPress={() => setSelectedPeriod(period)}
                       activeOpacity={0.7}
                     >
+                      <Ionicons 
+                        name={icon} 
+                        size={18} 
+                        color={selectedPeriod === period ? '#FFFFFF' : Colors.text.secondary} 
+                      />
                       <Text
                         style={[
                           styles.periodButtonText,
                           selectedPeriod === period && styles.periodButtonTextActive,
                         ]}
+                        numberOfLines={1}
                       >
-                        {period.charAt(0).toUpperCase() + period.slice(1)}
+                        {label}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -312,7 +405,10 @@ const ExportFilterModal = ({ visible, onClose, onExport, entries, format }) => {
             {/* Custom Date Range */}
             {filterType === 'custom' && (
               <View style={styles.section}>
-                <Text style={styles.sectionLabel}>Custom Date Range</Text>
+                <View style={styles.sectionLabelContainer}>
+                  <Ionicons name="calendar-number" size={14} color={Colors.text.secondary} />
+                  <Text style={styles.sectionLabel}>Custom Date Range</Text>
+                </View>
                 <View style={styles.datePickerRow}>
                   <TouchableOpacity
                     style={styles.datePickerButton}
@@ -420,10 +516,10 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: Colors.background.modal,
     borderRadius: 24,
-    padding: 24,
+    padding: 28,
     width: '100%',
-    maxWidth: 400,
-    maxHeight: '80%',
+    maxWidth: 420,
+    maxHeight: '85%',
     borderWidth: 1,
     borderColor: Colors.border.primary,
   },
@@ -431,8 +527,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 24,
-    paddingBottom: 20,
+    marginBottom: 28,
+    paddingBottom: 24,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border.primary,
   },
@@ -457,41 +553,48 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   scrollView: {
-    maxHeight: 400,
+    maxHeight: 450,
+    paddingRight: 4,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 28,
+  },
+  sectionLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 14,
   },
   sectionLabel: {
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.text.secondary,
-    fontWeight: '600',
-    marginBottom: 12,
+    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
   actionContainer: {
     flexDirection: 'row',
     backgroundColor: Colors.background.secondary,
     borderRadius: 16,
-    padding: 4,
-    gap: 4,
+    padding: 6,
+    gap: 6,
   },
   actionButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
+    paddingVertical: 16,
     borderRadius: 12,
-    gap: 8,
+    gap: 10,
+    minHeight: 52,
   },
   actionButtonActive: {
     backgroundColor: Colors.accent.primary,
   },
   actionButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: Colors.text.secondary,
   },
   actionButtonTextActive: {
@@ -501,23 +604,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: Colors.background.secondary,
     borderRadius: 16,
-    padding: 4,
-    gap: 4,
+    padding: 6,
+    gap: 6,
+    flexWrap: 'nowrap',
   },
   filterTypeButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 2,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 56,
+    gap: 4,
   },
   filterTypeButtonActive: {
     backgroundColor: Colors.accent.primary,
   },
   filterTypeButtonText: {
-    fontSize: 13,
+    fontSize: 10,
     fontWeight: '600',
     color: Colors.text.secondary,
+    textAlign: 'center',
   },
   filterTypeButtonTextActive: {
     color: '#FFFFFF',
@@ -526,8 +634,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: Colors.background.secondary,
     borderRadius: 16,
-    padding: 4,
-    gap: 4,
+    padding: 6,
+    gap: 6,
   },
   periodButton: {
     flex: 1,
@@ -535,12 +643,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 56,
+    gap: 6,
   },
   periodButtonActive: {
     backgroundColor: Colors.accent.primary,
   },
   periodButtonText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: Colors.text.secondary,
   },
@@ -556,11 +666,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.background.secondary,
-    padding: 16,
+    padding: 18,
     borderRadius: 16,
-    gap: 12,
+    gap: 14,
     borderWidth: 1,
     borderColor: Colors.border.primary,
+    minHeight: 60,
   },
   datePickerTextContainer: {
     flex: 1,
@@ -584,36 +695,38 @@ const styles = StyleSheet.create({
   infoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
     backgroundColor: Colors.background.secondary,
-    padding: 12,
-    borderRadius: 12,
+    padding: 16,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: Colors.border.primary,
   },
   infoText: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 14,
     color: Colors.text.secondary,
-    lineHeight: 18,
+    lineHeight: 20,
+    fontWeight: '500',
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
-    paddingTop: 20,
+    gap: 14,
+    marginTop: 28,
+    paddingTop: 24,
     borderTopWidth: 1,
     borderTopColor: Colors.border.primary,
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: 18,
     borderRadius: 16,
     backgroundColor: Colors.background.secondary,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: Colors.border.primary,
+    minHeight: 56,
   },
   cancelButtonText: {
     fontSize: 16,
@@ -627,10 +740,11 @@ const styles = StyleSheet.create({
   },
   exportButtonGradient: {
     flexDirection: 'row',
-    paddingVertical: 16,
+    paddingVertical: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 10,
+    minHeight: 56,
   },
   exportButtonText: {
     fontSize: 16,
