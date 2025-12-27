@@ -28,8 +28,11 @@ import {
 import { getGoals, saveGoals, resetGoalCompletion } from '../utils/engagementUtils';
 import AppFooter from '../components/AppFooter';
 import EntriesReportModal from '../components/EntriesReportModal';
+import CashWithdrawalModal from '../components/CashWithdrawalModal';
+import CashDepositModal from '../components/CashDepositModal';
 import Colors from '../constants/colors';
 import { formatCurrency } from '../utils/dateUtils';
+import { useModal } from '../context/ModalContext';
 
 const CollapsibleSection = ({ title, children, defaultExpanded = false }) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
@@ -54,6 +57,14 @@ const CollapsibleSection = ({ title, children, defaultExpanded = false }) => {
 };
 
 const SettingsScreen = () => {
+  const {
+    cashWithdrawalModalVisible,
+    openCashWithdrawalModal,
+    closeCashWithdrawalModal,
+    cashDepositModalVisible,
+    openCashDepositModal,
+    closeCashDepositModal,
+  } = useModal();
   const [entries, setEntries] = useState([]);
   const [exporting, setExporting] = useState(false);
   const [entryCount, setEntryCount] = useState(0);
@@ -289,6 +300,16 @@ const SettingsScreen = () => {
             description="Calculate initial balances from all existing entries"
             onPress={handleAutoCalculateBalances}
             disabled={entryCount === 0}
+          />
+          <SettingCard
+            title="Cash Withdrawal"
+            description="Withdraw cash from UPI to Cash"
+            onPress={openCashWithdrawalModal}
+          />
+          <SettingCard
+            title="Cash Deposit"
+            description="Deposit cash from Cash to UPI"
+            onPress={openCashDepositModal}
           />
         </View>
       </CollapsibleSection>
@@ -796,6 +817,26 @@ const SettingsScreen = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Cash Withdrawal Modal */}
+      <CashWithdrawalModal
+        visible={cashWithdrawalModalVisible}
+        onClose={closeCashWithdrawalModal}
+        onSave={async () => {
+          closeCashWithdrawalModal();
+          await loadData();
+        }}
+      />
+
+      {/* Cash Deposit Modal */}
+      <CashDepositModal
+        visible={cashDepositModalVisible}
+        onClose={closeCashDepositModal}
+        onSave={async () => {
+          closeCashDepositModal();
+          await loadData();
+        }}
+      />
 
       {/* Balance Setting Modal */}
       <Modal

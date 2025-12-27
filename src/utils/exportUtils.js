@@ -12,9 +12,29 @@ export const exportToExcel = async (entries) => {
     
     entries.forEach((entry) => {
       const date = formatDateDisplay(entry.date);
-      const type = entry.type === 'expense' ? 'Expense' : 'Income';
+      let type = '';
+      if (entry.type === 'expense') {
+        type = 'Expense';
+      } else if (entry.type === 'income') {
+        type = 'Income';
+      } else if (entry.type === 'balance_adjustment') {
+        type = 'Balance Adjustment';
+      } else if (entry.type === 'cash_withdrawal') {
+        type = 'Cash Withdrawal';
+      } else if (entry.type === 'cash_deposit') {
+        type = 'Cash Deposit';
+      } else {
+        type = entry.type || 'Unknown';
+      }
       const amount = parseFloat(entry.amount).toFixed(2);
-      const paymentMethod = (entry.mode || 'upi') === 'upi' ? 'UPI' : 'Cash';
+      let paymentMethod = '';
+      if (entry.type === 'cash_withdrawal') {
+        paymentMethod = 'UPI → Cash';
+      } else if (entry.type === 'cash_deposit') {
+        paymentMethod = 'Cash → UPI';
+      } else {
+        paymentMethod = (entry.mode || 'upi') === 'upi' ? 'UPI' : 'Cash';
+      }
       const note = (entry.note || '').replace(/,/g, ';'); // Replace commas in notes
       csvContent += `${date},${type},${amount},${paymentMethod},${note}\n`;
     });

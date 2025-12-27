@@ -32,8 +32,14 @@ module.exports = {
         {
           android: {
             gradleProperties: {
-              "org.gradle.jvmargs": "-Xmx4096m -XX:MaxMetaspaceSize=512m"
-            }
+              "org.gradle.jvmargs": "-Xmx4096m -XX:MaxMetaspaceSize=512m",
+              "android.useAndroidX": "true",
+              "android.enableJetifier": "true"
+            },
+            compileSdkVersion: 34,
+            targetSdkVersion: 34,
+            minSdkVersion: 23,
+            buildToolsVersion: "34.0.0"
           }
         }
       ]

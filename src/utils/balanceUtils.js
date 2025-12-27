@@ -67,12 +67,36 @@ export const calculateCurrentBalance = (initialBalance, entries, mode) => {
   }
 
   return entries.reduce((balance, entry) => {
-    // Only process entries for the specified mode
-    if (entry.mode !== mode) return balance;
-
     const amount = parseFloat(entry.amount);
     // Skip invalid amounts
     if (isNaN(amount) || amount <= 0) return balance;
+
+    // Handle cash withdrawal: debit from UPI, credit to cash
+    if (entry.type === 'cash_withdrawal') {
+      if (mode === 'upi') {
+        // Debit from UPI balance
+        return balance - amount;
+      } else if (mode === 'cash') {
+        // Credit to cash balance
+        return balance + amount;
+      }
+      return balance;
+    }
+
+    // Handle cash deposit: credit to UPI, debit from cash
+    if (entry.type === 'cash_deposit') {
+      if (mode === 'upi') {
+        // Credit to UPI balance
+        return balance + amount;
+      } else if (mode === 'cash') {
+        // Debit from cash balance
+        return balance - amount;
+      }
+      return balance;
+    }
+
+    // Only process entries for the specified mode (for other types)
+    if (entry.mode !== mode) return balance;
 
     if (entry.type === 'income') {
       return balance + amount;
@@ -141,6 +165,20 @@ export const calculateInitialBalancesFromEntries = async () => {
       const amount = parseFloat(entry.amount || 0);
       // Skip invalid amounts
       if (isNaN(amount) || amount <= 0) return;
+      
+      // Handle cash withdrawal: debit from UPI, credit to cash
+      if (entry.type === 'cash_withdrawal') {
+        bankBalance -= amount; // Debit from UPI
+        cashBalance += amount; // Credit to cash
+        return;
+      }
+      
+      // Handle cash deposit: credit to UPI, debit from cash
+      if (entry.type === 'cash_deposit') {
+        bankBalance += amount; // Credit to UPI
+        cashBalance -= amount; // Debit from cash
+        return;
+      }
       
       if (entry.type === 'income') {
         if (entry.mode === 'upi') {

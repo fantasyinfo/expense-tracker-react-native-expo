@@ -575,50 +575,116 @@ const SummaryScreen = () => {
             <Text style={styles.sectionTitle}>Recent Entries</Text>
           </View>
           <View style={styles.entriesListContainer}>
-            {filteredEntries.slice(0, 5).map((entry) => (
-              <View key={entry.id} style={[
-                styles.entryItem,
-                entry.type === 'expense' ? styles.entryItemExpense : styles.entryItemIncome
-              ]}>
-                <View style={[
-                  styles.entryIconContainer,
-                  entry.type === 'expense' ? styles.expenseIconBg : styles.incomeIconBg
+            {filteredEntries.slice(0, 5).map((entry) => {
+              const isCashWithdrawal = entry.type === 'cash_withdrawal';
+              const isCashDeposit = entry.type === 'cash_deposit';
+              const isBalanceAdjustment = entry.type === 'balance_adjustment';
+              
+              return (
+                <View key={entry.id} style={[
+                  styles.entryItem,
+                  isCashWithdrawal || isCashDeposit || isBalanceAdjustment 
+                    ? styles.entryItemNeutral
+                    : (entry.type === 'expense' ? styles.entryItemExpense : styles.entryItemIncome)
                 ]}>
-                  <Ionicons
-                    name={entry.type === 'expense' ? 'arrow-down' : 'arrow-up'}
-                    size={18}
-                    color={entry.type === 'expense' ? '#d32f2f' : '#388e3c'}
-                  />
-                </View>
-                <View style={styles.entryContent}>
-                  <View style={styles.entryAmountRow}>
-                    <Text style={[
-                      styles.entryAmount,
-                      entry.type === 'expense' ? styles.expenseAmount : styles.incomeAmount
-                    ]}>
-                      {entry.type === 'expense' ? '-' : '+'}₹{formatCurrency(entry.amount)}
-                    </Text>
-                    <View style={styles.modeIndicator}>
-                      <Ionicons
-                        name={(entry.mode || 'upi') === 'upi' ? 'phone-portrait' : 'cash'}
-                        size={14}
-                        color={(entry.mode || 'upi') === 'upi' ? '#007AFF' : '#888888'}
-                      />
+                  <View style={[
+                    styles.entryIconContainer,
+                    isCashWithdrawal
+                      ? styles.withdrawalIconBg
+                      : (isCashDeposit
+                          ? styles.depositIconBg
+                          : (isBalanceAdjustment
+                              ? styles.adjustmentIconBg
+                              : (entry.type === 'expense' ? styles.expenseIconBg : styles.incomeIconBg)))
+                  ]}>
+                    <Ionicons
+                      name={
+                        isCashWithdrawal || isCashDeposit
+                          ? 'swap-horizontal'
+                          : (isBalanceAdjustment
+                              ? 'swap-vertical'
+                              : (entry.type === 'expense' ? 'arrow-down' : 'arrow-up'))
+                      }
+                      size={18}
+                      color={
+                        isCashWithdrawal
+                          ? '#4DABF7'
+                          : (isCashDeposit
+                              ? '#51CF66'
+                              : (isBalanceAdjustment
+                                  ? '#FF9800'
+                                  : (entry.type === 'expense' ? '#d32f2f' : '#388e3c')))
+                      }
+                    />
+                  </View>
+                  <View style={styles.entryContent}>
+                    <View style={styles.entryAmountRow}>
+                      <Text style={[
+                        styles.entryAmount,
+                        isCashWithdrawal
+                          ? styles.withdrawalAmount
+                          : (isCashDeposit
+                              ? styles.depositAmount
+                              : (isBalanceAdjustment
+                                  ? styles.adjustmentAmount
+                                  : (entry.type === 'expense' ? styles.expenseAmount : styles.incomeAmount)))
+                      ]}>
+                        {isCashWithdrawal || isCashDeposit || isBalanceAdjustment
+                          ? ''
+                          : (entry.type === 'expense' ? '-' : '+')
+                        }₹{formatCurrency(entry.amount)}
+                      </Text>
+                      {isCashWithdrawal ? (
+                        <View style={styles.modeIndicatorContainer}>
+                          <View style={styles.modeIndicator}>
+                            <Ionicons name="phone-portrait" size={12} color="#007AFF" />
+                          </View>
+                          <Text style={styles.modeArrow}>→</Text>
+                          <View style={styles.modeIndicator}>
+                            <Ionicons name="cash" size={12} color="#888888" />
+                          </View>
+                        </View>
+                      ) : isCashDeposit ? (
+                        <View style={styles.modeIndicatorContainer}>
+                          <View style={styles.modeIndicator}>
+                            <Ionicons name="cash" size={12} color="#888888" />
+                          </View>
+                          <Text style={styles.modeArrow}>→</Text>
+                          <View style={styles.modeIndicator}>
+                            <Ionicons name="phone-portrait" size={12} color="#007AFF" />
+                          </View>
+                        </View>
+                      ) : (
+                        <View style={styles.modeIndicator}>
+                          <Ionicons
+                            name={(entry.mode || 'upi') === 'upi' ? 'phone-portrait' : 'cash'}
+                            size={14}
+                            color={(entry.mode || 'upi') === 'upi' ? '#007AFF' : '#888888'}
+                          />
+                        </View>
+                      )}
+                    </View>
+                    <View style={styles.entryDetails}>
+                      {entry.note ? (
+                        <Text style={styles.entryNote}>{entry.note}</Text>
+                      ) : (
+                        <Text style={styles.entryType}>
+                          {isCashWithdrawal 
+                            ? 'Cash Withdrawal'
+                            : (isCashDeposit
+                                ? 'Cash Deposit'
+                                : (isBalanceAdjustment
+                                    ? 'Balance Adjustment'
+                                    : (entry.type === 'expense' ? 'Expense' : 'Income')))
+                          }
+                        </Text>
+                      )}
+                      <Text style={styles.entryDate}>{formatDateWithMonthName(entry.date)}</Text>
                     </View>
                   </View>
-                  <View style={styles.entryDetails}>
-                    {entry.note ? (
-                      <Text style={styles.entryNote}>{entry.note}</Text>
-                    ) : (
-                      <Text style={styles.entryType}>
-                        {entry.type === 'expense' ? 'Expense' : 'Income'}
-                      </Text>
-                    )}
-                    <Text style={styles.entryDate}>{formatDateWithMonthName(entry.date)}</Text>
-                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
             {filteredEntries.length > 5 && (
               <TouchableOpacity
                 style={styles.viewAllButton}
@@ -915,6 +981,10 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: Colors.status.income,
   },
+  entryItemNeutral: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#4DABF7',
+  },
   entryIconContainer: {
     width: 40,
     height: 40,
@@ -928,6 +998,15 @@ const styles = StyleSheet.create({
   },
   incomeIconBg: {
     backgroundColor: Colors.iconBackground.income,
+  },
+  withdrawalIconBg: {
+    backgroundColor: 'rgba(77, 171, 247, 0.15)',
+  },
+  depositIconBg: {
+    backgroundColor: 'rgba(81, 207, 102, 0.15)',
+  },
+  adjustmentIconBg: {
+    backgroundColor: Colors.iconBackground.adjustment,
   },
   entryContent: {
     flex: 1,
@@ -952,6 +1031,25 @@ const styles = StyleSheet.create({
   },
   incomeAmount: {
     color: '#388e3c',
+  },
+  withdrawalAmount: {
+    color: '#4DABF7',
+  },
+  depositAmount: {
+    color: '#51CF66',
+  },
+  adjustmentAmount: {
+    color: '#FF9800',
+  },
+  modeIndicatorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  modeArrow: {
+    fontSize: 10,
+    color: Colors.text.secondary,
+    fontWeight: '600',
   },
   entryDetails: {
     flexDirection: 'row',

@@ -120,8 +120,8 @@ export const filterEntriesByDateRange = (entries, startDate, endDate) => {
 export const calculateTotals = (entries) => {
   const totals = entries.reduce(
     (acc, entry) => {
-      // Skip balance adjustments - they don't affect income/expense totals
-      if (entry.type === 'balance_adjustment') {
+      // Skip balance adjustments, cash withdrawals, and cash deposits - they don't affect income/expense totals
+      if (entry.type === 'balance_adjustment' || entry.type === 'cash_withdrawal' || entry.type === 'cash_deposit') {
         return acc;
       }
 

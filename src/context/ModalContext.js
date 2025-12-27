@@ -4,6 +4,8 @@ const ModalContext = createContext();
 
 export const ModalProvider = ({ children }) => {
   const [addEntryModalVisible, setAddEntryModalVisible] = useState(false);
+  const [cashWithdrawalModalVisible, setCashWithdrawalModalVisible] = useState(false);
+  const [cashDepositModalVisible, setCashDepositModalVisible] = useState(false);
 
   const openAddEntryModal = () => {
     setAddEntryModalVisible(true);
@@ -13,12 +15,34 @@ export const ModalProvider = ({ children }) => {
     setAddEntryModalVisible(false);
   };
 
+  const openCashWithdrawalModal = () => {
+    setCashWithdrawalModalVisible(true);
+  };
+
+  const closeCashWithdrawalModal = () => {
+    setCashWithdrawalModalVisible(false);
+  };
+
+  const openCashDepositModal = () => {
+    setCashDepositModalVisible(true);
+  };
+
+  const closeCashDepositModal = () => {
+    setCashDepositModalVisible(false);
+  };
+
   return (
     <ModalContext.Provider
       value={{
         addEntryModalVisible,
         openAddEntryModal,
         closeAddEntryModal,
+        cashWithdrawalModalVisible,
+        openCashWithdrawalModal,
+        closeCashWithdrawalModal,
+        cashDepositModalVisible,
+        openCashDepositModal,
+        closeCashDepositModal,
       }}
     >
       {children}

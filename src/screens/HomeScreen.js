@@ -31,7 +31,11 @@ import DeleteConfirmModal from '../components/DeleteConfirmModal';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const HomeScreen = () => {
-  const { addEntryModalVisible, openAddEntryModal, closeAddEntryModal } = useModal();
+  const { 
+    addEntryModalVisible, 
+    openAddEntryModal, 
+    closeAddEntryModal,
+  } = useModal();
   const navigation = useNavigation();
   const [entries, setEntries] = useState([]);
   const [todayEntries, setTodayEntries] = useState([]);
@@ -176,6 +180,7 @@ const HomeScreen = () => {
     }
   };
 
+
   const handleDelete = async (id, entry) => {
     setEntryToDelete({ id, ...entry });
     setDeleteModalVisible(true);
@@ -229,6 +234,8 @@ const HomeScreen = () => {
 
   const renderEntry = ({ item }) => {
     const isBalanceAdjustment = item.type === 'balance_adjustment';
+    const isCashWithdrawal = item.type === 'cash_withdrawal';
+    const isCashDeposit = item.type === 'cash_deposit';
     const adjustmentIsAdd = isBalanceAdjustment ? (item.adjustment_type === 'add' || !item.adjustment_type) : false;
     
     return (
@@ -239,15 +246,19 @@ const HomeScreen = () => {
         <View style={styles.transactionLeft}>
           <View style={[
             styles.transactionIconContainer,
-            isBalanceAdjustment 
-              ? styles.transactionIconAdjustment
-              : (item.type === 'expense' ? styles.transactionIconExpense : styles.transactionIconIncome)
+            isCashWithdrawal || isCashDeposit
+              ? (isCashWithdrawal ? styles.transactionIconWithdrawal : styles.transactionIconDeposit)
+              : (isBalanceAdjustment 
+                  ? styles.transactionIconAdjustment
+                  : (item.type === 'expense' ? styles.transactionIconExpense : styles.transactionIconIncome))
           ]}>
             <Ionicons
               name={
-                isBalanceAdjustment 
-                  ? (adjustmentIsAdd ? 'add-circle' : 'remove-circle')
-                  : (item.type === 'expense' ? 'arrow-down' : 'arrow-up')
+                isCashWithdrawal || isCashDeposit
+                  ? 'swap-horizontal'
+                  : (isBalanceAdjustment 
+                      ? (adjustmentIsAdd ? 'add-circle' : 'remove-circle')
+                      : (item.type === 'expense' ? 'arrow-down' : 'arrow-up'))
               }
               size={20}
               color="#FFFFFF"
@@ -255,29 +266,53 @@ const HomeScreen = () => {
           </View>
           <View style={styles.transactionDetails}>
             <Text style={styles.transactionNote} numberOfLines={1}>
-              {item.note || (isBalanceAdjustment ? 'Balance Adjustment' : (item.type === 'expense' ? 'Expense' : 'Income'))}
+              {item.note || (isCashWithdrawal ? 'Cash Withdrawal' : (isCashDeposit ? 'Cash Deposit' : (isBalanceAdjustment ? 'Balance Adjustment' : (item.type === 'expense' ? 'Expense' : 'Income'))))}
             </Text>
             <View style={styles.transactionMeta}>
               <Text style={styles.transactionDate}>{formatDateWithMonthName(item.date)}</Text>
-              <View style={styles.transactionMode}>
-                <Ionicons
-                  name={(item.mode || 'upi') === 'upi' ? 'phone-portrait' : 'cash'}
-                  size={12}
-                  color={(item.mode || 'upi') === 'upi' ? '#4DABF7' : '#FFD43B'}
-                />
-              </View>
+              {isCashWithdrawal ? (
+                <View style={styles.transactionModeContainer}>
+                  <View style={styles.transactionMode}>
+                    <Ionicons name="phone-portrait" size={12} color="#4DABF7" />
+                  </View>
+                  <Text style={styles.transactionModeText}>→</Text>
+                  <View style={styles.transactionMode}>
+                    <Ionicons name="cash" size={12} color="#FFD43B" />
+                  </View>
+                </View>
+              ) : isCashDeposit ? (
+                <View style={styles.transactionModeContainer}>
+                  <View style={styles.transactionMode}>
+                    <Ionicons name="cash" size={12} color="#FFD43B" />
+                  </View>
+                  <Text style={styles.transactionModeText}>→</Text>
+                  <View style={styles.transactionMode}>
+                    <Ionicons name="phone-portrait" size={12} color="#4DABF7" />
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.transactionMode}>
+                  <Ionicons
+                    name={(item.mode || 'upi') === 'upi' ? 'phone-portrait' : 'cash'}
+                    size={12}
+                    color={(item.mode || 'upi') === 'upi' ? '#4DABF7' : '#FFD43B'}
+                  />
+                </View>
+              )}
             </View>
           </View>
         </View>
         <View style={styles.transactionRight}>
           <Text style={[
             styles.transactionAmount,
-            isBalanceAdjustment 
-              ? styles.transactionAmountAdjustment
-              : (item.type === 'expense' ? styles.transactionAmountExpense : styles.transactionAmountIncome)
+            isCashWithdrawal || isCashDeposit
+              ? (isCashWithdrawal ? styles.transactionAmountWithdrawal : styles.transactionAmountDeposit)
+              : (isBalanceAdjustment 
+                  ? styles.transactionAmountAdjustment
+                  : (item.type === 'expense' ? styles.transactionAmountExpense : styles.transactionAmountIncome))
           ]}>
-            {isBalanceAdjustment 
-              ? (adjustmentIsAdd ? '+' : '-')
+            {isCashWithdrawal || isCashDeposit || isBalanceAdjustment
+              ? (isCashWithdrawal || isCashDeposit ? '' : (adjustmentIsAdd ? '+' : '-'))
               : (item.type === 'expense' ? '-' : '+')
             }₹{formatCurrency(item.amount)}
           </Text>
@@ -694,6 +729,7 @@ const HomeScreen = () => {
         onClose={closeAddEntryModal}
         onSave={handleEntryAdded}
       />
+
 
       {/* Filter Modal */}
       <Modal
@@ -1135,6 +1171,22 @@ const styles = StyleSheet.create({
   transactionIconAdjustment: {
     backgroundColor: 'rgba(255, 152, 0, 0.15)',
   },
+  transactionIconWithdrawal: {
+    backgroundColor: 'rgba(77, 171, 247, 0.15)',
+  },
+  transactionIconDeposit: {
+    backgroundColor: 'rgba(81, 207, 102, 0.15)',
+  },
+  transactionModeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  transactionModeText: {
+    fontSize: 10,
+    color: Colors.text.secondary,
+    fontWeight: '600',
+  },
   transactionDetails: {
     flex: 1,
   },
@@ -1179,6 +1231,12 @@ const styles = StyleSheet.create({
   },
   transactionAmountAdjustment: {
     color: '#FF9800',
+  },
+  transactionAmountWithdrawal: {
+    color: '#4DABF7',
+  },
+  transactionAmountDeposit: {
+    color: '#51CF66',
   },
   transactionDelete: {
     padding: 4,

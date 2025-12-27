@@ -39,6 +39,8 @@ const EntriesReportModal = ({ visible, entries, onClose, title = 'Entries Report
 
   const renderEntry = (entry) => {
     const isBalanceAdjustment = entry.type === 'balance_adjustment';
+    const isCashWithdrawal = entry.type === 'cash_withdrawal';
+    const isCashDeposit = entry.type === 'cash_deposit';
     const adjustmentIsAdd = isBalanceAdjustment ? (entry.adjustment_type === 'add' || !entry.adjustment_type) : false;
     
     return (
@@ -46,15 +48,19 @@ const EntriesReportModal = ({ visible, entries, onClose, title = 'Entries Report
         <View style={styles.transactionLeft}>
           <View style={[
             styles.transactionIconContainer,
-            isBalanceAdjustment 
-              ? styles.transactionIconAdjustment
-              : (entry.type === 'expense' ? styles.transactionIconExpense : styles.transactionIconIncome)
+            isCashWithdrawal || isCashDeposit
+              ? (isCashWithdrawal ? styles.transactionIconWithdrawal : styles.transactionIconDeposit)
+              : (isBalanceAdjustment 
+                  ? styles.transactionIconAdjustment
+                  : (entry.type === 'expense' ? styles.transactionIconExpense : styles.transactionIconIncome))
           ]}>
             <Ionicons
               name={
-                isBalanceAdjustment 
-                  ? (adjustmentIsAdd ? 'add-circle' : 'remove-circle')
-                  : (entry.type === 'expense' ? 'arrow-down' : 'arrow-up')
+                isCashWithdrawal || isCashDeposit
+                  ? 'swap-horizontal'
+                  : (isBalanceAdjustment 
+                      ? (adjustmentIsAdd ? 'add-circle' : 'remove-circle')
+                      : (entry.type === 'expense' ? 'arrow-down' : 'arrow-up'))
               }
               size={18}
               color="#FFFFFF"
@@ -62,29 +68,53 @@ const EntriesReportModal = ({ visible, entries, onClose, title = 'Entries Report
           </View>
           <View style={styles.transactionDetails}>
             <Text style={styles.transactionNote} numberOfLines={1}>
-              {entry.note || (isBalanceAdjustment ? 'Balance Adjustment' : (entry.type === 'expense' ? 'Expense' : 'Income'))}
+              {entry.note || (isCashWithdrawal ? 'Cash Withdrawal' : (isCashDeposit ? 'Cash Deposit' : (isBalanceAdjustment ? 'Balance Adjustment' : (entry.type === 'expense' ? 'Expense' : 'Income'))))}
             </Text>
             <View style={styles.transactionMeta}>
               <Text style={styles.transactionDate}>{formatDateWithMonthName(entry.date)}</Text>
-              <View style={styles.transactionMode}>
-                <Ionicons
-                  name={(entry.mode || 'upi') === 'upi' ? 'phone-portrait' : 'cash'}
-                  size={12}
-                  color={(entry.mode || 'upi') === 'upi' ? Colors.payment.upi : Colors.payment.cash}
-                />
-              </View>
+              {isCashWithdrawal ? (
+                <View style={styles.transactionModeContainer}>
+                  <View style={styles.transactionMode}>
+                    <Ionicons name="phone-portrait" size={12} color={Colors.payment.upi} />
+                  </View>
+                  <Text style={styles.transactionModeText}>→</Text>
+                  <View style={styles.transactionMode}>
+                    <Ionicons name="cash" size={12} color={Colors.payment.cash} />
+                  </View>
+                </View>
+              ) : isCashDeposit ? (
+                <View style={styles.transactionModeContainer}>
+                  <View style={styles.transactionMode}>
+                    <Ionicons name="cash" size={12} color={Colors.payment.cash} />
+                  </View>
+                  <Text style={styles.transactionModeText}>→</Text>
+                  <View style={styles.transactionMode}>
+                    <Ionicons name="phone-portrait" size={12} color={Colors.payment.upi} />
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.transactionMode}>
+                  <Ionicons
+                    name={(entry.mode || 'upi') === 'upi' ? 'phone-portrait' : 'cash'}
+                    size={12}
+                    color={(entry.mode || 'upi') === 'upi' ? Colors.payment.upi : Colors.payment.cash}
+                  />
+                </View>
+              )}
             </View>
           </View>
         </View>
         <View style={styles.transactionRight}>
           <Text style={[
             styles.transactionAmount,
-            isBalanceAdjustment 
-              ? styles.transactionAmountAdjustment
-              : (entry.type === 'expense' ? styles.transactionAmountExpense : styles.transactionAmountIncome)
+            isCashWithdrawal || isCashDeposit
+              ? (isCashWithdrawal ? styles.transactionAmountWithdrawal : styles.transactionAmountDeposit)
+              : (isBalanceAdjustment 
+                  ? styles.transactionAmountAdjustment
+                  : (entry.type === 'expense' ? styles.transactionAmountExpense : styles.transactionAmountIncome))
           ]}>
-            {isBalanceAdjustment 
-              ? (adjustmentIsAdd ? '+' : '-')
+            {isCashWithdrawal || isCashDeposit || isBalanceAdjustment
+              ? (isCashWithdrawal || isCashDeposit ? '' : (adjustmentIsAdd ? '+' : '-'))
               : (entry.type === 'expense' ? '-' : '+')
             }₹{formatCurrency(entry.amount)}
           </Text>
@@ -558,6 +588,22 @@ const styles = StyleSheet.create({
   transactionIconAdjustment: {
     backgroundColor: Colors.iconBackground.adjustment,
   },
+  transactionIconWithdrawal: {
+    backgroundColor: 'rgba(77, 171, 247, 0.15)',
+  },
+  transactionIconDeposit: {
+    backgroundColor: 'rgba(81, 207, 102, 0.15)',
+  },
+  transactionModeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  transactionModeText: {
+    fontSize: 10,
+    color: Colors.text.secondary,
+    fontWeight: '600',
+  },
   transactionDetails: {
     flex: 1,
   },
@@ -601,6 +647,12 @@ const styles = StyleSheet.create({
   },
   transactionAmountAdjustment: {
     color: Colors.status.adjustment,
+  },
+  transactionAmountWithdrawal: {
+    color: '#4DABF7',
+  },
+  transactionAmountDeposit: {
+    color: '#51CF66',
   },
   emptyContainer: {
     padding: 60,
