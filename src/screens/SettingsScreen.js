@@ -33,6 +33,10 @@ import CashDepositModal from '../components/CashDepositModal';
 import Colors from '../constants/colors';
 import { formatCurrency } from '../utils/dateUtils';
 import { useModal } from '../context/ModalContext';
+import ImportModal from '../components/ImportModal';
+import BackupSettingsModal from '../components/BackupSettingsModal';
+import ExportFilterModal from '../components/ExportFilterModal';
+import { createManualBackup, getLastBackupTime, formatBackupDate } from '../utils/backupUtils';
 
 const CollapsibleSection = ({ title, children, defaultExpanded = false }) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
@@ -93,6 +97,12 @@ const SettingsScreen = () => {
   const [goalCategory, setGoalCategory] = useState('savings'); // 'savings' or 'expense'
   const [goalInput, setGoalInput] = useState('');
   const [customGoalNameInput, setCustomGoalNameInput] = useState('');
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showBackupSettingsModal, setShowBackupSettingsModal] = useState(false);
+  const [showExportFilterModal, setShowExportFilterModal] = useState(false);
+  const [exportFormat, setExportFormat] = useState('csv'); // 'csv' or 'json'
+  const [lastBackupTime, setLastBackupTime] = useState(null);
+  const [backupCreating, setBackupCreating] = useState(false);
 
   const loadData = useCallback(async () => {
     const allEntries = await loadEntries();
@@ -108,6 +118,10 @@ const SettingsScreen = () => {
     // Load goals
     const goalsData = await getGoals();
     setGoals(goalsData);
+    
+    // Load last backup time
+    const lastBackup = await getLastBackupTime();
+    setLastBackupTime(lastBackup);
   }, []);
 
   // Reload data when screen comes into focus
@@ -121,36 +135,47 @@ const SettingsScreen = () => {
     loadData();
   }, [loadData]);
 
-  const handleExportExcel = async () => {
+  const handleExportExcel = () => {
     if (entries.length === 0) {
       Alert.alert('No Data', 'There are no entries to export.');
       return;
     }
-
-    setExporting(true);
-    try {
-      await exportToExcel(entries);
-      Alert.alert('Success', 'Data exported successfully!');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to export data. Please try again.');
-      console.error(error);
-    } finally {
-      setExporting(false);
-    }
+    setExportFormat('csv');
+    setShowExportFilterModal(true);
   };
 
-  const handleExportJSON = async () => {
+  const handleExportJSON = () => {
     if (entries.length === 0) {
       Alert.alert('No Data', 'There are no entries to export.');
       return;
     }
+    setExportFormat('json');
+    setShowExportFilterModal(true);
+  };
 
+  const handleExport = async (exportOptions) => {
     setExporting(true);
     try {
-      await exportToJSON(entries);
-      Alert.alert('Success', 'Data exported successfully!');
+      let result;
+      if (exportOptions.format === 'csv') {
+        result = await exportToExcel(exportOptions.entries, {
+          action: exportOptions.action,
+          dateRange: exportOptions.dateRange,
+        });
+      } else {
+        result = await exportToJSON(exportOptions.entries, {
+          action: exportOptions.action,
+          dateRange: exportOptions.dateRange,
+        });
+      }
+
+      if (result.saved) {
+        Alert.alert('Success', result.message || 'Data exported and saved to device successfully!');
+      } else {
+        Alert.alert('Success', 'Data exported successfully!');
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to export data. Please try again.');
+      Alert.alert('Error', error.message || 'Failed to export data. Please try again.');
       console.error(error);
     } finally {
       setExporting(false);
@@ -207,6 +232,34 @@ const SettingsScreen = () => {
       Alert.alert('Error', 'Failed to save balance. Please try again.');
       console.error(error);
     }
+  };
+
+  const handleCreateBackup = async () => {
+    if (entryCount === 0) {
+      Alert.alert('No Data', 'There are no entries to backup.');
+      return;
+    }
+
+    setBackupCreating(true);
+    try {
+      const result = await createManualBackup();
+      Alert.alert(
+        'Backup Created',
+        `Backup file created successfully!\n\nEntries: ${result.entryCount}\nFile: ${result.fileName}\n\nChoose where to save the backup file.`,
+        [{ text: 'OK' }]
+      );
+      // Reload to update last backup time
+      await loadData();
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Failed to create backup. Please try again.');
+      console.error(error);
+    } finally {
+      setBackupCreating(false);
+    }
+  };
+
+  const handleImportComplete = async () => {
+    await loadData();
   };
 
   const handleAutoCalculateBalances = async () => {
@@ -428,6 +481,17 @@ const SettingsScreen = () => {
         </View>
       </CollapsibleSection>
 
+      {/* Import Section */}
+      <CollapsibleSection title="Data Import">
+        <View style={styles.sectionContent}>
+          <SettingCard
+            title="Import from CSV/JSON"
+            description="Import entries from exported backup files"
+            onPress={() => setShowImportModal(true)}
+          />
+        </View>
+      </CollapsibleSection>
+
       {/* Export Section */}
       <CollapsibleSection title="Data Export">
         <View style={styles.sectionContent}>
@@ -442,6 +506,32 @@ const SettingsScreen = () => {
             description="Download data as .json file"
             onPress={handleExportJSON}
             disabled={entryCount === 0}
+          />
+        </View>
+      </CollapsibleSection>
+
+      {/* Backup & Restore Section */}
+      <CollapsibleSection title="Backup & Restore">
+        <View style={styles.sectionContent}>
+          <SettingCard
+            title="Create Backup"
+            description={
+              lastBackupTime 
+                ? `Last backup: ${formatBackupDate(lastBackupTime)}`
+                : 'Create a backup file with all your data'
+            }
+            onPress={handleCreateBackup}
+            disabled={entryCount === 0 || backupCreating}
+          />
+          <SettingCard
+            title="Restore from Backup"
+            description="Restore data from a backup file"
+            onPress={() => setShowImportModal(true)}
+          />
+          <SettingCard
+            title="Backup Settings"
+            description="Configure backup method and preferences"
+            onPress={() => setShowBackupSettingsModal(true)}
           />
         </View>
       </CollapsibleSection>
@@ -836,6 +926,28 @@ const SettingsScreen = () => {
           closeCashDepositModal();
           await loadData();
         }}
+      />
+
+      {/* Import Modal */}
+      <ImportModal
+        visible={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImportComplete={handleImportComplete}
+      />
+
+      {/* Backup Settings Modal */}
+      <BackupSettingsModal
+        visible={showBackupSettingsModal}
+        onClose={() => setShowBackupSettingsModal(false)}
+      />
+
+      {/* Export Filter Modal */}
+      <ExportFilterModal
+        visible={showExportFilterModal}
+        onClose={() => setShowExportFilterModal(false)}
+        onExport={handleExport}
+        entries={entries}
+        format={exportFormat}
       />
 
       {/* Balance Setting Modal */}

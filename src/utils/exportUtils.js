@@ -1,11 +1,38 @@
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { formatDateDisplay } from './dateUtils';
+import { Platform, Alert } from 'react-native';
+import { formatDateDisplay, formatDate } from './dateUtils';
 
 /**
- * Export entries to CSV file (Excel compatible) and share/download
+ * Save file to device downloads/folder
+ * Uses sharing dialog with "Save" option for better compatibility
  */
-export const exportToExcel = async (entries) => {
+const saveFileToDevice = async (fileUri, fileName, mimeType) => {
+  try {
+    // For "save" action, we'll use sharing with a hint to save
+    // The sharing dialog on both platforms allows users to save to device
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(fileUri, {
+        mimeType: mimeType,
+        dialogTitle: 'Save File to Device',
+        UTI: mimeType === 'text/csv' ? 'public.comma-separated-values-text' : 'public.json',
+      });
+      return { success: true, saved: true };
+    } else {
+      throw new Error('Sharing is not available on this device');
+    }
+  } catch (error) {
+    console.error('Error saving file to device:', error);
+    return { success: false, saved: false, error: error.message };
+  }
+};
+
+/**
+ * Export entries to CSV file (Excel compatible) with options
+ * @param {Array} entries - Entries to export
+ * @param {Object} options - Export options { action: 'share' | 'save', dateRange: { start, end, period } }
+ */
+export const exportToExcel = async (entries, options = {}) => {
   try {
     // Prepare CSV data
     let csvContent = 'Date,Type,Amount,Payment Method,Note\n';
@@ -74,9 +101,20 @@ export const exportToExcel = async (entries) => {
     csvContent += `Income - UPI,,${incomeUpi.toFixed(2)},,\n`;
     csvContent += `Income - Cash,,${incomeCash.toFixed(2)},,\n`;
 
-    // Generate file name with timestamp
+    // Generate file name with timestamp and date range info
     const timestamp = new Date().toISOString().split('T')[0];
-    const fileName = `expense_tracker_${timestamp}.csv`;
+    let fileName = `expense_tracker_${timestamp}.csv`;
+    
+    // Add date range info to filename if provided
+    if (options.dateRange) {
+      if (options.dateRange.period && options.dateRange.period !== 'custom') {
+        fileName = `expense_tracker_${options.dateRange.period}_${timestamp}.csv`;
+      } else if (options.dateRange.start && options.dateRange.end) {
+        const startStr = formatDate(options.dateRange.start).replace(/-/g, '_');
+        const endStr = formatDate(options.dateRange.end).replace(/-/g, '_');
+        fileName = `expense_tracker_${startStr}_to_${endStr}.csv`;
+      }
+    }
 
     // Save file
     const fileUri = FileSystem.documentDirectory + fileName;
@@ -84,18 +122,40 @@ export const exportToExcel = async (entries) => {
       encoding: FileSystem.EncodingType.UTF8,
     });
 
-    // Share/download file (CSV can be opened in Excel)
-    if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(fileUri, {
-        mimeType: 'text/csv',
-        dialogTitle: 'Export Expense Data',
-        UTI: 'public.comma-separated-values-text',
-      });
+    // Handle export action
+    const action = options.action || 'share';
+    
+    if (action === 'save') {
+      // Save to device - opens share dialog with save option
+      const saveResult = await saveFileToDevice(fileUri, fileName, 'text/csv');
+      if (saveResult.success && saveResult.saved) {
+        return { 
+          success: true, 
+          fileUri,
+          saved: true,
+          message: 'Choose where to save the file (Downloads, Drive, etc.)'
+        };
+      } else {
+        return { 
+          success: false, 
+          fileUri,
+          saved: false,
+          message: saveResult.error || 'Failed to save file'
+        };
+      }
     } else {
-      alert('Sharing is not available on this device');
+      // Share/download file (CSV can be opened in Excel)
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'text/csv',
+          dialogTitle: 'Export Expense Data',
+          UTI: 'public.comma-separated-values-text',
+        });
+      } else {
+        Alert.alert('Error', 'Sharing is not available on this device');
+      }
+      return { success: true, fileUri, saved: false };
     }
-
-    return { success: true, fileUri };
   } catch (error) {
     console.error('Error exporting to CSV:', error);
     throw error;
@@ -103,12 +163,27 @@ export const exportToExcel = async (entries) => {
 };
 
 /**
- * Export entries to JSON file
+ * Export entries to JSON file with options
+ * @param {Array} entries - Entries to export
+ * @param {Object} options - Export options { action: 'share' | 'save', dateRange: { start, end, period } }
  */
-export const exportToJSON = async (entries) => {
+export const exportToJSON = async (entries, options = {}) => {
   try {
+    // Generate file name with timestamp and date range info
     const timestamp = new Date().toISOString().split('T')[0];
-    const fileName = `expense_tracker_${timestamp}.json`;
+    let fileName = `expense_tracker_${timestamp}.json`;
+    
+    // Add date range info to filename if provided
+    if (options.dateRange) {
+      if (options.dateRange.period && options.dateRange.period !== 'custom') {
+        fileName = `expense_tracker_${options.dateRange.period}_${timestamp}.json`;
+      } else if (options.dateRange.start && options.dateRange.end) {
+        const startStr = formatDate(options.dateRange.start).replace(/-/g, '_');
+        const endStr = formatDate(options.dateRange.end).replace(/-/g, '_');
+        fileName = `expense_tracker_${startStr}_to_${endStr}.json`;
+      }
+    }
+    
     const fileUri = FileSystem.documentDirectory + fileName;
     const jsonData = JSON.stringify(entries, null, 2);
 
@@ -116,14 +191,39 @@ export const exportToJSON = async (entries) => {
       encoding: FileSystem.EncodingType.UTF8,
     });
 
-    if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(fileUri, {
-        mimeType: 'application/json',
-        dialogTitle: 'Export Expense Data',
-      });
+    // Handle export action
+    const action = options.action || 'share';
+    
+    if (action === 'save') {
+      // Save to device - opens share dialog with save option
+      const saveResult = await saveFileToDevice(fileUri, fileName, 'application/json');
+      if (saveResult.success && saveResult.saved) {
+        return { 
+          success: true, 
+          fileUri,
+          saved: true,
+          message: 'Choose where to save the file (Downloads, Drive, etc.)'
+        };
+      } else {
+        return { 
+          success: false, 
+          fileUri,
+          saved: false,
+          message: saveResult.error || 'Failed to save file'
+        };
+      }
+    } else {
+      // Share file
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'application/json',
+          dialogTitle: 'Export Expense Data',
+        });
+      } else {
+        Alert.alert('Error', 'Sharing is not available on this device');
+      }
+      return { success: true, fileUri, saved: false };
     }
-
-    return { success: true, fileUri };
   } catch (error) {
     console.error('Error exporting to JSON:', error);
     throw error;
