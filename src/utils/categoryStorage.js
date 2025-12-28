@@ -7,6 +7,9 @@ export const DEFAULT_CATEGORIES = [
   // Food & Dining (Broad)
   { id: 'food_dining', name: 'Food & Dining', icon: 'restaurant-outline', color: '#FF9800', type: 'expense' },
   
+  // Groceries
+  { id: 'groceries', name: 'Groceries', icon: 'basket-outline', color: '#4CAF50', type: 'expense' },
+  
   // Transportation (Broad)
   { id: 'transportation', name: 'Transportation', icon: 'car-outline', color: '#2196F3', type: 'expense' },
   
@@ -30,6 +33,9 @@ export const DEFAULT_CATEGORIES = [
   
   // Travel (Broad)
   { id: 'travel', name: 'Travel', icon: 'airplane-outline', color: '#00BCD4', type: 'expense' },
+  
+  // Transfer to Person
+  { id: 'transfer_person', name: 'Transfer to Person', icon: 'person-outline', color: '#FF5722', type: 'expense' },
   
   // Income Categories (Broad)
   { id: 'income_salary', name: 'Salary', icon: 'cash-outline', color: '#4CAF50', type: 'income' },

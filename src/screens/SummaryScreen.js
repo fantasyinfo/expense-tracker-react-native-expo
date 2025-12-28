@@ -15,8 +15,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
-import { filterEntriesByPeriod, filterEntriesByDateRange, calculateTotals, formatDateWithMonthName, formatDate, formatCurrency, formatDateDisplay } from '../utils/dateUtils';
+import { filterEntriesByPeriod, filterEntriesByDateRange, calculateTotals, formatDateWithMonthName, formatDate, formatCurrency, formatDateDisplay, formatDateShort } from '../utils/dateUtils';
 import { loadEntries, deleteEntry } from '../utils/storage';
 import { useModal } from '../context/ModalContext';
 import AddEntryModal from '../components/AddEntryModal';
@@ -25,6 +24,7 @@ import { prepareCategoryChart, getCategoryStats } from '../utils/categoryChartUt
 import { loadCategories } from '../utils/categoryStorage';
 import AppFooter from '../components/AppFooter';
 import EntriesReportModal from '../components/EntriesReportModal';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import Colors from '../constants/colors';
 
 const PERIODS = ['today', 'weekly', 'monthly', 'quarterly', 'yearly'];
@@ -55,13 +55,16 @@ const SummaryScreen = () => {
     incomeCash: 0
   });
   const [refreshing, setRefreshing] = useState(false);
-  const [chartType, setChartType] = useState('bar');
   const [isCustomDateRange, setIsCustomDateRange] = useState(false);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [showEntriesModal, setShowEntriesModal] = useState(false);
+  const [longPressMenuVisible, setLongPressMenuVisible] = useState(false);
+  const [selectedEntryForMenu, setSelectedEntryForMenu] = useState(null);
+  const [entryToDelete, setEntryToDelete] = useState(null);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
 
   const loadData = useCallback(async () => {
     const allEntries = await loadEntries();
@@ -98,6 +101,18 @@ const SummaryScreen = () => {
         return noteMatch || amountMatch || dateMatch;
       });
     }
+    
+    // Sort by date (newest first) - same as HomeScreen
+    filtered.sort((a, b) => {
+      // First try to sort by date (newest first)
+      const dateA = new Date(a.date + 'T00:00:00');
+      const dateB = new Date(b.date + 'T00:00:00');
+      if (dateB.getTime() !== dateA.getTime()) {
+        return dateB.getTime() - dateA.getTime();
+      }
+      // If dates are same, sort by ID (newest first)
+      return parseInt(b.id) - parseInt(a.id);
+    });
     
     setFilteredEntries(filtered);
     const periodTotals = calculateTotals(filtered);
@@ -181,6 +196,25 @@ const SummaryScreen = () => {
     await loadData();
   };
 
+  const handleDelete = async (id, entry) => {
+    setEntryToDelete({ id, ...entry });
+    setDeleteModalVisible(true);
+  };
+
+  const confirmDelete = async () => {
+    if (entryToDelete) {
+      await deleteEntry(entryToDelete.id);
+      await loadData();
+      setDeleteModalVisible(false);
+      setEntryToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteModalVisible(false);
+    setEntryToDelete(null);
+  };
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadData();
@@ -241,47 +275,9 @@ const SummaryScreen = () => {
     return icons[period] || 'calendar';
   };
 
-  const chartConfig = {
-    backgroundColor: Colors.chart.background,
-    backgroundGradientFrom: Colors.chart.background,
-    backgroundGradientTo: Colors.chart.background,
-    decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(102, 126, 234, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-    style: {
-      borderRadius: 16,
-    },
-    propsForDots: {
-      r: '6',
-      strokeWidth: '2',
-      stroke: Colors.accent.primary,
-    },
-  };
-
   const expenseIncomeData = prepareExpenseIncomeChart(entries, selectedPeriod || 'monthly');
   const monthlyData = prepareMonthlyChart(entries);
   const paymentMethodData = preparePaymentMethodChart(filteredEntries);
-
-  // Prepare line chart data
-  const expenseIncomeLineData = expenseIncomeData && expenseIncomeData.datasets && expenseIncomeData.datasets[0] ? {
-    labels: expenseIncomeData.labels || [],
-    datasets: [
-      {
-        data: expenseIncomeData.datasets[0].data || [0, 0],
-      },
-    ],
-  } : { labels: ['Expense', 'Income'], datasets: [{ data: [0, 0] }] };
-
-  const monthlyLineData = monthlyData && monthlyData.labels && monthlyData.labels.length > 0 && monthlyData.datasets && monthlyData.datasets[0] ? {
-    labels: monthlyData.labels,
-    datasets: [
-      {
-        data: monthlyData.datasets[0].data.map((expense, idx) => 
-          (expense || 0) + ((monthlyData.datasets[1]?.data[idx]) || 0)
-        ),
-      },
-    ],
-  } : { labels: [], datasets: [{ data: [] }] };
 
   return (
     <ScrollView
@@ -419,48 +415,125 @@ const SummaryScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Professional Finance Summary Cards */}
-        <View style={styles.financeSummaryGrid}>
-          {/* Expense */}
-          <View style={styles.financeCard}>
-            <Text style={styles.financeLabel}>Total Expense</Text>
-            <Text 
-              style={[styles.financeAmount, styles.financeAmountExpense]}
-              numberOfLines={1}
-              adjustsFontSizeToFit={true}
-              minimumFontScale={0.6}
-            >
-              ₹{formatCurrency(totals.expense)}
-            </Text>
+        {/* Colorful Summary Cards */}
+        <View style={styles.summaryCardsContainer}>
+          {/* Expense Card */}
+          <View style={styles.summaryCard}>
+            <View style={[styles.summaryCardIconContainer, { backgroundColor: '#FF6B6B20' }]}>
+              <Ionicons name="arrow-down" size={24} color="#FF6B6B" />
+            </View>
+            <View style={styles.summaryCardInfo}>
+              <View style={styles.summaryCardHeader}>
+                <Text style={styles.summaryCardName} numberOfLines={1}>
+                  Total Expense
+                </Text>
+                <Text style={[styles.summaryCardAmount, { color: '#FF6B6B' }]}>
+                  ₹{formatCurrency(totals.expense)}
+                </Text>
+              </View>
+              <View style={styles.summaryCardFooter}>
+                <View style={styles.summaryCardProgressBar}>
+                  <View 
+                    style={[
+                      styles.summaryCardProgressFill, 
+                      { 
+                        width: totals.expense + totals.income > 0 
+                          ? `${(totals.expense / (totals.expense + totals.income) * 100)}%`
+                          : '0%',
+                        backgroundColor: '#FF6B6B',
+                      }
+                    ]} 
+                  />
+                </View>
+                <Text style={styles.summaryCardMeta}>
+                  {totals.expense + totals.income > 0 
+                    ? `${((totals.expense / (totals.expense + totals.income)) * 100).toFixed(1)}% of total`
+                    : '0% of total'}
+                </Text>
+              </View>
+            </View>
           </View>
 
-          {/* Income */}
-          <View style={styles.financeCard}>
-            <Text style={styles.financeLabel}>Total Income</Text>
-            <Text 
-              style={[styles.financeAmount, styles.financeAmountIncome]}
-              numberOfLines={1}
-              adjustsFontSizeToFit={true}
-              minimumFontScale={0.6}
-            >
-              ₹{formatCurrency(totals.income)}
-            </Text>
+          {/* Income Card */}
+          <View style={styles.summaryCard}>
+            <View style={[styles.summaryCardIconContainer, { backgroundColor: '#51CF6620' }]}>
+              <Ionicons name="arrow-up" size={24} color="#51CF66" />
+            </View>
+            <View style={styles.summaryCardInfo}>
+              <View style={styles.summaryCardHeader}>
+                <Text style={styles.summaryCardName} numberOfLines={1}>
+                  Total Income
+                </Text>
+                <Text style={[styles.summaryCardAmount, { color: '#51CF66' }]}>
+                  ₹{formatCurrency(totals.income)}
+                </Text>
+              </View>
+              <View style={styles.summaryCardFooter}>
+                <View style={styles.summaryCardProgressBar}>
+                  <View 
+                    style={[
+                      styles.summaryCardProgressFill, 
+                      { 
+                        width: totals.expense + totals.income > 0 
+                          ? `${(totals.income / (totals.expense + totals.income) * 100)}%`
+                          : '0%',
+                        backgroundColor: '#51CF66',
+                      }
+                    ]} 
+                  />
+                </View>
+                <Text style={styles.summaryCardMeta}>
+                  {totals.expense + totals.income > 0 
+                    ? `${((totals.income / (totals.expense + totals.income)) * 100).toFixed(1)}% of total`
+                    : '0% of total'}
+                </Text>
+              </View>
+            </View>
           </View>
 
-          {/* Balance */}
-          <View style={styles.financeCard}>
-            <Text style={styles.financeLabel}>Net Balance</Text>
-            <Text 
-              style={[
-                styles.financeAmount,
-                totals.balance >= 0 ? styles.financeAmountIncome : styles.financeAmountExpense
-              ]}
-              numberOfLines={1}
-              adjustsFontSizeToFit={true}
-              minimumFontScale={0.6}
-            >
-              ₹{formatCurrency(totals.balance)}
-            </Text>
+          {/* Balance Card */}
+          <View style={styles.summaryCard}>
+            <View style={[
+              styles.summaryCardIconContainer, 
+              { backgroundColor: totals.balance >= 0 ? '#51CF6620' : '#FF6B6B20' }
+            ]}>
+              <Ionicons 
+                name={totals.balance >= 0 ? "trending-up" : "trending-down"} 
+                size={24} 
+                color={totals.balance >= 0 ? '#51CF66' : '#FF6B6B'} 
+              />
+            </View>
+            <View style={styles.summaryCardInfo}>
+              <View style={styles.summaryCardHeader}>
+                <Text style={styles.summaryCardName} numberOfLines={1}>
+                  Net Balance
+                </Text>
+                <Text style={[
+                  styles.summaryCardAmount, 
+                  { color: totals.balance >= 0 ? '#51CF66' : '#FF6B6B' }
+                ]}>
+                  ₹{formatCurrency(totals.balance)}
+                </Text>
+              </View>
+              <View style={styles.summaryCardFooter}>
+                <View style={styles.summaryCardProgressBar}>
+                  <View 
+                    style={[
+                      styles.summaryCardProgressFill, 
+                      { 
+                        width: totals.balance !== 0 
+                          ? `${Math.min(Math.abs(totals.balance) / Math.max(totals.expense, totals.income, 1) * 100, 100)}%`
+                          : '0%',
+                        backgroundColor: totals.balance >= 0 ? '#51CF66' : '#FF6B6B',
+                      }
+                    ]} 
+                  />
+                </View>
+                <Text style={styles.summaryCardMeta}>
+                  {totals.balance >= 0 ? 'Positive' : 'Negative'} balance
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
 
@@ -468,60 +541,152 @@ const SummaryScreen = () => {
         <View style={styles.paymentBreakdownSection}>
           <Text style={styles.breakdownTitle}>PAYMENT METHOD BREAKDOWN</Text>
           
-          {/* Expense Breakdown */}
-          <View style={styles.breakdownSection}>
-            <Text style={styles.breakdownSectionTitle}>Expense</Text>
-            <View style={styles.breakdownRow}>
-              <View style={styles.breakdownItem}>
-                <Text style={styles.breakdownLabel}>UPI</Text>
-                <Text 
-                  style={styles.breakdownValue}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit={true}
-                  minimumFontScale={0.7}
-                >
-                  ₹{formatCurrency(totals.expenseUpi || 0)}
-                </Text>
+          <View style={styles.paymentCardsContainer}>
+            {/* Expense UPI Card */}
+            <View style={styles.paymentCard}>
+              <View style={[styles.paymentCardIconContainer, { backgroundColor: '#4DABF720' }]}>
+                <Ionicons name="phone-portrait" size={24} color="#4DABF7" />
               </View>
-              <View style={styles.breakdownItem}>
-                <Text style={styles.breakdownLabel}>Cash</Text>
-                <Text 
-                  style={styles.breakdownValue}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit={true}
-                  minimumFontScale={0.7}
-                >
-                  ₹{formatCurrency(totals.expenseCash || 0)}
-                </Text>
+              <View style={styles.paymentCardInfo}>
+                <View style={styles.paymentCardHeader}>
+                  <Text style={styles.paymentCardName} numberOfLines={1}>
+                    Expense - UPI
+                  </Text>
+                  <Text style={[styles.paymentCardAmount, { color: '#FF6B6B' }]}>
+                    ₹{formatCurrency(totals.expenseUpi || 0)}
+                  </Text>
+                </View>
+                <View style={styles.paymentCardFooter}>
+                  <View style={styles.paymentCardProgressBar}>
+                    <View 
+                      style={[
+                        styles.paymentCardProgressFill, 
+                        { 
+                          width: totals.expense > 0 
+                            ? `${((totals.expenseUpi || 0) / totals.expense) * 100}%`
+                            : '0%',
+                          backgroundColor: '#4DABF7',
+                        }
+                      ]} 
+                    />
+                  </View>
+                  <Text style={styles.paymentCardMeta}>
+                    {totals.expense > 0 
+                      ? `${(((totals.expenseUpi || 0) / totals.expense) * 100).toFixed(1)}% of expenses`
+                      : '0% of expenses'}
+                  </Text>
+                </View>
               </View>
             </View>
-          </View>
 
-          {/* Income Breakdown */}
-          <View style={styles.breakdownSection}>
-            <Text style={styles.breakdownSectionTitle}>Income</Text>
-            <View style={styles.breakdownRow}>
-              <View style={styles.breakdownItem}>
-                <Text style={styles.breakdownLabel}>UPI</Text>
-                <Text 
-                  style={styles.breakdownValue}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit={true}
-                  minimumFontScale={0.7}
-                >
-                  ₹{formatCurrency(totals.incomeUpi || 0)}
-                </Text>
+            {/* Expense Cash Card */}
+            <View style={styles.paymentCard}>
+              <View style={[styles.paymentCardIconContainer, { backgroundColor: '#FFD43B20' }]}>
+                <Ionicons name="cash" size={24} color="#FFD43B" />
               </View>
-              <View style={styles.breakdownItem}>
-                <Text style={styles.breakdownLabel}>Cash</Text>
-                <Text 
-                  style={styles.breakdownValue}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit={true}
-                  minimumFontScale={0.7}
-                >
-                  ₹{formatCurrency(totals.incomeCash || 0)}
-                </Text>
+              <View style={styles.paymentCardInfo}>
+                <View style={styles.paymentCardHeader}>
+                  <Text style={styles.paymentCardName} numberOfLines={1}>
+                    Expense - Cash
+                  </Text>
+                  <Text style={[styles.paymentCardAmount, { color: '#FF6B6B' }]}>
+                    ₹{formatCurrency(totals.expenseCash || 0)}
+                  </Text>
+                </View>
+                <View style={styles.paymentCardFooter}>
+                  <View style={styles.paymentCardProgressBar}>
+                    <View 
+                      style={[
+                        styles.paymentCardProgressFill, 
+                        { 
+                          width: totals.expense > 0 
+                            ? `${((totals.expenseCash || 0) / totals.expense) * 100}%`
+                            : '0%',
+                          backgroundColor: '#FFD43B',
+                        }
+                      ]} 
+                    />
+                  </View>
+                  <Text style={styles.paymentCardMeta}>
+                    {totals.expense > 0 
+                      ? `${(((totals.expenseCash || 0) / totals.expense) * 100).toFixed(1)}% of expenses`
+                      : '0% of expenses'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Income UPI Card */}
+            <View style={styles.paymentCard}>
+              <View style={[styles.paymentCardIconContainer, { backgroundColor: '#4DABF720' }]}>
+                <Ionicons name="phone-portrait" size={24} color="#4DABF7" />
+              </View>
+              <View style={styles.paymentCardInfo}>
+                <View style={styles.paymentCardHeader}>
+                  <Text style={styles.paymentCardName} numberOfLines={1}>
+                    Income - UPI
+                  </Text>
+                  <Text style={[styles.paymentCardAmount, { color: '#51CF66' }]}>
+                    ₹{formatCurrency(totals.incomeUpi || 0)}
+                  </Text>
+                </View>
+                <View style={styles.paymentCardFooter}>
+                  <View style={styles.paymentCardProgressBar}>
+                    <View 
+                      style={[
+                        styles.paymentCardProgressFill, 
+                        { 
+                          width: totals.income > 0 
+                            ? `${((totals.incomeUpi || 0) / totals.income) * 100}%`
+                            : '0%',
+                          backgroundColor: '#4DABF7',
+                        }
+                      ]} 
+                    />
+                  </View>
+                  <Text style={styles.paymentCardMeta}>
+                    {totals.income > 0 
+                      ? `${(((totals.incomeUpi || 0) / totals.income) * 100).toFixed(1)}% of income`
+                      : '0% of income'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Income Cash Card */}
+            <View style={styles.paymentCard}>
+              <View style={[styles.paymentCardIconContainer, { backgroundColor: '#FFD43B20' }]}>
+                <Ionicons name="cash" size={24} color="#FFD43B" />
+              </View>
+              <View style={styles.paymentCardInfo}>
+                <View style={styles.paymentCardHeader}>
+                  <Text style={styles.paymentCardName} numberOfLines={1}>
+                    Income - Cash
+                  </Text>
+                  <Text style={[styles.paymentCardAmount, { color: '#51CF66' }]}>
+                    ₹{formatCurrency(totals.incomeCash || 0)}
+                  </Text>
+                </View>
+                <View style={styles.paymentCardFooter}>
+                  <View style={styles.paymentCardProgressBar}>
+                    <View 
+                      style={[
+                        styles.paymentCardProgressFill, 
+                        { 
+                          width: totals.income > 0 
+                            ? `${((totals.incomeCash || 0) / totals.income) * 100}%`
+                            : '0%',
+                          backgroundColor: '#FFD43B',
+                        }
+                      ]} 
+                    />
+                  </View>
+                  <Text style={styles.paymentCardMeta}>
+                    {totals.income > 0 
+                      ? `${(((totals.incomeCash || 0) / totals.income) * 100).toFixed(1)}% of income`
+                      : '0% of income'}
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
@@ -545,40 +710,47 @@ const SummaryScreen = () => {
             </TouchableOpacity>
           </View>
           {showCategoryChart && (
-            <View style={styles.chartContainer}>
-              <BarChart
-                data={{
-                  labels: categoryChartData.labels,
-                  datasets: categoryChartData.datasets,
-                }}
-                width={screenWidth - 64}
-                height={220}
-                chartConfig={{
-                  ...chartConfig,
-                  color: (opacity = 1, index) => {
-                    const color = categoryChartData.colors[index] || Colors.accent.primary;
-                    const rgb = color.match(/\d+/g);
-                    if (rgb && rgb.length >= 3) {
-                      return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${opacity})`;
-                    }
-                    return `rgba(102, 126, 234, ${opacity})`;
-                  },
-                }}
-                yAxisLabel="₹"
-                yAxisSuffix=""
-                showValuesOnTopOfBars
-                style={styles.chart}
-              />
-              <View style={styles.categoryLegend}>
-                {categoryChartData.categoryData.map((item) => (
-                  <View key={item.id} style={styles.categoryLegendItem}>
-                    <View style={[styles.categoryLegendColor, { backgroundColor: item.color }]} />
-                    <Text style={styles.categoryLegendText} numberOfLines={1}>
-                      {item.name}: ₹{formatCurrency(item.amount)} ({item.count} {item.count === 1 ? 'entry' : 'entries'})
-                    </Text>
-                  </View>
-                ))}
-              </View>
+            <View style={styles.categoryListContainer}>
+              {(() => {
+                // Calculate total for percentage
+                const totalAmount = categoryChartData.categoryData.reduce((sum, item) => sum + item.amount, 0);
+                return categoryChartData.categoryData.map((item) => {
+                  const percentage = totalAmount > 0 ? (item.amount / totalAmount * 100).toFixed(1) : 0;
+                  return (
+                    <View key={item.id} style={styles.categoryListItem}>
+                      <View style={[styles.categoryListIconContainer, { backgroundColor: item.color + '20' }]}>
+                        <Ionicons name={item.icon} size={24} color={item.color} />
+                      </View>
+                      <View style={styles.categoryListInfo}>
+                        <View style={styles.categoryListHeader}>
+                          <Text style={styles.categoryListName} numberOfLines={1}>
+                            {item.name}
+                          </Text>
+                          <Text style={styles.categoryListAmount}>
+                            ₹{formatCurrency(item.amount)}
+                          </Text>
+                        </View>
+                        <View style={styles.categoryListFooter}>
+                          <View style={styles.categoryListProgressBar}>
+                            <View 
+                              style={[
+                                styles.categoryListProgressFill, 
+                                { 
+                                  width: `${percentage}%`,
+                                  backgroundColor: item.color,
+                                }
+                              ]} 
+                            />
+                          </View>
+                          <Text style={styles.categoryListMeta}>
+                            {percentage}% • {item.count} {item.count === 1 ? 'entry' : 'entries'}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                });
+              })()}
             </View>
           )}
         </View>
@@ -591,144 +763,217 @@ const SummaryScreen = () => {
             <Text style={styles.sectionTitle}>Visualizations</Text>
           </View>
 
-          {/* Chart Type Toggle */}
-          <View style={styles.chartTypeContainer}>
-            <TouchableOpacity
-              style={[
-                styles.chartTypeButton,
-                chartType === 'bar' && styles.chartTypeButtonActive,
-              ]}
-              onPress={() => setChartType('bar')}
-            >
-              <Ionicons
-                name="bar-chart"
-                size={18}
-                color={chartType === 'bar' ? '#fff' : '#666'}
-              />
-              <Text
-                style={[
-                  styles.chartTypeText,
-                  chartType === 'bar' && styles.chartTypeTextActive,
-                ]}
-              >
-                Bar
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.chartTypeButton,
-                chartType === 'line' && styles.chartTypeButtonActive,
-              ]}
-              onPress={() => setChartType('line')}
-            >
-              <Ionicons
-                name="trending-up"
-                size={18}
-                color={chartType === 'line' ? '#fff' : '#666'}
-              />
-              <Text
-                style={[
-                  styles.chartTypeText,
-                  chartType === 'line' && styles.chartTypeTextActive,
-                ]}
-              >
-                Line
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Expense vs Income Chart */}
+          {/* Expense vs Income Cards */}
           {expenseIncomeData && expenseIncomeData.datasets && expenseIncomeData.datasets[0] && (
             <View style={styles.chartCard}>
               <Text style={styles.chartTitle}>Expense vs Income</Text>
-              {chartType === 'bar' ? (
-                <BarChart
-                  data={expenseIncomeData}
-                  width={screenWidth - 64}
-                  height={220}
-                  chartConfig={{
-                    ...chartConfig,
-                    color: (opacity = 1) => `rgba(211, 47, 47, ${opacity})`,
-                  }}
-                  yAxisLabel="₹"
-                  yAxisSuffix=""
-                  showValuesOnTopOfBars
-                  style={styles.chart}
-                />
-              ) : (
-                <LineChart
-                  data={expenseIncomeLineData}
-                  width={screenWidth - 64}
-                  height={220}
-                  chartConfig={chartConfig}
-                  bezier
-                  style={styles.chart}
-                />
-              )}
+              <View style={styles.cardListContainer}>
+                {(() => {
+                  const expense = expenseIncomeData.datasets[0].data[0] || 0;
+                  const income = expenseIncomeData.datasets[0].data[1] || 0;
+                  const total = expense + income;
+                  const expensePercentage = total > 0 ? ((expense / total) * 100).toFixed(1) : 0;
+                  const incomePercentage = total > 0 ? ((income / total) * 100).toFixed(1) : 0;
+                  
+                  return (
+                    <>
+                      <View style={styles.cardListItem}>
+                        <View style={[styles.cardListIconContainer, { backgroundColor: Colors.status.expense + '20' }]}>
+                          <Ionicons name="arrow-down-circle" size={24} color={Colors.status.expense} />
+                        </View>
+                        <View style={styles.cardListInfo}>
+                          <View style={styles.cardListHeader}>
+                            <Text style={styles.cardListName}>Expense</Text>
+                            <Text style={[styles.cardListAmount, { color: Colors.status.expense }]}>
+                              ₹{formatCurrency(expense)}
+                            </Text>
+                          </View>
+                          <View style={styles.cardListFooter}>
+                            <View style={styles.cardListProgressBar}>
+                              <View 
+                                style={[
+                                  styles.cardListProgressFill, 
+                                  { 
+                                    width: `${expensePercentage}%`,
+                                    backgroundColor: Colors.status.expense,
+                                  }
+                                ]} 
+                              />
+                            </View>
+                            <Text style={styles.cardListMeta}>
+                              {expensePercentage}% of total
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                      <View style={styles.cardListItem}>
+                        <View style={[styles.cardListIconContainer, { backgroundColor: Colors.status.income + '20' }]}>
+                          <Ionicons name="arrow-up-circle" size={24} color={Colors.status.income} />
+                        </View>
+                        <View style={styles.cardListInfo}>
+                          <View style={styles.cardListHeader}>
+                            <Text style={styles.cardListName}>Income</Text>
+                            <Text style={[styles.cardListAmount, { color: Colors.status.income }]}>
+                              ₹{formatCurrency(income)}
+                            </Text>
+                          </View>
+                          <View style={styles.cardListFooter}>
+                            <View style={styles.cardListProgressBar}>
+                              <View 
+                                style={[
+                                  styles.cardListProgressFill, 
+                                  { 
+                                    width: `${incomePercentage}%`,
+                                    backgroundColor: Colors.status.income,
+                                  }
+                                ]} 
+                              />
+                            </View>
+                            <Text style={styles.cardListMeta}>
+                              {incomePercentage}% of total
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    </>
+                  );
+                })()}
+              </View>
             </View>
           )}
 
-          {/* Monthly Trend Chart */}
+          {/* Monthly Trend Cards */}
           {monthlyData.labels.length > 0 && (
             <View style={styles.chartCard}>
               <Text style={styles.chartTitle}>Monthly Trend (Last 6 Months)</Text>
-              {chartType === 'bar' ? (
-                <BarChart
-                  data={monthlyData}
-                  width={screenWidth - 64}
-                  height={220}
-                  chartConfig={chartConfig}
-                  yAxisLabel="₹"
-                  yAxisSuffix=""
-                  showValuesOnTopOfBars
-                  style={styles.chart}
-                />
-              ) : (
-                <LineChart
-                  data={monthlyLineData}
-                  width={screenWidth - 64}
-                  height={220}
-                  chartConfig={chartConfig}
-                  bezier
-                  style={styles.chart}
-                />
-              )}
+              <View style={styles.cardListContainer}>
+                {(() => {
+                  const months = monthlyData.labels;
+                  const expenses = monthlyData.datasets[0]?.data || [];
+                  const incomes = monthlyData.datasets[1]?.data || [];
+                  const totalMonthly = months.reduce((sum, _, idx) => 
+                    sum + (expenses[idx] || 0) + (incomes[idx] || 0), 0
+                  );
+                  
+                  return months.map((month, index) => {
+                    const expense = expenses[index] || 0;
+                    const income = incomes[index] || 0;
+                    const total = expense + income;
+                    const percentage = totalMonthly > 0 ? ((total / totalMonthly) * 100).toFixed(1) : 0;
+                    
+                    return (
+                      <View key={index} style={styles.cardListItem}>
+                        <View style={[styles.cardListIconContainer, { backgroundColor: '#4DABF7' + '20' }]}>
+                          <Ionicons name="calendar-outline" size={24} color="#4DABF7" />
+                        </View>
+                        <View style={styles.cardListInfo}>
+                          <View style={styles.cardListHeader}>
+                            <Text style={styles.cardListName}>{month}</Text>
+                            <Text style={[styles.cardListAmount, { color: Colors.text.primary }]}>
+                              ₹{formatCurrency(total)}
+                            </Text>
+                          </View>
+                          <View style={styles.cardListFooter}>
+                            <View style={styles.cardListProgressBar}>
+                              <View 
+                                style={[
+                                  styles.cardListProgressFill, 
+                                  { 
+                                    width: `${percentage}%`,
+                                    backgroundColor: '#4DABF7',
+                                  }
+                                ]} 
+                              />
+                            </View>
+                            <Text style={styles.cardListMeta}>
+                              {percentage}% • Expense: ₹{formatCurrency(expense)} • Income: ₹{formatCurrency(income)}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    );
+                  });
+                })()}
+              </View>
             </View>
           )}
 
-          {/* Payment Method Chart */}
+          {/* Payment Method Cards */}
           {paymentMethodData && paymentMethodData.datasets && paymentMethodData.datasets[0] && (
             <View style={styles.chartCard}>
               <Text style={styles.chartTitle}>UPI vs Cash</Text>
-              {chartType === 'bar' ? (
-                <BarChart
-                  data={paymentMethodData}
-                  width={screenWidth - 64}
-                  height={220}
-                  chartConfig={{
-                    ...chartConfig,
-                    color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`,
-                  }}
-                  yAxisLabel="₹"
-                  yAxisSuffix=""
-                  showValuesOnTopOfBars
-                  style={styles.chart}
-                />
-              ) : (
-                <BarChart
-                  data={paymentMethodData}
-                  width={screenWidth - 64}
-                  height={220}
-                  chartConfig={{
-                    ...chartConfig,
-                    color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`,
-                  }}
-                  yAxisLabel="₹"
-                  yAxisSuffix=""
-                  showValuesOnTopOfBars
-                  style={styles.chart}
-                />
-              )}
+              <View style={styles.cardListContainer}>
+                {(() => {
+                  const upi = paymentMethodData.datasets[0].data[0] || 0;
+                  const cash = paymentMethodData.datasets[0].data[1] || 0;
+                  const total = upi + cash;
+                  const upiPercentage = total > 0 ? ((upi / total) * 100).toFixed(1) : 0;
+                  const cashPercentage = total > 0 ? ((cash / total) * 100).toFixed(1) : 0;
+                  
+                  return (
+                    <>
+                      <View style={styles.cardListItem}>
+                        <View style={[styles.cardListIconContainer, { backgroundColor: '#007AFF' + '20' }]}>
+                          <Ionicons name="phone-portrait-outline" size={24} color="#007AFF" />
+                        </View>
+                        <View style={styles.cardListInfo}>
+                          <View style={styles.cardListHeader}>
+                            <Text style={styles.cardListName}>UPI</Text>
+                            <Text style={[styles.cardListAmount, { color: '#007AFF' }]}>
+                              ₹{formatCurrency(upi)}
+                            </Text>
+                          </View>
+                          <View style={styles.cardListFooter}>
+                            <View style={styles.cardListProgressBar}>
+                              <View 
+                                style={[
+                                  styles.cardListProgressFill, 
+                                  { 
+                                    width: `${upiPercentage}%`,
+                                    backgroundColor: '#007AFF',
+                                  }
+                                ]} 
+                              />
+                            </View>
+                            <Text style={styles.cardListMeta}>
+                              {upiPercentage}% of total transactions
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                      <View style={styles.cardListItem}>
+                        <View style={[styles.cardListIconContainer, { backgroundColor: '#FF9500' + '20' }]}>
+                          <Ionicons name="cash-outline" size={24} color="#FF9500" />
+                        </View>
+                        <View style={styles.cardListInfo}>
+                          <View style={styles.cardListHeader}>
+                            <Text style={styles.cardListName}>Cash</Text>
+                            <Text style={[styles.cardListAmount, { color: '#FF9500' }]}>
+                              ₹{formatCurrency(cash)}
+                            </Text>
+                          </View>
+                          <View style={styles.cardListFooter}>
+                            <View style={styles.cardListProgressBar}>
+                              <View 
+                                style={[
+                                  styles.cardListProgressFill, 
+                                  { 
+                                    width: `${cashPercentage}%`,
+                                    backgroundColor: '#FF9500',
+                                  }
+                                ]} 
+                              />
+                            </View>
+                            <Text style={styles.cardListMeta}>
+                              {cashPercentage}% of total transactions
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    </>
+                  );
+                })()}
+              </View>
             </View>
           )}
         </View>
@@ -758,113 +1003,129 @@ const SummaryScreen = () => {
           </View>
           <View style={styles.entriesListContainer}>
             {filteredEntries.slice(0, 5).map((entry) => {
+              const isBalanceAdjustment = entry.type === 'balance_adjustment';
               const isCashWithdrawal = entry.type === 'cash_withdrawal';
               const isCashDeposit = entry.type === 'cash_deposit';
-              const isBalanceAdjustment = entry.type === 'balance_adjustment';
+              const adjustmentIsAdd = isBalanceAdjustment ? (entry.adjustment_type === 'add' || !entry.adjustment_type) : false;
+              
+              // Get category for this entry
+              const category = entry.category_id ? categories.find(cat => cat.id === entry.category_id) : null;
               
               return (
-                <View key={entry.id} style={[
-                  styles.entryItem,
-                  isCashWithdrawal || isCashDeposit || isBalanceAdjustment 
-                    ? styles.entryItemNeutral
-                    : (entry.type === 'expense' ? styles.entryItemExpense : styles.entryItemIncome)
-                ]}>
-                  <View style={[
-                    styles.entryIconContainer,
-                    isCashWithdrawal
-                      ? styles.withdrawalIconBg
-                      : (isCashDeposit
-                          ? styles.depositIconBg
-                          : (isBalanceAdjustment
-                              ? styles.adjustmentIconBg
-                              : (entry.type === 'expense' ? styles.expenseIconBg : styles.incomeIconBg)))
-                  ]}>
-                    <Ionicons
-                      name={
+                <TouchableOpacity
+                  key={entry.id}
+                  style={styles.transactionCard}
+                  activeOpacity={0.7}
+                  onLongPress={() => {
+                    setSelectedEntryForMenu(entry);
+                    setLongPressMenuVisible(true);
+                  }}
+                >
+                  <View style={styles.transactionLeft}>
+                    {category ? (
+                      <View style={[styles.transactionIconContainer, { backgroundColor: `${category.color}30` }]}>
+                        <Ionicons
+                          name={category.icon}
+                          size={22}
+                          color={category.color}
+                        />
+                      </View>
+                    ) : (
+                      <View style={[
+                        styles.transactionIconContainer,
                         isCashWithdrawal || isCashDeposit
-                          ? 'swap-horizontal'
-                          : (isBalanceAdjustment
-                              ? 'swap-vertical'
-                              : (entry.type === 'expense' ? 'arrow-down' : 'arrow-up'))
-                      }
-                      size={18}
-                      color={
-                        isCashWithdrawal
-                          ? '#4DABF7'
-                          : (isCashDeposit
-                              ? '#51CF66'
-                              : (isBalanceAdjustment
-                                  ? '#FF9800'
-                                  : (entry.type === 'expense' ? '#d32f2f' : '#388e3c')))
-                      }
-                    />
-                  </View>
-                  <View style={styles.entryContent}>
-                    <View style={styles.entryAmountRow}>
-                      <Text style={[
-                        styles.entryAmount,
-                        isCashWithdrawal
-                          ? styles.withdrawalAmount
-                          : (isCashDeposit
-                              ? styles.depositAmount
-                              : (isBalanceAdjustment
-                                  ? styles.adjustmentAmount
-                                  : (entry.type === 'expense' ? styles.expenseAmount : styles.incomeAmount)))
+                          ? (isCashWithdrawal ? styles.transactionIconWithdrawal : styles.transactionIconDeposit)
+                          : (isBalanceAdjustment 
+                              ? styles.transactionIconAdjustment
+                              : (entry.type === 'expense' ? styles.transactionIconExpense : styles.transactionIconIncome))
                       ]}>
-                        {isCashWithdrawal || isCashDeposit || isBalanceAdjustment
-                          ? ''
-                          : (entry.type === 'expense' ? '-' : '+')
-                        }₹{formatCurrency(entry.amount)}
+                        <Ionicons
+                          name={
+                            isCashWithdrawal || isCashDeposit
+                              ? 'swap-horizontal'
+                              : (isBalanceAdjustment 
+                                  ? (adjustmentIsAdd ? 'add-circle' : 'remove-circle')
+                                  : (entry.type === 'expense' ? 'arrow-down' : 'arrow-up'))
+                          }
+                          size={22}
+                          color="#FFFFFF"
+                        />
+                      </View>
+                    )}
+                    <View style={styles.transactionDetails}>
+                      <Text style={styles.transactionNote} numberOfLines={1}>
+                        {entry.note || (isCashWithdrawal ? 'Cash Withdrawal' : (isCashDeposit ? 'Cash Deposit' : (isBalanceAdjustment ? 'Balance Adjustment' : (entry.type === 'expense' ? 'Expense' : 'Income'))))}
                       </Text>
+                      <View style={styles.transactionMeta}>
+                        <View style={styles.transactionMetaLeft}>
+                          <Text style={styles.transactionDate}>{formatDateShort(entry.date)}</Text>
+                          {category && (
+                            <View style={[styles.categoryBadge, { backgroundColor: `${category.color}25` }]}>
+                              <Ionicons name={category.icon} size={11} color={category.color} />
+                              <Text style={[styles.categoryBadgeText, { color: category.color, fontWeight: '600' }]}>{category.name}</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={styles.transactionRight}>
+                    <View style={styles.transactionRightTop}>
                       {isCashWithdrawal ? (
-                        <View style={styles.modeIndicatorContainer}>
-                          <View style={styles.modeIndicator}>
-                            <Ionicons name="phone-portrait" size={12} color="#007AFF" />
+                        <View style={styles.transactionModeContainer}>
+                          <View style={styles.transactionMode}>
+                            <Ionicons name="phone-portrait" size={14} color="#4DABF7" />
                           </View>
-                          <Text style={styles.modeArrow}>→</Text>
-                          <View style={styles.modeIndicator}>
-                            <Ionicons name="cash" size={12} color="#888888" />
+                          <Text style={styles.transactionModeText}>→</Text>
+                          <View style={styles.transactionMode}>
+                            <Ionicons name="cash" size={14} color="#FFD43B" />
                           </View>
                         </View>
                       ) : isCashDeposit ? (
-                        <View style={styles.modeIndicatorContainer}>
-                          <View style={styles.modeIndicator}>
-                            <Ionicons name="cash" size={12} color="#888888" />
+                        <View style={styles.transactionModeContainer}>
+                          <View style={styles.transactionMode}>
+                            <Ionicons name="cash" size={14} color="#FFD43B" />
                           </View>
-                          <Text style={styles.modeArrow}>→</Text>
-                          <View style={styles.modeIndicator}>
-                            <Ionicons name="phone-portrait" size={12} color="#007AFF" />
+                          <Text style={styles.transactionModeText}>→</Text>
+                          <View style={styles.transactionMode}>
+                            <Ionicons name="phone-portrait" size={14} color="#4DABF7" />
                           </View>
                         </View>
                       ) : (
-                        <View style={styles.modeIndicator}>
+                        <View style={styles.transactionMode}>
                           <Ionicons
                             name={(entry.mode || 'upi') === 'upi' ? 'phone-portrait' : 'cash'}
                             size={14}
-                            color={(entry.mode || 'upi') === 'upi' ? '#007AFF' : '#888888'}
+                            color={(entry.mode || 'upi') === 'upi' ? '#4DABF7' : '#FFD43B'}
                           />
                         </View>
                       )}
+                      <Text style={[
+                        styles.transactionAmount,
+                        isCashWithdrawal || isCashDeposit
+                          ? (isCashWithdrawal ? styles.transactionAmountWithdrawal : styles.transactionAmountDeposit)
+                          : (isBalanceAdjustment 
+                              ? styles.transactionAmountAdjustment
+                              : (entry.type === 'expense' ? styles.transactionAmountExpense : styles.transactionAmountIncome))
+                      ]}>
+                        {isCashWithdrawal || isCashDeposit || isBalanceAdjustment
+                          ? (isCashWithdrawal || isCashDeposit ? '' : (adjustmentIsAdd ? '+' : '-'))
+                          : (entry.type === 'expense' ? '-' : '+')
+                        }₹{formatCurrency(entry.amount)}
+                      </Text>
                     </View>
-                    <View style={styles.entryDetails}>
-                      {entry.note ? (
-                        <Text style={styles.entryNote}>{entry.note}</Text>
-                      ) : (
-                        <Text style={styles.entryType}>
-                          {isCashWithdrawal 
-                            ? 'Cash Withdrawal'
-                            : (isCashDeposit
-                                ? 'Cash Deposit'
-                                : (isBalanceAdjustment
-                                    ? 'Balance Adjustment'
-                                    : (entry.type === 'expense' ? 'Expense' : 'Income')))
-                          }
-                        </Text>
-                      )}
-                      <Text style={styles.entryDate}>{formatDateWithMonthName(entry.date)}</Text>
-                    </View>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setSelectedEntryForMenu(entry);
+                        setLongPressMenuVisible(true);
+                      }}
+                      style={styles.transactionMoreButton}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="ellipsis-vertical" size={20} color={Colors.text.secondary} />
+                    </TouchableOpacity>
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             })}
             {filteredEntries.length > 5 && (
@@ -926,6 +1187,80 @@ const SummaryScreen = () => {
           ? `${formatDateWithMonthName(formatDate(startDate))} to ${formatDateWithMonthName(formatDate(endDate))}`
           : getPeriodLabel(selectedPeriod || 'monthly')
         }`}
+      />
+
+      {/* Long Press Menu Modal */}
+      <Modal
+        visible={longPressMenuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setLongPressMenuVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.longPressMenuOverlay}
+          activeOpacity={1}
+          onPress={() => setLongPressMenuVisible(false)}
+        >
+          <View style={styles.longPressMenuContent}>
+            {selectedEntryForMenu &&
+             selectedEntryForMenu.type !== 'cash_withdrawal' &&
+             selectedEntryForMenu.type !== 'cash_deposit' &&
+             selectedEntryForMenu.type !== 'balance_adjustment' && (
+              <TouchableOpacity
+                style={styles.longPressMenuItem}
+                onPress={() => {
+                  if (selectedEntryForMenu) {
+                    handleEdit(selectedEntryForMenu);
+                    setLongPressMenuVisible(false);
+                  }
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="create-outline" size={20} color={Colors.text.primary} />
+                <Text style={styles.longPressMenuText}>Edit</Text>
+              </TouchableOpacity>
+            )}
+            {selectedEntryForMenu &&
+             selectedEntryForMenu.type !== 'cash_withdrawal' &&
+             selectedEntryForMenu.type !== 'cash_deposit' &&
+             selectedEntryForMenu.type !== 'balance_adjustment' && (
+              <TouchableOpacity
+                style={styles.longPressMenuItem}
+                onPress={() => {
+                  if (selectedEntryForMenu) {
+                    handleDuplicate(selectedEntryForMenu);
+                    setLongPressMenuVisible(false);
+                  }
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="copy-outline" size={20} color={Colors.text.primary} />
+                <Text style={styles.longPressMenuText}>Duplicate</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[styles.longPressMenuItem, styles.longPressMenuItemDanger]}
+              onPress={() => {
+                if (selectedEntryForMenu) {
+                  handleDelete(selectedEntryForMenu.id, selectedEntryForMenu);
+                  setLongPressMenuVisible(false);
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="trash-outline" size={20} color={Colors.status.expense} />
+              <Text style={[styles.longPressMenuText, styles.longPressMenuTextDanger]}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Delete Confirm Modal */}
+      <DeleteConfirmModal
+        visible={deleteModalVisible}
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+        entry={entryToDelete}
       />
 
       {/* Footer */}
@@ -1040,38 +1375,64 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.accent.primary,
   },
-  financeSummaryGrid: {
-    flexDirection: 'row',
+  summaryCardsContainer: {
     gap: 12,
-    marginBottom: 0,
+    marginTop: 8,
   },
-  financeCard: {
-    flex: 1,
+  summaryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: Colors.background.secondary,
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 16,
     borderWidth: 1,
     borderColor: Colors.border.primary,
   },
-  financeLabel: {
+  summaryCardIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  summaryCardInfo: {
+    flex: 1,
+  },
+  summaryCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  summaryCardName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.text.primary,
+    flex: 1,
+    marginRight: 8,
+  },
+  summaryCardAmount: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  summaryCardFooter: {
+    gap: 6,
+  },
+  summaryCardProgressBar: {
+    height: 4,
+    backgroundColor: Colors.background.primary,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  summaryCardProgressFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  summaryCardMeta: {
     fontSize: 11,
     color: Colors.text.secondary,
-    fontWeight: '600',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  financeAmount: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.text.primary,
-    letterSpacing: -0.3,
-  },
-  financeAmountExpense: {
-    color: Colors.status.expense,
-  },
-  financeAmountIncome: {
-    color: Colors.status.income,
+    fontWeight: '500',
   },
   expenseAmount: {
     color: '#d32f2f',
@@ -1089,35 +1450,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
-  },
-  chartTypeContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    gap: 8,
-  },
-  chartTypeButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 16,
-    backgroundColor: Colors.background.secondary,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: Colors.border.primary,
-  },
-  chartTypeButtonActive: {
-    backgroundColor: Colors.accent.primary,
-    borderColor: Colors.accent.primary,
-  },
-  chartTypeText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#b0b0b0',
-  },
-  chartTypeTextActive: {
-    color: '#fff',
   },
   chartCard: {
     backgroundColor: Colors.background.secondary,
@@ -1168,125 +1500,192 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   entriesSection: {
-    backgroundColor: '#1C1C1E',
-    margin: 0,
-    marginTop: 0,
-    padding: 20,
+    paddingHorizontal: 20,
     paddingTop: 16,
-    borderRadius: 0,
-    borderWidth: 0,
+    paddingBottom: 20,
   },
   entriesListContainer: {
     marginTop: 12,
-  },
-  entryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    marginBottom: 8,
-    backgroundColor: Colors.background.secondary,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.border.primary,
-  },
-  entryItemExpense: {
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.status.expense,
-  },
-  entryItemIncome: {
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.status.income,
-  },
-  entryItemNeutral: {
-    borderLeftWidth: 3,
-    borderLeftColor: '#4DABF7',
-  },
-  entryIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  expenseIconBg: {
-    backgroundColor: Colors.iconBackground.expense,
-  },
-  incomeIconBg: {
-    backgroundColor: Colors.iconBackground.income,
-  },
-  withdrawalIconBg: {
-    backgroundColor: 'rgba(77, 171, 247, 0.15)',
-  },
-  depositIconBg: {
-    backgroundColor: 'rgba(81, 207, 102, 0.15)',
-  },
-  adjustmentIconBg: {
-    backgroundColor: Colors.iconBackground.adjustment,
-  },
-  entryContent: {
-    flex: 1,
-  },
-  entryAmountRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 3,
     gap: 8,
   },
-  entryAmount: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Colors.text.primary,
-    letterSpacing: -0.3,
+  transactionCard: {
+    flexDirection: 'row',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    alignItems: 'center',
+    minHeight: 80,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  modeIndicator: {
-    padding: 2,
+  transactionLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginRight: 12,
   },
-  expenseAmount: {
-    color: '#d32f2f',
+  transactionIconContainer: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
-  incomeAmount: {
-    color: '#388e3c',
+  transactionIconExpense: {
+    backgroundColor: 'rgba(255, 107, 107, 0.25)',
   },
-  withdrawalAmount: {
-    color: '#4DABF7',
+  transactionIconIncome: {
+    backgroundColor: 'rgba(81, 207, 102, 0.25)',
   },
-  depositAmount: {
-    color: '#51CF66',
+  transactionIconAdjustment: {
+    backgroundColor: 'rgba(255, 152, 0, 0.25)',
   },
-  adjustmentAmount: {
-    color: '#FF9800',
+  transactionIconWithdrawal: {
+    backgroundColor: 'rgba(77, 171, 247, 0.25)',
   },
-  modeIndicatorContainer: {
+  transactionIconDeposit: {
+    backgroundColor: 'rgba(81, 207, 102, 0.25)',
+  },
+  transactionDetails: {
+    flex: 1,
+    minWidth: 0,
+  },
+  transactionNote: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  transactionMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  transactionMetaLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  transactionDate: {
+    fontSize: 13,
+    color: '#888',
+    fontWeight: '500',
+  },
+  categoryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    gap: 6,
+    marginLeft: 8,
+  },
+  categoryBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  transactionRight: {
+    alignItems: 'flex-end',
+    gap: 8,
+    flexShrink: 0,
+  },
+  transactionRightTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  transactionModeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  modeArrow: {
+  transactionModeText: {
     fontSize: 10,
     color: Colors.text.secondary,
     fontWeight: '600',
   },
-  entryDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  transactionMode: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#1a1a1a',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  transactionAmount: {
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+  },
+  transactionAmountExpense: {
+    color: '#FF6B6B',
+  },
+  transactionAmountIncome: {
+    color: '#51CF66',
+  },
+  transactionAmountAdjustment: {
+    color: '#FF9800',
+  },
+  transactionAmountWithdrawal: {
+    color: '#4DABF7',
+  },
+  transactionAmountDeposit: {
+    color: '#51CF66',
+  },
+  transactionMoreButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.background.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+  },
+  longPressMenuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  entryNote: {
-    fontSize: 12,
-    color: '#A0A0A0',
-    flex: 1,
-    fontWeight: '400',
+  longPressMenuContent: {
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 16,
+    padding: 8,
+    minWidth: 200,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
   },
-  entryType: {
-    fontSize: 11,
-    color: '#808080',
-    fontWeight: '400',
+  longPressMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 12,
   },
-  entryDate: {
-    fontSize: 11,
-    color: '#808080',
-    fontWeight: '400',
+  longPressMenuItemDanger: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.border.primary,
+    marginTop: 4,
+    paddingTop: 12,
+  },
+  longPressMenuText: {
+    fontSize: 16,
+    color: Colors.text.primary,
+    fontWeight: '500',
+  },
+  longPressMenuTextDanger: {
+    color: Colors.status.expense,
   },
   viewAllButton: {
     flexDirection: 'row',
@@ -1319,44 +1718,63 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
-  breakdownSection: {
-    marginBottom: 16,
-  },
-  breakdownSectionTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 10,
-    letterSpacing: 0.2,
-  },
-  breakdownRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  paymentCardsContainer: {
     gap: 12,
   },
-  breakdownItem: {
-    flex: 1,
+  paymentCard: {
+    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 12,
     padding: 16,
-    backgroundColor: Colors.background.primary,
-    borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.border.primary,
   },
-  breakdownLabel: {
-    fontSize: 11,
-    color: Colors.text.secondary,
-    marginTop: 8,
-    marginBottom: 6,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  paymentCardIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  breakdownValue: {
+  paymentCardInfo: {
+    flex: 1,
+  },
+  paymentCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  paymentCardName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.text.primary,
+    flex: 1,
+    marginRight: 8,
+  },
+  paymentCardAmount: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.text.primary,
-    letterSpacing: -0.3,
+  },
+  paymentCardFooter: {
+    gap: 6,
+  },
+  paymentCardProgressBar: {
+    height: 4,
+    backgroundColor: Colors.background.primary,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  paymentCardProgressFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  paymentCardMeta: {
+    fontSize: 11,
+    color: Colors.text.secondary,
+    fontWeight: '500',
   },
   categoryFilterContainer: {
     paddingHorizontal: 20,
@@ -1389,24 +1807,119 @@ const styles = StyleSheet.create({
   categoryFilterTextActive: {
     fontWeight: '700',
   },
-  categoryLegend: {
-    marginTop: 16,
-    gap: 8,
+  categoryListContainer: {
+    gap: 12,
+    marginTop: 8,
   },
-  categoryLegendItem: {
+  categoryListItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
   },
-  categoryLegendColor: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+  categoryListIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  categoryLegendText: {
-    fontSize: 12,
-    color: Colors.text.secondary,
+  categoryListInfo: {
+    flex: 1,
+  },
+  categoryListHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  categoryListName: {
+    fontSize: 15,
     fontWeight: '600',
+    color: Colors.text.primary,
+    flex: 1,
+    marginRight: 8,
+  },
+  categoryListAmount: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.status.expense,
+  },
+  categoryListFooter: {
+    gap: 6,
+  },
+  categoryListProgressBar: {
+    height: 4,
+    backgroundColor: Colors.background.primary,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  categoryListProgressFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  categoryListMeta: {
+    fontSize: 11,
+    color: Colors.text.secondary,
+    fontWeight: '500',
+  },
+  cardListContainer: {
+    gap: 12,
+    marginTop: 8,
+  },
+  cardListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background.primary,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+  },
+  cardListIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  cardListInfo: {
+    flex: 1,
+  },
+  cardListHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  cardListName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.text.primary,
+    flex: 1,
+    marginRight: 8,
+  },
+  cardListAmount: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  cardListFooter: {
+    gap: 6,
+  },
+  cardListProgressBar: {
+    height: 4,
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  cardListProgressFill: {
+    height: '100%',
+    borderRadius: 2,
   },
   searchContainer: {
     paddingHorizontal: 20,

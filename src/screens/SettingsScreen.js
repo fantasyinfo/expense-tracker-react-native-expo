@@ -38,6 +38,7 @@ import ImportModal from '../components/ImportModal';
 import BackupSettingsModal from '../components/BackupSettingsModal';
 import ExportFilterModal from '../components/ExportFilterModal';
 import UserGuideScreen from './UserGuideScreen';
+import CategoryManagementModal from '../components/CategoryManagementModal';
 import { createManualBackup, getLastBackupTime, formatBackupDate } from '../utils/backupUtils';
 
 const CollapsibleSection = ({ title, children, defaultExpanded = false }) => {
@@ -106,6 +107,7 @@ const SettingsScreen = () => {
   const [lastBackupTime, setLastBackupTime] = useState(null);
   const [backupCreating, setBackupCreating] = useState(false);
   const [showUserGuide, setShowUserGuide] = useState(false);
+  const [showCategoryManagement, setShowCategoryManagement] = useState(false);
 
   const loadData = useCallback(async () => {
     const allEntries = await loadEntries();
@@ -146,6 +148,7 @@ const SettingsScreen = () => {
         setShowExportFilterModal(false);
         setShowBalanceModal(false);
         setShowGoalsModal(false);
+        setShowCategoryManagement(false);
       };
     }, [])
   );
@@ -570,6 +573,17 @@ const SettingsScreen = () => {
             title="Backup Settings"
             description="Configure backup method and preferences"
             onPress={() => setShowBackupSettingsModal(true)}
+          />
+        </View>
+      </CollapsibleSection>
+
+      {/* Category Management Section */}
+      <CollapsibleSection title="Category Management">
+        <View style={styles.sectionContent}>
+          <SettingCard
+            title="Manage Categories"
+            description="Add, edit, or delete custom categories"
+            onPress={() => setShowCategoryManagement(true)}
           />
         </View>
       </CollapsibleSection>
@@ -1002,6 +1016,12 @@ const SettingsScreen = () => {
       <UserGuideScreen
         visible={showUserGuide}
         onClose={() => setShowUserGuide(false)}
+      />
+
+      {/* Category Management Modal */}
+      <CategoryManagementModal
+        visible={showCategoryManagement}
+        onClose={() => setShowCategoryManagement(false)}
       />
 
       {/* Balance Setting Modal */}
