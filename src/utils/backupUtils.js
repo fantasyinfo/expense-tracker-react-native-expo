@@ -21,7 +21,6 @@ export const getBackupPreferences = async () => {
     }
     return JSON.parse(data);
   } catch (error) {
-    console.error('Error getting backup preferences:', error);
     return {
       method: 'manual',
       autoBackup: false,
@@ -37,7 +36,6 @@ export const saveBackupPreferences = async (preferences) => {
   try {
     await AsyncStorage.setItem(BACKUP_PREFERENCES_KEY, JSON.stringify(preferences));
   } catch (error) {
-    console.error('Error saving backup preferences:', error);
     throw error;
   }
 };
@@ -50,7 +48,6 @@ export const getLastBackupTime = async () => {
     const timestamp = await AsyncStorage.getItem(LAST_BACKUP_KEY);
     return timestamp ? new Date(timestamp) : null;
   } catch (error) {
-    console.error('Error getting last backup time:', error);
     return null;
   }
 };
@@ -62,7 +59,6 @@ export const saveLastBackupTime = async () => {
   try {
     await AsyncStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString());
   } catch (error) {
-    console.error('Error saving last backup time:', error);
     throw error;
   }
 };
@@ -120,7 +116,6 @@ export const createManualBackup = async () => {
       backupDate: new Date(),
     };
   } catch (error) {
-    console.error('Error creating manual backup:', error);
     throw error;
   }
 };

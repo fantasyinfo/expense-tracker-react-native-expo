@@ -23,7 +23,6 @@ const saveFileToDevice = async (fileUri, fileName, mimeType) => {
       throw new Error('Sharing is not available on this device');
     }
   } catch (error) {
-    console.error('Error saving file to device:', error);
     return { success: false, saved: false, error: error.message };
   }
 };
@@ -215,7 +214,6 @@ export const exportToExcel = async (entries, options = {}) => {
       return { success: true, fileUri, saved: false };
     }
   } catch (error) {
-    console.error('Error exporting to CSV:', error);
     throw error;
   }
 };
@@ -333,7 +331,6 @@ export const exportToJSON = async (entries, options = {}) => {
       return { success: true, fileUri, saved: false };
     }
   } catch (error) {
-    console.error('Error exporting to JSON:', error);
     throw error;
   }
 };

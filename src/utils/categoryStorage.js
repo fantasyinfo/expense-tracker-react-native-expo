@@ -58,7 +58,6 @@ export const loadCategories = async () => {
     const customCategories = categories.filter(c => !defaultIds.has(c.id));
     return [...DEFAULT_CATEGORIES, ...customCategories];
   } catch (error) {
-    console.error('Error loading categories:', error);
     return DEFAULT_CATEGORIES;
   }
 };
@@ -70,7 +69,7 @@ export const saveCategories = async (categories) => {
   try {
     await AsyncStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify(categories));
   } catch (error) {
-    console.error('Error saving categories:', error);
+    // Error saving categories
   }
 };
 

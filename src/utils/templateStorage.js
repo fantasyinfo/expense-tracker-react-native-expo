@@ -11,7 +11,6 @@ export const loadTemplates = async () => {
     if (!data) return [];
     return JSON.parse(data);
   } catch (error) {
-    console.error('Error loading templates:', error);
     return [];
   }
 };
@@ -23,7 +22,7 @@ export const saveTemplates = async (templates) => {
   try {
     await AsyncStorage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(templates));
   } catch (error) {
-    console.error('Error saving templates:', error);
+    // Error saving templates
   }
 };
 

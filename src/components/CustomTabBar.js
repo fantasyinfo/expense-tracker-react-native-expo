@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,7 +6,19 @@ import { useModal } from '../context/ModalContext';
 import Colors from '../constants/colors';
 
 const CustomTabBar = ({ state, descriptors, navigation }) => {
-  const { openAddEntryModal } = useModal();
+  const { openAddEntryModal, closeAllModalsRef } = useModal();
+  const previousTabIndex = useRef(state?.index ?? null);
+
+  // Close all modals when tab changes
+  useEffect(() => {
+    const currentTabIndex = state?.index ?? null;
+    if (previousTabIndex.current !== null && previousTabIndex.current !== currentTabIndex) {
+      if (closeAllModalsRef?.current) {
+        closeAllModalsRef.current();
+      }
+    }
+    previousTabIndex.current = currentTabIndex;
+  }, [state?.index, closeAllModalsRef]);
 
   // Filter out the AddEntry route (center button placeholder)
   const visibleRoutes = state.routes.filter(route => route.name !== 'AddEntry');

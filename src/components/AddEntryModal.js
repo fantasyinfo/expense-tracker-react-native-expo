@@ -77,25 +77,50 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
       setSelectedCategory(editEntry.category_id || null);
       prevEditEntryRef.current = editEntry;
       // Load categories for the entry type
-      getCategoriesByType(editEntry.type || 'expense').then(cats => setCategories(cats));
+      getCategoriesByType(editEntry.type || 'expense').then(cats => {
+        setCategories(cats);
+      });
     }
   }, [editEntry]);
 
   // Handle modal visibility changes
   useEffect(() => {
     if (visible) {
-      // If modal opens without editEntry and we weren't previously editing, reset form
-      if (!editEntry && prevEditEntryRef.current === null) {
-        setAmount('');
-        setNote('');
-        setType('expense');
-        setMode('upi');
-        setDate(new Date());
-        setAdjustmentType('add');
-      }
+      // Wait a bit to see if editEntry gets set (for cases where it's set after modal opens)
+      const timeoutId = setTimeout(() => {
+        // If editEntry is available, populate the form
+        if (editEntry) {
+          setAmount(editEntry.amount?.toString() || '');
+          setNote(editEntry.note || '');
+          setType(editEntry.type || 'expense');
+          setMode(editEntry.mode || 'upi');
+          setDate(parseDate(editEntry.date || formatDate(new Date())));
+          setAdjustmentType(editEntry.adjustment_type || 'add');
+          setSelectedCategory(editEntry.category_id || null);
+          prevEditEntryRef.current = editEntry;
+          // Load categories for the entry type
+          getCategoriesByType(editEntry.type || 'expense').then(cats => {
+            setCategories(cats);
+          });
+        } else if (prevEditEntryRef.current === null) {
+          // If modal opens without editEntry and we weren't previously editing, reset form
+          setAmount('');
+          setNote('');
+          setType('expense');
+          setMode('upi');
+          setDate(new Date());
+          setAdjustmentType('add');
+          setSelectedCategory(null);
+        }
+      }, 200); // Increased delay to allow editEntry to be set
+
+      return () => clearTimeout(timeoutId);
     } else {
-      // Reset ref when modal closes
-      prevEditEntryRef.current = null;
+      // Don't reset ref when modal closes - keep it so we know if we were editing
+      // Only reset if editEntry is explicitly cleared (becomes null)
+      if (!editEntry) {
+        prevEditEntryRef.current = null;
+      }
     }
   }, [visible, editEntry]);
 
@@ -116,7 +141,6 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
 
     if (type === 'balance_adjustment') {
       if (!adjustmentType || (adjustmentType !== 'add' && adjustmentType !== 'subtract')) {
-        console.error('Invalid adjustment_type:', adjustmentType);
         return;
       }
       entryData.adjustment_type = adjustmentType;

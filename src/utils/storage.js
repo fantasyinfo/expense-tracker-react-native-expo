@@ -42,7 +42,6 @@ export const loadEntries = async () => {
     
     return migratedEntries;
   } catch (error) {
-    console.error('Error loading entries:', error);
     return [];
   }
 };
@@ -54,7 +53,7 @@ export const saveEntries = async (entries) => {
   try {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
   } catch (error) {
-    console.error('Error saving entries:', error);
+    // Error saving entries
   }
 };
 

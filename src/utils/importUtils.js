@@ -8,13 +8,7 @@ import { saveEntries, loadEntries } from './storage';
  */
 export const parseCSV = (csvContent) => {
   try {
-    console.log('=== CSV Import Debug ===');
-    console.log('CSV Content length:', csvContent.length);
-    console.log('First 500 chars:', csvContent.substring(0, 500));
-    
     const lines = csvContent.split('\n').filter(line => line.trim());
-    console.log('Total lines:', lines.length);
-    console.log('First few lines:', lines.slice(0, 5));
     
     const entries = [];
     let skippedCount = 0;
@@ -42,21 +36,9 @@ export const parseCSV = (csvContent) => {
     // Support both old format (without Category) and new format (with Category)
     const expectedHeaderOld = 'Date,Type,Amount,Payment Method,Note';
     const expectedHeaderNew = 'Date,Type,Amount,Payment Method,Category,Note';
-    console.log('=== Header Validation ===');
-    console.log('Expected (old):', expectedHeaderOld);
-    console.log('Expected (new):', expectedHeaderNew);
-    console.log('Actual:', header);
-    console.log('Header found at line:', headerIndex);
     
     const isOldFormat = header === expectedHeaderOld;
     const isNewFormat = header === expectedHeaderNew;
-    
-    if (!isOldFormat && !isNewFormat && header) {
-      console.warn(`⚠️ Header mismatch! Expected: "${expectedHeaderOld}" or "${expectedHeaderNew}", Got: "${header}"`);
-      // Still try to parse, but log warning
-    } else if (header) {
-      console.log(`✅ Header matches export format (${isNewFormat ? 'new with Category' : 'old without Category'})`);
-    }
     
     // Skip header row and summary rows (start from line after header)
     const startIndex = headerIndex >= 0 ? headerIndex + 1 : 1;
@@ -65,7 +47,6 @@ export const parseCSV = (csvContent) => {
       
       // Skip empty lines
       if (!line) {
-        console.log(`Skipping empty line ${i}`);
         continue;
       }
       
@@ -86,7 +67,6 @@ export const parseCSV = (csvContent) => {
         line.startsWith('HEADER (Format as Bold') ||
         line.startsWith('KHARCHA EXPENSE TRACKER')
       ) {
-        console.log(`Reached non-entry section at line ${i}, stopping`);
         break;
       }
       
@@ -109,9 +89,6 @@ export const parseCSV = (csvContent) => {
       values.push(currentValue.trim()); // Add last value
       
       processedCount++;
-      console.log(`\n--- Processing Line ${i} ---`);
-      console.log(`Raw line: "${line}"`);
-      console.log(`Parsed values (${values.length}):`, values);
       
       // Expected format: Date,Type,Amount,Payment Method,Category,Note (new) or Date,Type,Amount,Payment Method,Note (old)
       let dateStr, typeStr, amountStr, paymentMethodStr, categoryStr, noteStr;
@@ -130,16 +107,12 @@ export const parseCSV = (csvContent) => {
         categoryStr = '';
         noteStr = '';
       } else {
-        console.log(`  Skipped: Not enough values (${values.length} < 3)`);
         skippedCount++;
         continue;
       }
       
-      console.log(`  Parsing: date="${dateStr}", type="${typeStr}", amount="${amountStr}"`);
-      
       // Skip if invalid
       if (!dateStr || !typeStr || !amountStr) {
-        console.log(`  Skipped: Missing required fields`);
         skippedCount++;
         continue;
       }
@@ -150,13 +123,11 @@ export const parseCSV = (csvContent) => {
         // PRIMARY format: YYYY-MM-DD (new export format)
         if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
           date = dateStr;
-          console.log(`  ✅ Date parsed (YYYY-MM-DD - Export format): ${date}`);
         } 
         // Secondary format: DD/MM/YYYY (old export format, for backward compatibility)
         else if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
           const [day, month, year] = dateStr.split('/');
           date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-          console.log(`  ✅ Date parsed (DD/MM/YYYY - Old format): ${dateStr} -> ${date}`);
         } 
         // Fallback: Try parsing as Date object (for other formats)
         else {
@@ -166,15 +137,12 @@ export const parseCSV = (csvContent) => {
             const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
             const day = String(parsedDate.getDate()).padStart(2, '0');
             date = `${year}-${month}-${day}`;
-            console.log(`  ⚠️ Date parsed (Fallback Date object): ${dateStr} -> ${date}`);
           } else {
-            console.log(`  ❌ Skipped: Invalid date format: ${dateStr}`);
             skippedCount++;
             continue; // Skip invalid date
           }
         }
       } catch (e) {
-        console.log(`  ❌ Skipped: Date parsing error: ${e.message}, dateStr: ${dateStr}`);
         skippedCount++;
         continue; // Skip invalid date
       }
@@ -182,12 +150,9 @@ export const parseCSV = (csvContent) => {
       // Parse amount
       const amount = parseFloat(amountStr.replace(/[₹,\s]/g, ''));
       if (isNaN(amount) || amount <= 0) {
-        console.log(`  Skipped: Invalid amount: ${amountStr} -> ${amount}`);
         skippedCount++;
         continue;
       }
-      
-      console.log(`  Amount parsed: ${amountStr} -> ${amount}`);
       
       // Determine type and mode
       let type, mode, adjustmentType;
@@ -206,12 +171,9 @@ export const parseCSV = (csvContent) => {
       } else if (typeLower.includes('cash deposit')) {
         type = 'cash_deposit';
       } else {
-        console.log(`  Skipped: Unknown type: ${typeStr}`);
         skippedCount++;
         continue; // Skip unknown types
       }
-      
-      console.log(`  Type determined: ${type}`);
       
       // Determine mode from payment method
       if (paymentMethodStr) {
@@ -251,30 +213,11 @@ export const parseCSV = (csvContent) => {
         entry.adjustment_type = adjustmentType;
       }
       
-      console.log(`  Entry created:`, entry);
       entries.push(entry);
-    }
-    
-    console.log(`\n=== CSV Import Summary ===`);
-    console.log(`Total lines in file: ${lines.length}`);
-    console.log(`Data lines processed: ${processedCount}`);
-    console.log(`✅ Entries created: ${entries.length}`);
-    console.log(`❌ Lines skipped: ${skippedCount}`);
-    
-    if (entries.length === 0) {
-      console.error('❌ ERROR: No entries were created!');
-      console.log('This could mean:');
-      console.log('1. Date format mismatch (export uses DD/MM/YYYY)');
-      console.log('2. Type names don\'t match (should be: Expense, Income, etc.)');
-      console.log('3. Amount format issue');
-      console.log('4. File structure doesn\'t match export format');
-    } else {
-      console.log('✅ Import successful!');
     }
     
     return entries;
   } catch (error) {
-    console.error('Error parsing CSV:', error);
     throw new Error('Failed to parse CSV file. Please check the file format.');
   }
 };
@@ -325,7 +268,6 @@ export const parseJSON = (jsonContent) => {
     
     return normalizedEntries;
   } catch (error) {
-    console.error('Error parsing JSON:', error);
     throw new Error('Failed to parse JSON file. Please check the file format.');
   }
 };
@@ -358,7 +300,6 @@ export const pickAndReadFile = async () => {
       mimeType: file.mimeType,
     };
   } catch (error) {
-    console.error('Error picking file:', error);
     throw error;
   }
 };
@@ -424,7 +365,6 @@ export const importEntries = async (content, fileName, mimeType, merge = false) 
       };
     }
   } catch (error) {
-    console.error('Error importing entries:', error);
     throw error;
   }
 };

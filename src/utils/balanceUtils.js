@@ -12,7 +12,6 @@ export const getInitialBankBalance = async () => {
     const balance = await AsyncStorage.getItem(BANK_BALANCE_KEY);
     return balance ? parseFloat(balance) : null;
   } catch (error) {
-    console.error('Error getting initial bank balance:', error);
     return null;
   }
 };
@@ -25,7 +24,6 @@ export const getInitialCashBalance = async () => {
     const balance = await AsyncStorage.getItem(CASH_BALANCE_KEY);
     return balance ? parseFloat(balance) : null;
   } catch (error) {
-    console.error('Error getting initial cash balance:', error);
     return null;
   }
 };
@@ -37,7 +35,6 @@ export const setInitialBankBalance = async (balance) => {
   try {
     await AsyncStorage.setItem(BANK_BALANCE_KEY, balance.toString());
   } catch (error) {
-    console.error('Error setting initial bank balance:', error);
     throw error;
   }
 };
@@ -49,7 +46,6 @@ export const setInitialCashBalance = async (balance) => {
   try {
     await AsyncStorage.setItem(CASH_BALANCE_KEY, balance.toString());
   } catch (error) {
-    console.error('Error setting initial cash balance:', error);
     throw error;
   }
 };
@@ -111,7 +107,6 @@ export const calculateCurrentBalance = (initialBalance, entries, mode) => {
         return balance - amount;
       }
       // If adjustment_type is missing, skip this entry (safer than assuming)
-      console.warn('Balance adjustment entry missing adjustment_type:', entry);
       return balance;
     }
     return balance;
@@ -129,7 +124,6 @@ export const getCurrentBankBalance = async () => {
     const entries = await loadEntries();
     return calculateCurrentBalance(initialBalance, entries, 'upi');
   } catch (error) {
-    console.error('Error getting current bank balance:', error);
     return null;
   }
 };
@@ -145,7 +139,6 @@ export const getCurrentCashBalance = async () => {
     const entries = await loadEntries();
     return calculateCurrentBalance(initialBalance, entries, 'cash');
   } catch (error) {
-    console.error('Error getting current cash balance:', error);
     return null;
   }
 };
@@ -213,7 +206,6 @@ export const calculateInitialBalancesFromEntries = async () => {
 
     return { bankBalance, cashBalance };
   } catch (error) {
-    console.error('Error calculating initial balances from entries:', error);
     return { bankBalance: 0, cashBalance: 0 };
   }
 };

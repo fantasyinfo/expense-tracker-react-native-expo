@@ -134,6 +134,22 @@ const SettingsScreen = () => {
     }, [loadData])
   );
 
+  // Close local modals when screen loses focus
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        // Cleanup: close local modals when screen loses focus
+        setShowEntriesModal(false);
+        setShowUserGuide(false);
+        setShowImportModal(false);
+        setShowBackupSettingsModal(false);
+        setShowExportFilterModal(false);
+        setShowBalanceModal(false);
+        setShowGoalsModal(false);
+      };
+    }, [])
+  );
+
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -196,7 +212,6 @@ const SettingsScreen = () => {
       }
     } catch (error) {
       Alert.alert('Error', error.message || 'Failed to export data. Please try again.');
-      console.error(error);
     } finally {
       setExporting(false);
     }
@@ -250,7 +265,6 @@ const SettingsScreen = () => {
       loadData(); // Reload to update displayed balances
     } catch (error) {
       Alert.alert('Error', 'Failed to save balance. Please try again.');
-      console.error(error);
     }
   };
 
@@ -272,7 +286,6 @@ const SettingsScreen = () => {
       await loadData();
     } catch (error) {
       Alert.alert('Error', error.message || 'Failed to create backup. Please try again.');
-      console.error(error);
     } finally {
       setBackupCreating(false);
     }
@@ -299,7 +312,6 @@ const SettingsScreen = () => {
               loadData();
             } catch (error) {
               Alert.alert('Error', 'Failed to calculate balances. Please try again.');
-              console.error(error);
             }
           },
         },
@@ -934,7 +946,6 @@ const SettingsScreen = () => {
                     setCustomGoalNameInput('');
                   } catch (error) {
                     Alert.alert('Error', `Failed to save ${goalCategory === 'savings' ? 'goal' : 'limit'}. Please try again.`);
-                    console.error(error);
                   }
                 }}
               >

@@ -160,6 +160,19 @@ const HomeScreen = () => {
     }, [loadData])
   );
 
+  // Close local modals when screen loses focus
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        // Cleanup: close all local modals when screen loses focus
+        setShowFilterModal(false);
+        setDeleteModalVisible(false);
+        setLongPressMenuVisible(false);
+        setSelectedEntryForMenu(null);
+      };
+    }, [])
+  );
+
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -183,41 +196,37 @@ const HomeScreen = () => {
     
     // Check for new achievements AFTER data is reloaded
     const achievementData = await checkAchievements();
-    const currentMonthlyProgress = await calculateGoalProgress('monthly');
-    console.log('Achievement check result:', {
-      newCount: achievementData.newAchievements.length,
-      newAchievements: achievementData.newAchievements.map(a => ({
-        id: a.id,
-        name: a.name,
-        description: a.description
-      })),
-      monthlyProgress: {
-        currentBalance: currentMonthlyProgress.currentBalance,
-        targetGoal: currentMonthlyProgress.targetGoal,
-        isCompleted: currentMonthlyProgress.isCompleted
-      }
-    });
     
     if (achievementData.newAchievements.length > 0) {
-      console.log('Showing achievement modal for:', achievementData.newAchievements);
       setNewAchievements(achievementData.newAchievements);
       setShowAchievementNotification(true);
       // Auto-hide after 8 seconds (longer for better visibility)
       setTimeout(() => {
         setShowAchievementNotification(false);
       }, 8000);
-    } else {
-      console.log('No new achievements found');
     }
   };
 
 
   const handleEdit = (entry) => {
+    // Prevent editing cash withdrawal, deposit, and balance adjustment entries
+    if (entry.type === 'cash_withdrawal' || entry.type === 'cash_deposit' || entry.type === 'balance_adjustment') {
+      return;
+    }
+    // Set entryToEdit FIRST, then open modal after a delay to ensure state is set
     setEntryToEdit(entry);
-    openAddEntryModal();
+    // Use setTimeout to ensure state update is processed before opening modal
+    // Use a longer delay to ensure React has processed the state update
+    setTimeout(() => {
+      openAddEntryModal();
+    }, 150);
   };
 
   const handleDuplicate = (entry) => {
+    // Prevent duplicating cash withdrawal, deposit, and balance adjustment entries
+    if (entry.type === 'cash_withdrawal' || entry.type === 'cash_deposit' || entry.type === 'balance_adjustment') {
+      return;
+    }
     // Create a duplicate entry with today's date
     const duplicateEntry = {
       ...entry,
@@ -884,7 +893,8 @@ const HomeScreen = () => {
         visible={addEntryModalVisible}
         onClose={() => {
           closeAddEntryModal();
-          setEntryToEdit(null);
+          // Don't clear entryToEdit here - it might be needed for reopening
+          // It will be cleared after save in handleEntryAdded
         }}
         onSave={handleEntryAdded}
         editEntry={entryToEdit}
@@ -1024,32 +1034,42 @@ const HomeScreen = () => {
           onPress={() => setLongPressMenuVisible(false)}
         >
           <View style={styles.longPressMenuContent}>
-            <TouchableOpacity
-              style={styles.longPressMenuItem}
-              onPress={() => {
-                if (selectedEntryForMenu) {
-                  handleEdit(selectedEntryForMenu);
-                  setLongPressMenuVisible(false);
-                }
-              }}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="create-outline" size={20} color={Colors.text.primary} />
-              <Text style={styles.longPressMenuText}>Edit</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.longPressMenuItem}
-              onPress={() => {
-                if (selectedEntryForMenu) {
-                  handleDuplicate(selectedEntryForMenu);
-                  setLongPressMenuVisible(false);
-                }
-              }}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="copy-outline" size={20} color={Colors.text.primary} />
-              <Text style={styles.longPressMenuText}>Duplicate</Text>
-            </TouchableOpacity>
+            {selectedEntryForMenu && 
+             selectedEntryForMenu.type !== 'cash_withdrawal' && 
+             selectedEntryForMenu.type !== 'cash_deposit' && 
+             selectedEntryForMenu.type !== 'balance_adjustment' && (
+              <TouchableOpacity
+                style={styles.longPressMenuItem}
+                onPress={() => {
+                  if (selectedEntryForMenu) {
+                    handleEdit(selectedEntryForMenu);
+                    setLongPressMenuVisible(false);
+                  }
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="create-outline" size={20} color={Colors.text.primary} />
+                <Text style={styles.longPressMenuText}>Edit</Text>
+              </TouchableOpacity>
+            )}
+            {selectedEntryForMenu && 
+             selectedEntryForMenu.type !== 'cash_withdrawal' && 
+             selectedEntryForMenu.type !== 'cash_deposit' && 
+             selectedEntryForMenu.type !== 'balance_adjustment' && (
+              <TouchableOpacity
+                style={styles.longPressMenuItem}
+                onPress={() => {
+                  if (selectedEntryForMenu) {
+                    handleDuplicate(selectedEntryForMenu);
+                    setLongPressMenuVisible(false);
+                  }
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="copy-outline" size={20} color={Colors.text.primary} />
+                <Text style={styles.longPressMenuText}>Duplicate</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={[styles.longPressMenuItem, styles.longPressMenuItemDanger]}
               onPress={() => {

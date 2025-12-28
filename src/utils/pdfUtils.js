@@ -384,7 +384,6 @@ export const exportToPDF = async (entries, options = {}) => {
       };
     }
   } catch (error) {
-    console.error('Error exporting to PDF:', error);
     throw error;
   }
 };
@@ -402,7 +401,6 @@ const saveFileToDevice = async (fileUri, fileName, mimeType) => {
       throw new Error('Sharing is not available on this device');
     }
   } catch (error) {
-    console.error('Error saving file to device:', error);
     return { success: false, saved: false, error: error.message };
   }
 };

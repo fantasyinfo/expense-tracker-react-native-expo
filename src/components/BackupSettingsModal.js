@@ -33,7 +33,7 @@ const BackupSettingsModal = ({ visible, onClose }) => {
       const prefs = await getBackupPreferences();
       setPreferences(prefs);
     } catch (error) {
-      console.error('Error loading backup preferences:', error);
+      // Error loading backup preferences
     } finally {
       setLoading(false);
     }
@@ -45,7 +45,6 @@ const BackupSettingsModal = ({ visible, onClose }) => {
       Alert.alert('Success', 'Backup settings saved successfully!', [{ text: 'OK', onPress: onClose }]);
     } catch (error) {
       Alert.alert('Error', 'Failed to save backup settings. Please try again.');
-      console.error(error);
     }
   };
 

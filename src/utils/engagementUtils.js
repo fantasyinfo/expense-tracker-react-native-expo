@@ -24,7 +24,6 @@ export const getStreak = async () => {
     }
     return JSON.parse(data);
   } catch (error) {
-    console.error('Error loading streak:', error);
     return {
       currentStreak: 0,
       longestStreak: 0,
@@ -79,7 +78,6 @@ export const updateStreak = async () => {
       return { currentStreak: 1, longestStreak: streakData.longestStreak, isNewStreak: false };
     }
   } catch (error) {
-    console.error('Error updating streak:', error);
     return { currentStreak: 0, longestStreak: 0, isNewStreak: false };
   }
 };
@@ -95,7 +93,6 @@ export const getAchievements = async () => {
     }
     return JSON.parse(data);
   } catch (error) {
-    console.error('Error loading achievements:', error);
     return [];
   }
 };
@@ -115,7 +112,6 @@ export const getCompletedGoals = async () => {
     }
     return JSON.parse(data);
   } catch (error) {
-    console.error('Error loading completed goals:', error);
     return {
       monthlyGoalCompleted: false,
       yearlyGoalCompleted: false,
@@ -139,7 +135,7 @@ export const markGoalAsCompleted = async (goalType) => {
     }
     await AsyncStorage.setItem(GOALS_COMPLETED_KEY, JSON.stringify(completed));
   } catch (error) {
-    console.error('Error marking goal as completed:', error);
+    // Error marking goal as completed
   }
 };
 
@@ -158,7 +154,7 @@ export const resetGoalCompletion = async (goalType) => {
     }
     await AsyncStorage.setItem(GOALS_COMPLETED_KEY, JSON.stringify(completed));
   } catch (error) {
-    console.error('Error resetting goal completion:', error);
+    // Error resetting goal completion
   }
 };
 
@@ -178,18 +174,6 @@ export const checkAchievements = async () => {
     const monthlyProgress = await calculateGoalProgress('monthly', 'savings');
     const yearlyProgress = await calculateGoalProgress('yearly', 'savings');
     const customProgress = await calculateGoalProgress('custom', 'savings');
-    
-    // Debug logging
-    console.log('Achievement check debug:', {
-      monthlyProgress: {
-        isCompleted: monthlyProgress.isCompleted,
-        targetGoal: monthlyProgress.targetGoal,
-        currentValue: monthlyProgress.currentValue
-      },
-      completedGoals,
-      unlockedAchievements,
-      monthlyGoalAlreadyUnlocked: unlockedAchievements.includes('monthly_goal_completed')
-    });
 
     const achievementChecks = [
       {
@@ -307,7 +291,6 @@ export const checkAchievements = async () => {
       })),
     };
   } catch (error) {
-    console.error('Error checking achievements:', error);
     return { newAchievements: [], allAchievements: [] };
   }
 };
@@ -356,7 +339,6 @@ export const getGoals = async () => {
     }
     return goals;
   } catch (error) {
-    console.error('Error loading goals:', error);
     return {
       dailySavingsGoal: 0,
       weeklySavingsGoal: 0,
@@ -381,7 +363,6 @@ export const saveGoals = async (goals) => {
   try {
     await AsyncStorage.setItem(GOALS_KEY, JSON.stringify(goals));
   } catch (error) {
-    console.error('Error saving goals:', error);
     throw error;
   }
 };
@@ -494,7 +475,6 @@ export const calculateGoalProgress = async (goalType = 'monthly', goalCategory =
       goalKey,
     };
   } catch (error) {
-    console.error('Error calculating goal progress:', error);
     return {
       currentValue: 0,
       targetGoal: 0,
@@ -551,7 +531,6 @@ export const getMotivationalMessage = async () => {
 
     return messages.length > 0 ? messages[Math.floor(Math.random() * messages.length)] : 'Keep tracking to see your progress! 💪';
   } catch (error) {
-    console.error('Error getting motivational message:', error);
     return 'Keep tracking your expenses! Every entry counts! 💪';
   }
 };

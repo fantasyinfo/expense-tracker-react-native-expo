@@ -111,6 +111,16 @@ const SummaryScreen = () => {
     }, [loadData])
   );
 
+  // Close local modals when screen loses focus
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        // Cleanup: close local modals when screen loses focus
+        setShowEntriesModal(false);
+      };
+    }, [])
+  );
+
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -133,11 +143,28 @@ const SummaryScreen = () => {
   }, [filteredEntries]);
 
   const handleEdit = (entry) => {
+    // Prevent editing cash withdrawal, deposit, and balance adjustment entries
+    if (entry.type === 'cash_withdrawal' || entry.type === 'cash_deposit' || entry.type === 'balance_adjustment') {
+      return;
+    }
+    // Close entries modal first if it's open
+    if (showEntriesModal) {
+      setShowEntriesModal(false);
+    }
+    // Set entryToEdit FIRST, then open modal after a delay to ensure state is set
     setEntryToEdit(entry);
-    openAddEntryModal();
+    // Use setTimeout to ensure state update is processed before opening modal
+    // Use a longer delay to ensure React has processed the state update
+    setTimeout(() => {
+      openAddEntryModal();
+    }, 150);
   };
 
   const handleDuplicate = (entry) => {
+    // Prevent duplicating cash withdrawal, deposit, and balance adjustment entries
+    if (entry.type === 'cash_withdrawal' || entry.type === 'cash_deposit' || entry.type === 'balance_adjustment') {
+      return;
+    }
     // Create a duplicate entry with today's date
     const duplicateEntry = {
       ...entry,
@@ -861,7 +888,8 @@ const SummaryScreen = () => {
         visible={addEntryModalVisible}
         onClose={() => {
           closeAddEntryModal();
-          setEntryToEdit(null);
+          // Don't clear entryToEdit here - it might be needed for reopening
+          // It will be cleared after save in handleEntryAdded
         }}
         onSave={handleEntryAdded}
         editEntry={entryToEdit}
@@ -870,7 +898,10 @@ const SummaryScreen = () => {
       <EntriesReportModal
         visible={showEntriesModal}
         entries={filteredEntries}
-        onClose={() => setShowEntriesModal(false)}
+        onClose={() => {
+          setShowEntriesModal(false);
+          // Don't clear entryToEdit here - it might be needed for edit action
+        }}
         onEdit={handleEdit}
         onDuplicate={handleDuplicate}
         onDelete={(entry) => {

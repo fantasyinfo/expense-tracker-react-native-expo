@@ -23,7 +23,6 @@ export const shareViaWhatsApp = () => {
       }
     })
     .catch((err) => {
-      console.error('Error sharing via WhatsApp:', err);
       Share.share({
         message: message,
       });
@@ -43,7 +42,7 @@ export const shareApp = async () => {
       url: DRIVE_DOWNLOAD_LINK,
     });
   } catch (error) {
-    console.error('Error sharing app:', error);
+    // Error sharing app
   }
 };
 
@@ -63,7 +62,6 @@ export const shareViaSMS = () => {
       }
     })
     .catch((err) => {
-      console.error('Error sharing via SMS:', err);
       Share.share({ message: message });
     });
 };
@@ -81,11 +79,9 @@ export const openDriveDownload = async () => {
     const supported = await Linking.canOpenURL(DRIVE_DOWNLOAD_LINK);
     if (supported) {
       await Linking.openURL(DRIVE_DOWNLOAD_LINK);
-    } else {
-      console.error('Cannot open Google Drive link');
     }
   } catch (error) {
-    console.error('Error opening Google Drive link:', error);
+    // Error opening Google Drive link
   }
 };
 
@@ -102,7 +98,7 @@ export const shareDriveDownload = async () => {
       url: DRIVE_DOWNLOAD_LINK,
     });
   } catch (error) {
-    console.error('Error sharing download link:', error);
+    // Error sharing download link
   }
 };
 

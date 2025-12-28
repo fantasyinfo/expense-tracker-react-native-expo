@@ -406,7 +406,10 @@ const EntriesReportModal = ({ visible, entries, onClose, onEdit, onDuplicate, on
           }}
         >
           <View style={styles.actionMenuContainer}>
-            {onEdit && (
+            {onEdit && selectedEntryForMenu && 
+             selectedEntryForMenu.type !== 'cash_withdrawal' && 
+             selectedEntryForMenu.type !== 'cash_deposit' && 
+             selectedEntryForMenu.type !== 'balance_adjustment' && (
               <TouchableOpacity
                 style={styles.actionMenuItem}
                 onPress={() => handleMenuAction('edit', selectedEntryForMenu)}
@@ -416,7 +419,10 @@ const EntriesReportModal = ({ visible, entries, onClose, onEdit, onDuplicate, on
                 <Text style={styles.actionMenuText}>Edit</Text>
               </TouchableOpacity>
             )}
-            {onDuplicate && (
+            {onDuplicate && selectedEntryForMenu && 
+             selectedEntryForMenu.type !== 'cash_withdrawal' && 
+             selectedEntryForMenu.type !== 'cash_deposit' && 
+             selectedEntryForMenu.type !== 'balance_adjustment' && (
               <TouchableOpacity
                 style={styles.actionMenuItem}
                 onPress={() => handleMenuAction('duplicate', selectedEntryForMenu)}

@@ -48,7 +48,6 @@ const ProfileScreen = () => {
       Alert.alert('Success', 'Profile updated successfully!');
     } catch (error) {
       Alert.alert('Error', 'Failed to save profile. Please try again.');
-      console.error('Error saving profile:', error);
     }
   };
 

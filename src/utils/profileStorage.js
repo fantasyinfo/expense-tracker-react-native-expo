@@ -33,7 +33,6 @@ export const loadProfile = async () => {
       dreams: profile.dreams || defaults.dreams,
     };
   } catch (error) {
-    console.error('Error loading profile:', error);
     return getDefaultProfile();
   }
 };
@@ -45,7 +44,6 @@ export const saveProfile = async (profile) => {
   try {
     await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
   } catch (error) {
-    console.error('Error saving profile:', error);
     throw error;
   }
 };
@@ -60,7 +58,6 @@ export const updateProfileField = async (field, value) => {
     await saveProfile(profile);
     return profile;
   } catch (error) {
-    console.error('Error updating profile field:', error);
     throw error;
   }
 };
