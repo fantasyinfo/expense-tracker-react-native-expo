@@ -101,7 +101,7 @@ export const createManualBackup = async () => {
     // Share file
     try {
       await Share.open({
-        url: Platform.OS === 'android' ? `file://${fileUri}` : fileUri,
+        url: fileUri.startsWith('file://') ? fileUri : `file://${fileUri}`,
         type: 'application/json',
         title: 'Save Backup File',
         filename: fileName,

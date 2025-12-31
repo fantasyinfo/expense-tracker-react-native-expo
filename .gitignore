@@ -141,6 +141,43 @@ dist/
 # Metro bundler
 .metro-health-check*
 
+# React Native - Native Project Build Artifacts
+# Android build outputs
+native/KharchaNative/android/app/build/
+native/KharchaNative/android/build/
+native/KharchaNative/android/.gradle/
+native/KharchaNative/android/app/debug.keystore
+native/KharchaNative/android/local.properties
+native/KharchaNative/android/*.iml
+native/KharchaNative/android/.idea/
+
+# iOS build outputs
+native/KharchaNative/ios/build/
+native/KharchaNative/ios/Pods/
+native/KharchaNative/ios/Podfile.lock
+native/KharchaNative/ios/*.xcworkspace
+native/KharchaNative/ios/*.xcuserdata
+native/KharchaNative/ios/DerivedData/
+native/KharchaNative/ios/*.app.dSYM
+native/KharchaNative/ios/*.app.dSYM.zip
+
+# React Native node_modules (keep root node_modules for Expo)
+native/KharchaNative/node_modules/
+native/KharchaNative/package-lock.json
+
+# React Native Metro cache
+native/KharchaNative/.metro-health-check*
+
+# React Native - Keep these important files:
+# !native/KharchaNative/android/app/src/main/assets/fonts/
+# !native/KharchaNative/src/
+# !native/KharchaNative/App.js
+# !native/KharchaNative/package.json
+# !native/KharchaNative/android/app/build.gradle
+# !native/KharchaNative/android/build.gradle
+# !native/KharchaNative/android/settings.gradle
+# !native/KharchaNative/android/app/src/main/AndroidManifest.xml
+
 # Misc
 *.pem
 *.p8

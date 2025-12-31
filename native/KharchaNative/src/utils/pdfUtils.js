@@ -367,7 +367,7 @@ export const exportToPDF = async (entries, options = {}) => {
       // Share HTML file (can be opened in browser and printed to PDF)
       try {
         await Share.open({
-          url: Platform.OS === 'android' ? `file://${fileUri}` : fileUri,
+          url: fileUri.startsWith('file://') ? fileUri : `file://${fileUri}`,
           type: 'text/html',
           title: 'Export Expense Report',
           filename: fileName,
@@ -392,7 +392,7 @@ export const exportToPDF = async (entries, options = {}) => {
 const saveFileToDevice = async (fileUri, fileName, mimeType) => {
   try {
     await Share.open({
-      url: Platform.OS === 'android' ? `file://${fileUri}` : fileUri,
+      url: fileUri.startsWith('file://') ? fileUri : `file://${fileUri}`,
       type: mimeType,
       title: 'Save File to Device',
       filename: fileName,

@@ -13,7 +13,7 @@ const saveFileToDevice = async (fileUri, fileName, mimeType) => {
     // For "save" action, we'll use sharing with a hint to save
     // The sharing dialog on both platforms allows users to save to device
     await Share.open({
-      url: Platform.OS === 'android' ? `file://${fileUri}` : fileUri,
+      url: fileUri.startsWith('file://') ? fileUri : `file://${fileUri}`,
       type: mimeType,
       title: 'Save File to Device',
       filename: fileName,
@@ -202,7 +202,7 @@ export const exportToExcel = async (entries, options = {}) => {
       // Share/download file (CSV can be opened in Excel)
       try {
         await Share.open({
-          url: Platform.OS === 'android' ? `file://${fileUri}` : fileUri,
+          url: fileUri.startsWith('file://') ? fileUri : `file://${fileUri}`,
           type: 'text/csv',
           title: 'Export Expense Data',
           filename: fileName,
