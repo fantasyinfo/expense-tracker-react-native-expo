@@ -14,6 +14,7 @@ import CurrencySelectionScreen from './src/screens/CurrencySelectionScreen';
 import CustomTabBar from './src/components/CustomTabBar';
 import { ModalProvider } from './src/context/ModalContext';
 import { CurrencyProvider, useCurrency } from './src/context/CurrencyContext';
+import { PreferencesProvider } from './src/context/PreferencesContext';
 import { LanguageProvider, useLanguage } from './src/context/LanguageContext';
 import LanguageSelectionScreen from './src/screens/LanguageSelectionScreen';
 import Colors from './src/constants/colors';
@@ -98,20 +99,21 @@ function MainApp() {
 
 export default function App() {
   return (
-    <LanguageProvider>
-      <CurrencyProvider>
-        <ModalProvider>
-          <SafeAreaProvider>
-            <StatusBar 
-              barStyle="light-content" 
-              backgroundColor={Colors.background.primary}
-              translucent={false}
-            />
-            <MainApp />
-          </SafeAreaProvider>
-        </ModalProvider>
-      </CurrencyProvider>
-    </LanguageProvider>
+    <PreferencesProvider>
+      <LanguageProvider>
+        <CurrencyProvider>
+          <ModalProvider>
+            <SafeAreaProvider>
+              <StatusBar 
+                barStyle="light-content" 
+                backgroundColor={Colors.background.primary}
+                translucent={false}
+              />
+              <MainApp />
+            </SafeAreaProvider>
+          </ModalProvider>
+        </CurrencyProvider>
+      </LanguageProvider>
+    </PreferencesProvider>
   );
 }
-

@@ -22,12 +22,14 @@ import { loadCategories, getCategoriesByType } from '../utils/categoryStorage';
 import Colors from '../constants/colors';
 import { useCurrency } from '../context/CurrencyContext';
 import { useLanguage } from '../context/LanguageContext';
+import { usePreferences } from '../context/PreferencesContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
   const { currency } = useCurrency();
   const { t } = useLanguage();
+  const { paymentLabels } = usePreferences();
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [type, setType] = useState('expense');
@@ -564,7 +566,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
                       mode === 'upi' && styles.modeButtonTextActive,
                     ]}
                   >
-                    {t('common.upi')}
+                    {paymentLabels.upi}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity

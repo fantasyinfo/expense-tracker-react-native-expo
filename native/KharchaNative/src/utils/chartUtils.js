@@ -72,11 +72,11 @@ export const prepareMonthlyChart = (entries) => {
 /**
  * Prepare chart data for UPI vs Cash comparison
  */
-export const preparePaymentMethodChart = (entries) => {
+export const preparePaymentMethodChart = (entries, labels = { upi: 'Digital', cash: 'Cash' }) => {
   const totals = calculateTotals(entries);
   
   return {
-    labels: ['UPI', 'Cash'],
+    labels: [labels.upi, labels.cash],
     datasets: [
       {
         data: [
@@ -91,11 +91,11 @@ export const preparePaymentMethodChart = (entries) => {
 /**
  * Prepare chart data for UPI vs Cash breakdown by expense/income
  */
-export const preparePaymentMethodBreakdownChart = (entries) => {
+export const preparePaymentMethodBreakdownChart = (entries, labels = { upi: 'Digital', cash: 'Cash' }) => {
   const totals = calculateTotals(entries);
   
   return {
-    labels: ['Expense UPI', 'Expense Cash', 'Income UPI', 'Income Cash'],
+    labels: [`Expense ${labels.upi}`, 'Expense Cash', `Income ${labels.upi}`, 'Income Cash'],
     datasets: [
       {
         data: [

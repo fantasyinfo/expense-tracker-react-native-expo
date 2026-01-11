@@ -170,7 +170,7 @@ const generatePDFHTML = async (entries, options = {}) => {
       
       <div class="summary">
         <div class="summary-card">
-          <div class="summary-label">Expense - UPI</div>
+          <div class="summary-label">Expense - ${options.paymentLabels?.upi || 'Digital'}</div>
           <div class="summary-value expense">${currencySymbol}${expenseUpi.toFixed(2)}</div>
         </div>
         <div class="summary-card">
@@ -178,7 +178,7 @@ const generatePDFHTML = async (entries, options = {}) => {
           <div class="summary-value expense">${currencySymbol}${expenseCash.toFixed(2)}</div>
         </div>
         <div class="summary-card">
-          <div class="summary-label">Income - UPI</div>
+          <div class="summary-label">Income - ${options.paymentLabels?.upi || 'Digital'}</div>
           <div class="summary-value income">${currencySymbol}${incomeUpi.toFixed(2)}</div>
         </div>
         <div class="summary-card">
@@ -224,8 +224,9 @@ const generatePDFHTML = async (entries, options = {}) => {
     } else if (entry.type === 'cash_deposit') {
       paymentMethod = 'Cash → UPI';
     } else {
-      paymentMethod = (entry.mode || 'upi') === 'upi' ? 'UPI' : 'Cash';
-    }
+        const upiLabel = options.paymentLabels?.upi || 'Digital';
+        paymentMethod = (entry.mode || 'upi') === 'upi' ? upiLabel : 'Cash';
+      }
     const category = entry.category_id ? (categoryMap.get(entry.category_id) || '') : '';
     const note = (entry.note || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const amountClass = entry.type === 'expense' ? 'amount-expense' : 'amount-income';

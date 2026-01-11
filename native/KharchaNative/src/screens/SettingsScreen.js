@@ -43,6 +43,7 @@ import CategoryManagementModal from '../components/CategoryManagementModal';
 import CurrencySelectionScreen from './CurrencySelectionScreen';
 import LanguageSelectionScreen from './LanguageSelectionScreen';
 import { useLanguage } from '../context/LanguageContext';
+import { usePreferences } from '../context/PreferencesContext';
 import { createManualBackup, getLastBackupTime, formatBackupDate } from '../utils/backupUtils';
 
 const CollapsibleSection = ({ title, children, defaultExpanded = false }) => {
@@ -78,6 +79,7 @@ const SettingsScreen = () => {
   } = useModal();
   const { currency } = useCurrency();
   const { language, supportedLanguages, t } = useLanguage();
+  const { paymentLabels, updatePaymentLabel } = usePreferences();
   const [entries, setEntries] = useState([]);
   const [exporting, setExporting] = useState(false);
   const [entryCount, setEntryCount] = useState(0);
@@ -198,24 +200,20 @@ const SettingsScreen = () => {
     setExporting(true);
     try {
       let result;
+      const options = {
+        action: exportOptions.action,
+        dateRange: exportOptions.dateRange,
+        entryType: exportOptions.entryType,
+        paymentLabels,
+        currencySymbol: currency.symbol,
+      };
+
       if (exportOptions.format === 'csv') {
-        result = await exportToExcel(exportOptions.entries, {
-          action: exportOptions.action,
-          dateRange: exportOptions.dateRange,
-          entryType: exportOptions.entryType,
-        });
+        result = await exportToExcel(exportOptions.entries, options);
       } else if (exportOptions.format === 'json') {
-        result = await exportToJSON(exportOptions.entries, {
-          action: exportOptions.action,
-          dateRange: exportOptions.dateRange,
-          entryType: exportOptions.entryType,
-        });
+        result = await exportToJSON(exportOptions.entries, options);
       } else if (exportOptions.format === 'pdf') {
-        result = await exportToPDF(exportOptions.entries, {
-          action: exportOptions.action,
-          dateRange: exportOptions.dateRange,
-          entryType: exportOptions.entryType,
-        });
+        result = await exportToPDF(exportOptions.entries, options);
       }
 
       if (result.saved) {
@@ -401,6 +399,42 @@ const SettingsScreen = () => {
         </View>
       </CollapsibleSection>
 
+      {/* Payment Methods Section */}
+      <CollapsibleSection title={t('settings.paymentMethods')}>
+        <View style={styles.sectionContent}>
+          <Text style={styles.sectionTitle}>{t('settings.digitalPaymentLabel')}</Text>
+          <Text style={styles.sectionSubtitle}>{t('settings.digitalPaymentLabelDesc')}</Text>
+          
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              value={paymentLabels.upi}
+              onChangeText={(text) => updatePaymentLabel('upi', text)}
+              placeholder={t('settings.digitalPaymentLabel')}
+              placeholderTextColor="#666"
+            />
+          </View>
+
+          <View style={styles.presetsContainer}>
+            {['Digital', 'UPI', 'Card', 'Bank', 'Zelle', 'Pix', 'PayNow'].map((label) => (
+              <TouchableOpacity
+                key={label}
+                style={[
+                  styles.presetButton,
+                  paymentLabels.upi === label && styles.presetButtonActive
+                ]}
+                onPress={() => updatePaymentLabel('upi', label)}
+              >
+                <Text style={[
+                  styles.presetButtonText,
+                  paymentLabels.upi === label && styles.presetButtonTextActive
+                ]}>{label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </CollapsibleSection>
+
       {/* Balance Management Section */}
       <CollapsibleSection title={t('settings.balanceManagement')} defaultExpanded={false}>
         <View style={styles.sectionContent}>
@@ -408,7 +442,7 @@ const SettingsScreen = () => {
           <View style={styles.balanceDisplayRow}>
             {bankBalance !== null && (
               <View style={styles.balanceDisplayCard}>
-                <Text style={styles.balanceDisplayLabel}>{t('settings.bankUpiBalance')}</Text>
+                <Text style={styles.balanceDisplayLabel}>{t('settings.accountBalanceLabel', { label: paymentLabels.upi })}</Text>
                 <Text style={[
                   styles.balanceDisplayAmount,
                   bankBalance < 0 && styles.balanceDisplayAmountNegative
@@ -433,7 +467,7 @@ const SettingsScreen = () => {
           {/* Currency moved to App Preferences */}
 
           <SettingCard
-            title={t('settings.setBankBalance')}
+            title={t('settings.accountBalanceLabel', { label: paymentLabels.upi })}
             description={t('settings.setBankBalanceDesc')}
             onPress={() => handleSetBalance('bank')}
           />
@@ -1162,6 +1196,49 @@ const styles = StyleSheet.create({
   sectionContent: {
     paddingTop: 8,
   },
+  settingTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.text.primary,
+    marginBottom: 4,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.text.primary,
+    marginBottom: 4,
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    color: Colors.text.secondary,
+    marginBottom: 16,
+  },
+  presetsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  presetButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: Colors.background.primary,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+  },
+  presetButtonActive: {
+    backgroundColor: Colors.accent.primary,
+    borderColor: Colors.accent.primary,
+  },
+  presetButtonText: {
+    fontSize: 13,
+    color: Colors.text.secondary,
+    fontWeight: '600',
+  },
+  presetButtonTextActive: {
+    color: '#FFFFFF',
+  },
   settingCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1177,12 +1254,6 @@ const styles = StyleSheet.create({
   },
   settingContent: {
     flex: 1,
-  },
-  settingTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginBottom: 4,
   },
   settingDescription: {
     fontSize: 13,

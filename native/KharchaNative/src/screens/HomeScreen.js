@@ -28,6 +28,7 @@ import { useModal } from '../context/ModalContext';
 import Colors from '../constants/colors';
 import { useCurrency } from '../context/CurrencyContext';
 import { useLanguage } from '../context/LanguageContext';
+import { usePreferences } from '../context/PreferencesContext';
 import AddEntryModal from '../components/AddEntryModal';
 import AppFooter from '../components/AppFooter';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
@@ -42,6 +43,7 @@ const HomeScreen = () => {
   } = useModal();
   const { currency } = useCurrency();
   const { t } = useLanguage();
+  const { paymentLabels } = usePreferences();
   const navigation = useNavigation();
   const [entries, setEntries] = useState([]);
   const [todayEntries, setTodayEntries] = useState([]);
@@ -819,7 +821,7 @@ const HomeScreen = () => {
               <View style={[styles.balanceCardSmallIcon, { backgroundColor: 'rgba(77, 171, 247, 0.15)' }]}>
                 <Ionicons name="phone-portrait" size={20} color="#4DABF7" />
               </View>
-              <Text style={styles.balanceCardSmallLabel}>{t('home.upiBalance')}</Text>
+              <Text style={styles.balanceCardSmallLabel}>{t('home.accountBalance', { label: paymentLabels.upi })}</Text>
             </View>
             <Text 
               style={[

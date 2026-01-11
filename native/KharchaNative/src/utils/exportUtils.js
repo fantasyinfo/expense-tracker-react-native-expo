@@ -72,7 +72,8 @@ export const exportToExcel = async (entries, options = {}) => {
       } else if (entry.type === 'cash_deposit') {
         paymentMethod = 'Cash → UPI';
       } else {
-        paymentMethod = (entry.mode || 'upi') === 'upi' ? 'UPI' : 'Cash';
+        const upiLabel = options.paymentLabels?.upi || 'Digital';
+        paymentMethod = (entry.mode || 'upi') === 'upi' ? upiLabel : 'Cash';
       }
       const category = entry.category_id ? (categoryMap.get(entry.category_id) || '') : '';
       const note = (entry.note || '').replace(/,/g, ';'); // Replace commas in notes
@@ -108,10 +109,10 @@ export const exportToExcel = async (entries, options = {}) => {
     csvContent += `Total Income,,${totalIncome.toFixed(2)},,\n`;
     csvContent += `Net Balance,,${balance.toFixed(2)},,\n`;
     csvContent += '\n';
-    csvContent += 'PAYMENT METHOD BREAKDOWN\n';
-    csvContent += `Expense - UPI,,${expenseUpi.toFixed(2)},,\n`;
+    const upiLabel = options.paymentLabels?.upi || 'Digital';
+    csvContent += `Expense - ${upiLabel},,${expenseUpi.toFixed(2)},,\n`;
     csvContent += `Expense - Cash,,${expenseCash.toFixed(2)},,\n`;
-    csvContent += `Income - UPI,,${incomeUpi.toFixed(2)},,\n`;
+    csvContent += `Income - ${upiLabel},,${incomeUpi.toFixed(2)},,\n`;
     csvContent += `Income - Cash,,${incomeCash.toFixed(2)},,\n`;
     
     // Advertisement Section

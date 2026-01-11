@@ -28,6 +28,7 @@ import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import Colors from '../constants/colors';
 import { useCurrency } from '../context/CurrencyContext';
 import { useLanguage } from '../context/LanguageContext';
+import { usePreferences } from '../context/PreferencesContext';
 
 const PERIODS = ['today', 'weekly', 'monthly', 'quarterly', 'yearly'];
 const screenWidth = Dimensions.get('window').width;
@@ -40,6 +41,7 @@ const SummaryScreen = () => {
   } = useModal();
   const { currency } = useCurrency();
   const { t } = useLanguage();
+  const { paymentLabels } = usePreferences();
   const [entries, setEntries] = useState([]);
   const [selectedPeriod, setSelectedPeriod] = useState('monthly');
   const [filteredEntries, setFilteredEntries] = useState([]);
@@ -281,7 +283,7 @@ const SummaryScreen = () => {
 
   const expenseIncomeData = prepareExpenseIncomeChart(entries, selectedPeriod || 'monthly');
   const monthlyData = prepareMonthlyChart(entries);
-  const paymentMethodData = preparePaymentMethodChart(filteredEntries);
+  const paymentMethodData = preparePaymentMethodChart(filteredEntries, paymentLabels);
 
   return (
     <ScrollView
@@ -554,7 +556,7 @@ const SummaryScreen = () => {
               <View style={styles.paymentCardInfo}>
                 <View style={styles.paymentCardHeader}>
                   <Text style={styles.paymentCardName} numberOfLines={1}>
-                    {t('summary.expenseUpi')}
+                    {t('summary.accountExpense', { label: paymentLabels.upi })}
                   </Text>
                   <Text style={[styles.paymentCardAmount, { color: '#FF6B6B' }]}>
                     {currency.symbol}{formatCurrency(totals.expenseUpi || 0)}
@@ -628,7 +630,7 @@ const SummaryScreen = () => {
               <View style={styles.paymentCardInfo}>
                 <View style={styles.paymentCardHeader}>
                   <Text style={styles.paymentCardName} numberOfLines={1}>
-                    {t('summary.incomeUpi')}
+                    {t('summary.accountIncome', { label: paymentLabels.upi })}
                   </Text>
                   <Text style={[styles.paymentCardAmount, { color: '#51CF66' }]}>
                     {currency.symbol}{formatCurrency(totals.incomeUpi || 0)}
