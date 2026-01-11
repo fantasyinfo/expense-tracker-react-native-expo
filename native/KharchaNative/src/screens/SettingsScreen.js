@@ -41,11 +41,13 @@ import ExportFilterModal from '../components/ExportFilterModal';
 import UserGuideScreen from './UserGuideScreen';
 import CategoryManagementModal from '../components/CategoryManagementModal';
 import CurrencySelectionScreen from './CurrencySelectionScreen';
+import LanguageSelectionScreen from './LanguageSelectionScreen';
+import { useLanguage } from '../context/LanguageContext';
 import { createManualBackup, getLastBackupTime, formatBackupDate } from '../utils/backupUtils';
 
 const CollapsibleSection = ({ title, children, defaultExpanded = false }) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
-
+  const { t } = useLanguage();
   return (
     <View style={styles.collapsibleSection}>
       <TouchableOpacity
@@ -75,6 +77,7 @@ const SettingsScreen = () => {
     closeCashDepositModal,
   } = useModal();
   const { currency } = useCurrency();
+  const { language, supportedLanguages, t } = useLanguage();
   const [entries, setEntries] = useState([]);
   const [exporting, setExporting] = useState(false);
   const [entryCount, setEntryCount] = useState(0);
@@ -112,6 +115,7 @@ const SettingsScreen = () => {
   const [showUserGuide, setShowUserGuide] = useState(false);
   const [showCategoryManagement, setShowCategoryManagement] = useState(false);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
 
   const loadData = useCallback(async () => {
     const allEntries = await loadEntries();
@@ -154,6 +158,7 @@ const SettingsScreen = () => {
         setShowGoalsModal(false);
         setShowCategoryManagement(false);
         setShowCurrencyModal(false);
+        setShowLanguageModal(false);
       };
     }, [])
   );
@@ -346,10 +351,9 @@ const SettingsScreen = () => {
     <ScrollView style={styles.container}>
       {/* Professional Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={styles.headerTitle}>{t('settings.title')}</Text>
       </View>
       
-      {/* Currency Modal */}
       <Modal
         visible={showCurrencyModal}
         animationType="slide"
@@ -365,14 +369,46 @@ const SettingsScreen = () => {
         />
       </Modal>
 
+      {/* Language Modal */}
+      <Modal
+        visible={showLanguageModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowLanguageModal(false)}
+      >
+        <LanguageSelectionScreen
+          navigation={{
+            goBack: () => setShowLanguageModal(false),
+            canGoBack: () => true,
+          }}
+          route={{ params: { mode: 'settings' } }}
+        />
+      </Modal>
+
+      {/* App Preferences Section */}
+      <CollapsibleSection title={t('settings.appPreferences')} defaultExpanded={true}>
+        <View style={styles.sectionContent}>
+          <SettingCard
+            title={t('settings.language')}
+            description={supportedLanguages.find(l => l.code === language)?.name || 'English'}
+            onPress={() => setShowLanguageModal(true)}
+          />
+          <SettingCard
+            title={t('settings.currency')}
+            description={`${currency.name} (${currency.symbol})`}
+            onPress={() => setShowCurrencyModal(true)}
+          />
+        </View>
+      </CollapsibleSection>
+
       {/* Balance Management Section */}
-      <CollapsibleSection title="Balance Management" defaultExpanded={true}>
+      <CollapsibleSection title={t('settings.balanceManagement')} defaultExpanded={false}>
         <View style={styles.sectionContent}>
           {/* Current Balances Display */}
           <View style={styles.balanceDisplayRow}>
             {bankBalance !== null && (
               <View style={styles.balanceDisplayCard}>
-                <Text style={styles.balanceDisplayLabel}>Bank / UPI</Text>
+                <Text style={styles.balanceDisplayLabel}>{t('settings.bankUpiBalance')}</Text>
                 <Text style={[
                   styles.balanceDisplayAmount,
                   bankBalance < 0 && styles.balanceDisplayAmountNegative
@@ -383,7 +419,7 @@ const SettingsScreen = () => {
             )}
             {cashBalance !== null && (
               <View style={styles.balanceDisplayCard}>
-                <Text style={styles.balanceDisplayLabel}>Cash</Text>
+                <Text style={styles.balanceDisplayLabel}>{t('settings.cashBalance')}</Text>
                 <Text style={[
                   styles.balanceDisplayAmount,
                   cashBalance < 0 && styles.balanceDisplayAmountNegative
@@ -394,47 +430,43 @@ const SettingsScreen = () => {
             )}
           </View>
           
-          <SettingCard
-            title="Currency"
-            description={`${currency.name} (${currency.symbol})`}
-            onPress={() => setShowCurrencyModal(true)}
-          />
+          {/* Currency moved to App Preferences */}
 
           <SettingCard
-            title="Set Bank / UPI Balance"
-            description="Set your initial bank or UPI balance"
+            title={t('settings.setBankBalance')}
+            description={t('settings.setBankBalanceDesc')}
             onPress={() => handleSetBalance('bank')}
           />
           <SettingCard
-            title="Set Cash Balance"
-            description="Set your initial cash balance"
+            title={t('settings.setCashBalance')}
+            description={t('settings.setCashBalanceDesc')}
             onPress={() => handleSetBalance('cash')}
           />
           <SettingCard
-            title="Auto Calculate from Entries"
-            description="Calculate initial balances from all existing entries"
+            title={t('settings.autoCalculate')}
+            description={t('settings.autoCalculateDesc')}
             onPress={handleAutoCalculateBalances}
             disabled={entryCount === 0}
           />
           <SettingCard
-            title="Cash Withdrawal"
-            description="Withdraw cash from UPI to Cash"
+            title={t('settings.cashWithdrawal')}
+            description={t('settings.cashWithdrawalDesc')}
             onPress={openCashWithdrawalModal}
           />
           <SettingCard
-            title="Cash Deposit"
-            description="Deposit cash from Cash to UPI"
+            title={t('settings.cashDeposit')}
+            description={t('settings.cashDepositDesc')}
             onPress={openCashDepositModal}
           />
         </View>
       </CollapsibleSection>
 
       {/* Savings Goals Section */}
-      <CollapsibleSection title="Savings Goals">
+      <CollapsibleSection title={t('settings.savingsGoals')}>
         <View style={styles.sectionContent}>
           <SettingCard
-            title="Set Daily Savings Goal"
-            description={goals.dailySavingsGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.dailySavingsGoal)}` : 'Set your daily savings target'}
+            title={t('settings.setDailySavings')}
+            description={goals.dailySavingsGoal > 0 ? `${t('common.current', { defaultValue: 'Current' })}: ${currency.symbol}${formatCurrency(goals.dailySavingsGoal)}` : t('settings.setDailySavingsDesc')}
             onPress={() => {
               setGoalCategory('savings');
               setGoalType('daily');
@@ -443,8 +475,8 @@ const SettingsScreen = () => {
             }}
           />
           <SettingCard
-            title="Set Weekly Savings Goal"
-            description={goals.weeklySavingsGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.weeklySavingsGoal)}` : 'Set your weekly savings target'}
+            title={t('settings.setWeeklySavings')}
+            description={goals.weeklySavingsGoal > 0 ? `${t('common.current', { defaultValue: 'Current' })}: ${currency.symbol}${formatCurrency(goals.weeklySavingsGoal)}` : t('settings.setWeeklySavingsDesc')}
             onPress={() => {
               setGoalCategory('savings');
               setGoalType('weekly');
@@ -453,8 +485,8 @@ const SettingsScreen = () => {
             }}
           />
           <SettingCard
-            title="Set Monthly Savings Goal"
-            description={goals.monthlySavingsGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.monthlySavingsGoal)}` : 'Set your monthly savings target'}
+            title={t('settings.setMonthlySavings')}
+            description={goals.monthlySavingsGoal > 0 ? `${t('common.current', { defaultValue: 'Current' })}: ${currency.symbol}${formatCurrency(goals.monthlySavingsGoal)}` : t('settings.setMonthlySavingsDesc')}
             onPress={() => {
               setGoalCategory('savings');
               setGoalType('monthly');
@@ -463,8 +495,8 @@ const SettingsScreen = () => {
             }}
           />
           <SettingCard
-            title="Set Yearly Savings Goal"
-            description={goals.yearlySavingsGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.yearlySavingsGoal)}` : 'Set your yearly savings target'}
+            title={t('settings.setYearlySavings')}
+            description={goals.yearlySavingsGoal > 0 ? `${t('common.current', { defaultValue: 'Current' })}: ${currency.symbol}${formatCurrency(goals.yearlySavingsGoal)}` : t('settings.setYearlySavingsDesc')}
             onPress={() => {
               setGoalCategory('savings');
               setGoalType('yearly');
@@ -473,8 +505,8 @@ const SettingsScreen = () => {
             }}
           />
           <SettingCard
-            title="Set Custom Savings Goal"
-            description={goals.customSavingsGoal > 0 ? `${goals.customSavingsGoalName || 'Custom'}: ${currency.symbol}${formatCurrency(goals.customSavingsGoal)}` : 'Set a custom savings goal'}
+            title={t('settings.setCustomSavings')}
+            description={goals.customSavingsGoal > 0 ? `${goals.customSavingsGoalName || 'Custom'}: ${currency.symbol}${formatCurrency(goals.customSavingsGoal)}` : t('settings.setCustomSavingsDesc')}
             onPress={() => {
               setGoalCategory('savings');
               setGoalType('custom');
@@ -487,11 +519,11 @@ const SettingsScreen = () => {
       </CollapsibleSection>
 
       {/* Expense Goals Section */}
-      <CollapsibleSection title="Expense Limits">
+      <CollapsibleSection title={t('settings.expenseLimits')}>
         <View style={styles.sectionContent}>
           <SettingCard
-            title="Set Daily Expense Limit"
-            description={goals.dailyExpenseGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.dailyExpenseGoal)}` : 'Set your daily expense limit'}
+            title={t('settings.setDailyExpense')}
+            description={goals.dailyExpenseGoal > 0 ? `${t('common.current', { defaultValue: 'Current' })}: ${currency.symbol}${formatCurrency(goals.dailyExpenseGoal)}` : t('settings.setDailyExpenseDesc')}
             onPress={() => {
               setGoalCategory('expense');
               setGoalType('daily');
@@ -500,8 +532,8 @@ const SettingsScreen = () => {
             }}
           />
           <SettingCard
-            title="Set Weekly Expense Limit"
-            description={goals.weeklyExpenseGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.weeklyExpenseGoal)}` : 'Set your weekly expense limit'}
+            title={t('settings.setWeeklyExpense')}
+            description={goals.weeklyExpenseGoal > 0 ? `${t('common.current', { defaultValue: 'Current' })}: ${currency.symbol}${formatCurrency(goals.weeklyExpenseGoal)}` : t('settings.setWeeklyExpenseDesc')}
             onPress={() => {
               setGoalCategory('expense');
               setGoalType('weekly');
@@ -510,8 +542,8 @@ const SettingsScreen = () => {
             }}
           />
           <SettingCard
-            title="Set Monthly Expense Limit"
-            description={goals.monthlyExpenseGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.monthlyExpenseGoal)}` : 'Set your monthly expense limit'}
+            title={t('settings.setMonthlyExpense')}
+            description={goals.monthlyExpenseGoal > 0 ? `${t('common.current', { defaultValue: 'Current' })}: ${currency.symbol}${formatCurrency(goals.monthlyExpenseGoal)}` : t('settings.setMonthlyExpenseDesc')}
             onPress={() => {
               setGoalCategory('expense');
               setGoalType('monthly');
@@ -520,8 +552,8 @@ const SettingsScreen = () => {
             }}
           />
           <SettingCard
-            title="Set Yearly Expense Limit"
-            description={goals.yearlyExpenseGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.yearlyExpenseGoal)}` : 'Set your yearly expense limit'}
+            title={t('settings.setYearlyExpense')}
+            description={goals.yearlyExpenseGoal > 0 ? `${t('common.current', { defaultValue: 'Current' })}: ${currency.symbol}${formatCurrency(goals.yearlyExpenseGoal)}` : t('settings.setYearlyExpenseDesc')}
             onPress={() => {
               setGoalCategory('expense');
               setGoalType('yearly');
@@ -530,8 +562,8 @@ const SettingsScreen = () => {
             }}
           />
           <SettingCard
-            title="Set Custom Expense Limit"
-            description={goals.customExpenseGoal > 0 ? `${goals.customExpenseGoalName || 'Custom'}: ${currency.symbol}${formatCurrency(goals.customExpenseGoal)}` : 'Set a custom expense limit'}
+            title={t('settings.setCustomExpense')}
+            description={goals.customExpenseGoal > 0 ? `${goals.customExpenseGoalName || 'Custom'}: ${currency.symbol}${formatCurrency(goals.customExpenseGoal)}` : t('settings.setCustomExpenseDesc')}
             onPress={() => {
               setGoalCategory('expense');
               setGoalType('custom');
@@ -544,34 +576,34 @@ const SettingsScreen = () => {
       </CollapsibleSection>
 
       {/* Import Section */}
-      <CollapsibleSection title="Data Import">
+      <CollapsibleSection title={t('settings.dataImport')}>
         <View style={styles.sectionContent}>
           <SettingCard
-            title="Import from CSV/JSON"
-            description="Import entries from exported backup files"
+            title={t('settings.importCsvJson')}
+            description={t('settings.importCsvJsonDesc')}
             onPress={() => setShowImportModal(true)}
           />
         </View>
       </CollapsibleSection>
 
       {/* Export Section */}
-      <CollapsibleSection title="Data Export">
+      <CollapsibleSection title={t('settings.dataExport')}>
         <View style={styles.sectionContent}>
           <SettingCard
-            title="Export to Excel"
-            description="Download data as .csv file"
+            title={t('settings.exportExcel')}
+            description={t('settings.exportExcelDesc')}
             onPress={handleExportExcel}
             disabled={entryCount === 0}
           />
           <SettingCard
-            title="Export to JSON"
-            description="Download data as .json file"
+            title={t('settings.exportJson')}
+            description={t('settings.exportJsonDesc')}
             onPress={handleExportJSON}
             disabled={entryCount === 0}
           />
           <SettingCard
-            title="Export to PDF"
-            description="Generate PDF report (HTML format)"
+            title={t('settings.exportPdf')}
+            description={t('settings.exportPdfDesc')}
             onPress={handleExportPDF}
             disabled={entryCount === 0}
           />
@@ -579,92 +611,92 @@ const SettingsScreen = () => {
       </CollapsibleSection>
 
       {/* Backup & Restore Section */}
-      <CollapsibleSection title="Backup & Restore">
+      <CollapsibleSection title={t('settings.backupRestore')}>
         <View style={styles.sectionContent}>
           <SettingCard
-            title="Create Backup"
+            title={t('settings.createBackup')}
             description={
               lastBackupTime 
-                ? `Last backup: ${formatBackupDate(lastBackupTime)}`
-                : 'Create a backup file with all your data'
+                ? `${t('settings.lastBackup')}: ${formatBackupDate(lastBackupTime)}`
+                : t('settings.createBackupDesc')
             }
             onPress={handleCreateBackup}
             disabled={entryCount === 0 || backupCreating}
           />
           <SettingCard
-            title="Restore from Backup"
-            description="Restore data from a backup file"
+            title={t('settings.restoreBackup')}
+            description={t('settings.restoreBackupDesc')}
             onPress={() => setShowImportModal(true)}
           />
           <SettingCard
-            title="Backup Settings"
-            description="Configure backup method and preferences"
+            title={t('settings.backupSettings')}
+            description={t('settings.backupSettingsDesc')}
             onPress={() => setShowBackupSettingsModal(true)}
           />
         </View>
       </CollapsibleSection>
 
       {/* Category Management Section */}
-      <CollapsibleSection title="Category Management">
+      <CollapsibleSection title={t('settings.categoryManagement')}>
         <View style={styles.sectionContent}>
           <SettingCard
-            title="Manage Categories"
-            description="Add, edit, or delete custom categories"
+            title={t('settings.manageCategories')}
+            description={t('settings.manageCategoriesDesc')}
             onPress={() => setShowCategoryManagement(true)}
           />
         </View>
       </CollapsibleSection>
 
       {/* Share App Section */}
-      <CollapsibleSection title="Share App">
+      <CollapsibleSection title={t('settings.shareApp')}>
         <View style={styles.sectionContent}>
           <SettingCard
-            title="Share via WhatsApp"
-            description="Share Kharcha with friends and family"
+            title={t('settings.shareWhatsapp')}
+            description={t('settings.shareWhatsappDesc')}
             onPress={shareViaWhatsApp}
           />
           <SettingCard
-            title="Share via SMS"
-            description="Send app details via text message"
+            title={t('settings.shareSms')}
+            description={t('settings.shareSmsDesc')}
             onPress={shareViaSMS}
           />
           <SettingCard
-            title="Share via Other"
-            description="Share using any available app"
+            title={t('settings.shareOther')}
+            description={t('settings.shareOtherDesc')}
             onPress={shareApp}
           />
         </View>
       </CollapsibleSection>
 
       {/* Download APK Section */}
-      <CollapsibleSection title="Download APK">
+      <CollapsibleSection title={t('settings.downloadApkTitle')}>
         <View style={styles.sectionContent}>
           <SettingCard
-            title="Download APK"
-            description="Open Google Drive to download the app"
+            title={t('settings.downloadApk')}
+            description={t('settings.downloadApkDesc')}
             onPress={openDriveDownload}
           />
           <SettingCard
-            title="Share Download Link"
-            description="Share the download link with others"
+            title={t('settings.shareDownloadLink')}
+            description={t('settings.shareDownloadDesc')}
             onPress={shareDriveDownload}
           />
         </View>
       </CollapsibleSection>
 
       {/* About App Section */}
-      <CollapsibleSection title="About App">
+      <CollapsibleSection title={t('settings.aboutApp')}>
         <View style={styles.sectionContent}>
           <View style={styles.infoCard}>
             <Text style={styles.appName}>Kharcha</Text>
             <Text style={styles.appVersion}>Version 2.0.0</Text>
             <Text style={styles.infoDescription}>
-              A comprehensive, professional expense and income tracker designed to help you take complete control of your finances. Track every transaction, set savings goals and expense limits, monitor your progress, and achieve financial freedom - all in one beautiful, intuitive app.
+              {t('settings.aboutDesc')}
             </Text>
             <View style={styles.highlightBox}>
               <Ionicons name="shield-checkmark" size={20} color={Colors.accent.primary} />
               <Text style={styles.highlightText}>
-                100% offline - All your data stays on your device. No cloud, no login, completely private and secure.
+                {t('settings.offlineDesc')}
               </Text>
             </View>
           </View>
@@ -672,7 +704,7 @@ const SettingsScreen = () => {
       </CollapsibleSection>
 
       {/* Features Section */}
-      <CollapsibleSection title="Features">
+      <CollapsibleSection title={t('settings.features')}>
         <View style={styles.sectionContent}>
           <View style={styles.featureList}>
             <View style={styles.featureItem}>
@@ -756,18 +788,18 @@ const SettingsScreen = () => {
       </CollapsibleSection>
 
       {/* User Guide Section */}
-      <CollapsibleSection title="User Guide" defaultExpanded={false}>
+      <CollapsibleSection title={t('settings.userGuide')} defaultExpanded={false}>
         <View style={styles.sectionContent}>
           <SettingCard
-            title="📖 Complete User Guide"
-            description="Step-by-step guide with all features explained in detail"
+            title={t('settings.completeUserGuide')}
+            description={t('settings.completeUserGuideDesc')}
             onPress={() => setShowUserGuide(true)}
           />
         </View>
       </CollapsibleSection>
 
       {/* How to Use Section */}
-      <CollapsibleSection title="How to Use" defaultExpanded={false}>
+      <CollapsibleSection title={t('settings.howToUse')} defaultExpanded={false}>
         <View style={styles.sectionContent}>
           <View style={styles.instructionItem}>
             <Ionicons name="add-circle" size={20} color={Colors.accent.primary} />

@@ -20,16 +20,18 @@ import {
 import Colors from '../constants/colors';
 import { formatCurrency } from '../utils/dateUtils';
 import { useCurrency } from '../context/CurrencyContext';
+import { useLanguage } from '../context/LanguageContext';
 import AppFooter from '../components/AppFooter';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const GoalsScreen = () => {
   const { currency } = useCurrency();
+  const { t } = useLanguage();
   const [goals, setGoals] = useState({});
   const [savingsProgress, setSavingsProgress] = useState({});
   const [expenseProgress, setExpenseProgress] = useState({});
-  const [motivationalMessage, setMotivationalMessage] = useState('');
+  const [motivationalMessage, setMotivationalMessage] = useState(null);
   const [streak, setStreak] = useState({ currentStreak: 0, longestStreak: 0 });
   const [activeTab, setActiveTab] = useState('savings'); // 'savings' or 'expense'
 
@@ -121,7 +123,7 @@ const GoalsScreen = () => {
                 {customName || title}
               </Text>
               <Text style={styles.goalCardSubtitle}>
-                {isExpense ? 'Expense Limit' : 'Savings Goal'}
+                {isExpense ? t('goals.expenseLimit') : t('goals.savingsGoal')}
               </Text>
             </View>
             {isCompleted && !isOverLimit && (
@@ -140,7 +142,7 @@ const GoalsScreen = () => {
             <View style={styles.goalCardAmountRow}>
               <View style={styles.goalCardAmountItem}>
                 <Text style={styles.goalCardAmountLabel}>
-                  {isExpense ? 'Spent' : 'Saved'}
+                  {isExpense ? t('goals.spent') : t('goals.saved')}
                 </Text>
                 <Text style={styles.goalCardAmountValue}>
                   {currency.symbol}{formatCurrency(currentDisplay)}
@@ -149,7 +151,7 @@ const GoalsScreen = () => {
               <View style={styles.goalCardDivider} />
               <View style={styles.goalCardAmountItem}>
                 <Text style={styles.goalCardAmountLabel}>
-                  {isExpense ? 'Limit' : 'Target'}
+                  {isExpense ? t('goals.limit') : t('goals.target')}
                 </Text>
                 <Text style={styles.goalCardAmountValue}>
                   {currency.symbol}{formatCurrency(targetDisplay)}
@@ -178,14 +180,14 @@ const GoalsScreen = () => {
                 <View style={styles.successMessage}>
                   <Ionicons name="trophy" size={16} color="#FFD700" />
                   <Text style={styles.successText}>
-                    {isExpense ? 'Within Limit! 🎉' : 'Goal Achieved! 🎉'}
+                    {isExpense ? t('goals.withinLimit') : t('goals.goalAchieved')}
                   </Text>
                 </View>
               ) : isOverLimit ? (
                 <View style={styles.warningMessage}>
                   <Ionicons name="alert-circle" size={16} color="#FF6B6B" />
                   <Text style={styles.warningText}>
-                    Over by {currency.symbol}{formatCurrency(currentDisplay - targetDisplay)}
+                    {t('goals.overBy')} {currency.symbol}{formatCurrency(currentDisplay - targetDisplay)}
                   </Text>
                 </View>
               ) : (
@@ -197,8 +199,8 @@ const GoalsScreen = () => {
                   />
                   <Text style={styles.remainingText}>
                     {isExpense 
-                      ? `${currency.symbol}${formatCurrency(remaining)} left to spend`
-                      : `${currency.symbol}${formatCurrency(remaining)} more to reach goal`
+                      ? `${currency.symbol}${formatCurrency(remaining)} ${t('goals.leftToSpend')}`
+                      : `${currency.symbol}${formatCurrency(remaining)} ${t('goals.moreToReach')}`
                     }
                   </Text>
                 </View>
@@ -211,11 +213,11 @@ const GoalsScreen = () => {
   };
 
   const goalTypes = [
-    { key: 'daily', title: 'Daily', icon: 'calendar' },
-    { key: 'weekly', title: 'Weekly', icon: 'calendar-outline' },
-    { key: 'monthly', title: 'Monthly', icon: 'flag' },
-    { key: 'yearly', title: 'Yearly', icon: 'trophy' },
-    { key: 'custom', title: 'Custom', icon: 'star' },
+    { key: 'daily', title: t('common.daily'), icon: 'calendar' },
+    { key: 'weekly', title: t('common.weekly'), icon: 'calendar-outline' },
+    { key: 'monthly', title: t('common.monthly'), icon: 'flag' },
+    { key: 'yearly', title: t('common.yearly'), icon: 'trophy' },
+    { key: 'custom', title: t('common.custom'), icon: 'star' },
   ];
 
   const getGoalKey = (type) => {
@@ -241,8 +243,8 @@ const GoalsScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>Goals & Progress</Text>
-          <Text style={styles.headerSubtitle}>Track your financial journey</Text>
+          <Text style={styles.headerTitle}>{t('goals.title')}</Text>
+          <Text style={styles.headerSubtitle}>{t('goals.subtitle')}</Text>
         </View>
         {streak.currentStreak > 0 && (
           <View style={styles.streakBadge}>
@@ -262,7 +264,9 @@ const GoalsScreen = () => {
             style={styles.motivationCardGradient}
           >
             <Ionicons name="bulb" size={24} color="#FFFFFF" />
-            <Text style={styles.motivationText}>{motivationalMessage}</Text>
+            <Text style={styles.motivationText}>
+              {motivationalMessage ? t(motivationalMessage.key, motivationalMessage.params) : ''}
+            </Text>
           </LinearGradient>
         </View>
       )}
@@ -280,7 +284,7 @@ const GoalsScreen = () => {
             color={activeTab === 'savings' ? '#FFFFFF' : Colors.text.secondary} 
           />
           <Text style={[styles.tabText, activeTab === 'savings' && styles.tabTextActive]}>
-            Savings Goals
+            {t('goals.savingsTab')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -294,7 +298,7 @@ const GoalsScreen = () => {
             color={activeTab === 'expense' ? '#FFFFFF' : Colors.text.secondary} 
           />
           <Text style={[styles.tabText, activeTab === 'expense' && styles.tabTextActive]}>
-            Expense Limits
+            {t('goals.expenseTab')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -334,9 +338,9 @@ const GoalsScreen = () => {
               style={styles.emptyStateCard}
             >
               <Ionicons name="flag-outline" size={64} color="#FFFFFF" style={{ opacity: 0.8 }} />
-              <Text style={styles.emptyStateTitle}>No Goals Set Yet</Text>
+              <Text style={styles.emptyStateTitle}>{t('goals.noGoalsTitle')}</Text>
               <Text style={styles.emptyStateText}>
-                Set your {activeTab === 'savings' ? 'savings goals' : 'expense limits'} in Settings to start tracking your progress!
+                {t('goals.noGoalsMessage', { type: activeTab === 'savings' ? t('goals.savingsGoalsLower') : t('goals.expenseLimitsLower') })}
               </Text>
             </LinearGradient>
           </View>

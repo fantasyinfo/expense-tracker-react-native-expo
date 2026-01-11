@@ -23,17 +23,19 @@ import {
 import Colors from '../constants/colors';
 import { formatCurrency } from '../utils/dateUtils';
 import { useCurrency } from '../context/CurrencyContext';
+import { useLanguage } from '../context/LanguageContext';
 import AppFooter from '../components/AppFooter';
 
 const EngagementScreen = () => {
   const { currency } = useCurrency();
+  const { t } = useLanguage();
   const [streak, setStreak] = useState({ currentStreak: 0, longestStreak: 0 });
   const [achievements, setAchievements] = useState([]);
   const [goals, setGoals] = useState({ monthlyGoal: 0, yearlyGoal: 0, customGoal: 0, customGoalName: '' });
   const [monthlyProgress, setMonthlyProgress] = useState({ progress: 0, currentBalance: 0, targetGoal: 0 });
   const [yearlyProgress, setYearlyProgress] = useState({ progress: 0, currentBalance: 0, targetGoal: 0 });
   const [customProgress, setCustomProgress] = useState({ progress: 0, currentBalance: 0, targetGoal: 0 });
-  const [motivationalMessage, setMotivationalMessage] = useState('');
+  const [motivationalMessage, setMotivationalMessage] = useState(null);
   const [showNewAchievements, setShowNewAchievements] = useState(false);
   const [newAchievements, setNewAchievements] = useState([]);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -119,14 +121,19 @@ const EngagementScreen = () => {
           >
             <Ionicons name="trophy" size={32} color="#FFFFFF" />
             <View style={styles.achievementNotificationContent}>
-              <Text style={styles.achievementNotificationTitle}>Achievement Unlocked! 🎉</Text>
+              <Text style={styles.achievementNotificationTitle}>{t('home.achievementUnlocked')}</Text>
               {newAchievements.map(achievement => {
                 const ach = achievements.find(a => a.id === achievement);
-                return ach ? (
+                if (!ach) return null;
+                const params = { ...ach.descriptionParams };
+                if (params.amount) {
+                  params.amount = `${currency.symbol}${params.amount}`;
+                }
+                return (
                   <Text key={ach.id} style={styles.achievementNotificationText}>
-                    {ach.name}: {ach.description.replace(/₹/g, currency.symbol)}
+                    {t(ach.nameKey)}: {t(ach.descriptionKey, params)}
                   </Text>
-                ) : null;
+                );
               })}
             </View>
           </LinearGradient>
@@ -136,8 +143,8 @@ const EngagementScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>Your Progress</Text>
-          <Text style={styles.headerSubtitle}>Track your journey to financial success</Text>
+          <Text style={styles.headerTitle}>{t('engagement.title')}</Text>
+          <Text style={styles.headerSubtitle}>{t('engagement.subtitle')}</Text>
         </View>
       </View>
 
@@ -151,22 +158,24 @@ const EngagementScreen = () => {
             style={styles.motivationCardGradient}
           >
             <Ionicons name="bulb" size={24} color="#FFFFFF" />
-            <Text style={styles.motivationText}>{motivationalMessage}</Text>
+            <Text style={styles.motivationText}>
+              {motivationalMessage ? t(motivationalMessage.key, motivationalMessage.params) : ''}
+            </Text>
           </LinearGradient>
         </View>
       )}
 
       {/* Streak Card */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🔥 Streak</Text>
+        <Text style={styles.sectionTitle}>{t('engagement.streakTitle')}</Text>
         <View style={styles.streakCard}>
           <View style={styles.streakItem}>
             <View style={styles.streakIconContainer}>
               <Ionicons name="flame" size={32} color="#FF6B35" />
             </View>
             <View style={styles.streakContent}>
-              <Text style={styles.streakLabel}>Current Streak</Text>
-              <Text style={styles.streakValue}>{streak.currentStreak} days</Text>
+              <Text style={styles.streakLabel}>{t('engagement.currentStreak')}</Text>
+              <Text style={styles.streakValue}>{t('engagement.days', { count: streak.currentStreak })}</Text>
             </View>
           </View>
           <View style={styles.streakDivider} />
@@ -175,28 +184,28 @@ const EngagementScreen = () => {
               <Ionicons name="trophy" size={32} color="#FFD700" />
             </View>
             <View style={styles.streakContent}>
-              <Text style={styles.streakLabel}>Longest Streak</Text>
-              <Text style={styles.streakValue}>{streak.longestStreak} days</Text>
+              <Text style={styles.streakLabel}>{t('engagement.longestStreak')}</Text>
+              <Text style={styles.streakValue}>{t('engagement.days', { count: streak.longestStreak })}</Text>
             </View>
           </View>
         </View>
         <Text style={styles.streakHint}>
           {streak.currentStreak > 0 
-            ? `Keep it up! Add an entry today to maintain your streak! 🔥`
-            : `Start your streak today by adding an entry! 💪`
+            ? t('engagement.streakActiveMessage')
+            : t('engagement.streakInactiveMessage')
           }
         </Text>
       </View>
 
       {/* Goals Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🎯 Savings Goals</Text>
+        <Text style={styles.sectionTitle}>{t('engagement.savingsGoalsTitle')}</Text>
         
         {/* Monthly Goal */}
         {goals.monthlyGoal > 0 && (
           <View style={styles.goalCard}>
             <View style={styles.goalHeader}>
-              <Text style={styles.goalName}>Monthly Goal</Text>
+              <Text style={styles.goalName}>{t('engagement.monthlyGoal')}</Text>
               <Text style={styles.goalAmount}>
                 {currency.symbol}{formatCurrency(monthlyProgress.currentBalance)} / {currency.symbol}{formatCurrency(monthlyProgress.targetGoal)}
               </Text>
@@ -215,13 +224,13 @@ const EngagementScreen = () => {
             <View style={styles.goalFooter}>
               <Text style={styles.progressText}>
                 {monthlyProgress.isCompleted 
-                  ? '🎉 Goal Achieved!' 
-                  : `${Math.round(monthlyProgress.progress)}% Complete`
+                  ? t('goals.goalAchieved')
+                  : t('engagement.percentComplete', { percent: Math.round(monthlyProgress.progress) })
                 }
               </Text>
               {!monthlyProgress.isCompleted && (
                 <Text style={styles.remainingText}>
-                  {currency.symbol}{formatCurrency(monthlyProgress.remaining)} remaining
+                  {t('engagement.remaining', { amount: `${currency.symbol}${formatCurrency(monthlyProgress.remaining)}` })}
                 </Text>
               )}
             </View>
@@ -232,7 +241,7 @@ const EngagementScreen = () => {
         {goals.yearlyGoal > 0 && (
           <View style={styles.goalCard}>
             <View style={styles.goalHeader}>
-              <Text style={styles.goalName}>Yearly Goal</Text>
+              <Text style={styles.goalName}>{t('engagement.yearlyGoal')}</Text>
               <Text style={styles.goalAmount}>
                 {currency.symbol}{formatCurrency(yearlyProgress.currentBalance)} / {currency.symbol}{formatCurrency(yearlyProgress.targetGoal)}
               </Text>
@@ -251,13 +260,13 @@ const EngagementScreen = () => {
             <View style={styles.goalFooter}>
               <Text style={styles.progressText}>
                 {yearlyProgress.isCompleted 
-                  ? '🎉 Goal Achieved!' 
-                  : `${Math.round(yearlyProgress.progress)}% Complete`
+                  ? t('goals.goalAchieved')
+                  : t('engagement.percentComplete', { percent: Math.round(yearlyProgress.progress) })
                 }
               </Text>
               {!yearlyProgress.isCompleted && (
                 <Text style={styles.remainingText}>
-                  {currency.symbol}{formatCurrency(yearlyProgress.remaining)} remaining
+                  {t('engagement.remaining', { amount: `${currency.symbol}${formatCurrency(yearlyProgress.remaining)}` })}
                 </Text>
               )}
             </View>
@@ -269,7 +278,7 @@ const EngagementScreen = () => {
           <View style={styles.goalCard}>
             <View style={styles.goalHeader}>
               <Text style={styles.goalName}>
-                {goals.customGoalName || 'Custom Goal'}
+                {goals.customGoalName || t('engagement.customGoalDefault')}
               </Text>
               <Text style={styles.goalAmount}>
                 {currency.symbol}{formatCurrency(customProgress.currentBalance)} / {currency.symbol}{formatCurrency(customProgress.targetGoal)}
@@ -289,13 +298,13 @@ const EngagementScreen = () => {
             <View style={styles.goalFooter}>
               <Text style={styles.progressText}>
                 {customProgress.isCompleted 
-                  ? '🎉 Goal Achieved!' 
-                  : `${Math.round(customProgress.progress)}% Complete`
+                  ? t('goals.goalAchieved')
+                  : t('engagement.percentComplete', { percent: Math.round(customProgress.progress) })
                 }
               </Text>
               {!customProgress.isCompleted && (
                 <Text style={styles.remainingText}>
-                  {currency.symbol}{formatCurrency(customProgress.remaining)} remaining
+                  {t('engagement.remaining', { amount: `${currency.symbol}${formatCurrency(customProgress.remaining)}` })}
                 </Text>
               )}
             </View>
@@ -305,9 +314,9 @@ const EngagementScreen = () => {
         {goals.monthlyGoal === 0 && goals.yearlyGoal === 0 && goals.customGoal === 0 && (
           <View style={styles.emptyGoalsCard}>
             <Ionicons name="flag-outline" size={48} color={Colors.text.tertiary} />
-            <Text style={styles.emptyGoalsText}>No goals set yet</Text>
+            <Text style={styles.emptyGoalsText}>{t('goals.noGoalsTitle')}</Text>
             <Text style={styles.emptyGoalsSubtext}>
-              Set savings goals in Settings to track your progress!
+              {t('engagement.noGoalsMessage')}
             </Text>
           </View>
         )}
@@ -315,43 +324,49 @@ const EngagementScreen = () => {
 
       {/* Achievements Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🏆 Achievements</Text>
+        <Text style={styles.sectionTitle}>{t('engagement.achievementsTitle')}</Text>
         <View style={styles.achievementsGrid}>
-          {achievements.map((achievement) => (
-            <View 
-              key={achievement.id} 
-              style={[
-                styles.achievementCard,
-                !achievement.unlocked && styles.achievementCardLocked
-              ]}
-            >
-              <View style={[
-                styles.achievementIconContainer,
-                !achievement.unlocked && styles.achievementIconLocked
-              ]}>
-                <Ionicons 
-                  name={achievementIcons[achievement.icon] || 'star'} 
-                  size={32} 
-                  color={achievement.unlocked ? '#FFD700' : Colors.text.tertiary} 
-                />
+          {achievements.map((achievement) => {
+            const params = { ...achievement.descriptionParams };
+            if (params.amount) {
+              params.amount = `${currency.symbol}${params.amount}`;
+            }
+            return (
+              <View 
+                key={achievement.id} 
+                style={[
+                  styles.achievementCard,
+                  !achievement.unlocked && styles.achievementCardLocked
+                ]}
+              >
+                <View style={[
+                  styles.achievementIconContainer,
+                  !achievement.unlocked && styles.achievementIconLocked
+                ]}>
+                  <Ionicons 
+                    name={achievementIcons[achievement.icon] || 'star'} 
+                    size={32} 
+                    color={achievement.unlocked ? '#FFD700' : Colors.text.tertiary} 
+                  />
+                </View>
+                <Text style={[
+                  styles.achievementName,
+                  !achievement.unlocked && styles.achievementNameLocked
+                ]}>
+                  {t(achievement.nameKey)}
+                </Text>
+                <Text style={[
+                  styles.achievementDescription,
+                  !achievement.unlocked && styles.achievementDescriptionLocked
+                ]}>
+                  {achievement.unlocked ? t(achievement.descriptionKey, params) : t('engagement.locked')}
+                </Text>
+                {!achievement.unlocked && (
+                  <Ionicons name="lock-closed" size={16} color={Colors.text.tertiary} style={styles.lockIcon} />
+                )}
               </View>
-              <Text style={[
-                styles.achievementName,
-                !achievement.unlocked && styles.achievementNameLocked
-              ]}>
-                {achievement.name}
-              </Text>
-              <Text style={[
-                styles.achievementDescription,
-                !achievement.unlocked && styles.achievementDescriptionLocked
-              ]}>
-                {achievement.unlocked ? achievement.description.replace(/₹/g, currency.symbol) : 'Locked'}
-              </Text>
-              {!achievement.unlocked && (
-                <Ionicons name="lock-closed" size={16} color={Colors.text.tertiary} style={styles.lockIcon} />
-              )}
-            </View>
-          ))}
+            );
+          })}
         </View>
       </View>
 

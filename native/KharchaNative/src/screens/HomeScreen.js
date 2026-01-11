@@ -27,6 +27,7 @@ import { getStreak, checkAchievements, getMotivationalMessage, calculateGoalProg
 import { useModal } from '../context/ModalContext';
 import Colors from '../constants/colors';
 import { useCurrency } from '../context/CurrencyContext';
+import { useLanguage } from '../context/LanguageContext';
 import AddEntryModal from '../components/AddEntryModal';
 import AppFooter from '../components/AppFooter';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
@@ -40,6 +41,7 @@ const HomeScreen = () => {
     closeAddEntryModal,
   } = useModal();
   const { currency } = useCurrency();
+  const { t } = useLanguage();
   const navigation = useNavigation();
   const [entries, setEntries] = useState([]);
   const [todayEntries, setTodayEntries] = useState([]);
@@ -61,9 +63,9 @@ const HomeScreen = () => {
   const [selectedEntryForMenu, setSelectedEntryForMenu] = useState(null);
   const [categories, setCategories] = useState([]);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(null);
-  const [userName, setUserName] = useState('User');
+  const [userName, setUserName] = useState(t('common.user'));
   const [streak, setStreak] = useState({ currentStreak: 0, longestStreak: 0 });
-  const [motivationalMessage, setMotivationalMessage] = useState('');
+  const [motivationalMessage, setMotivationalMessage] = useState(null);
   const [dailyProgress, setDailyProgress] = useState({ progress: 0, isCompleted: false, isOverLimit: false });
   const [weeklyProgress, setWeeklyProgress] = useState({ progress: 0, isCompleted: false, isOverLimit: false });
   const [monthlyProgress, setMonthlyProgress] = useState({ progress: 0, isCompleted: false, isOverLimit: false });
@@ -158,8 +160,8 @@ const HomeScreen = () => {
     useCallback(() => {
       loadData();
       // Also reload profile to update greeting
-      loadProfile().then(profile => setUserName(profile.name || ''));
-    }, [loadData])
+      loadProfile().then(profile => setUserName(profile.name || t('common.user')));
+    }, [loadData, t])
   );
 
   // Close local modals when screen loses focus
@@ -262,7 +264,7 @@ const HomeScreen = () => {
     setShowStartDatePicker(Platform.OS === 'ios');
     if (selectedDate) {
       if (selectedDate > endDate) {
-        Alert.alert('Invalid Date', 'Start date cannot be after end date');
+        Alert.alert(t('common.error'), t('home.startDateError', { defaultValue: 'Start date cannot be after end date' }));
         return;
       }
       setStartDate(selectedDate);
@@ -273,7 +275,7 @@ const HomeScreen = () => {
     setShowEndDatePicker(Platform.OS === 'ios');
     if (selectedDate) {
       if (selectedDate < startDate) {
-        Alert.alert('Invalid Date', 'End date cannot be before start date');
+        Alert.alert(t('common.error'), t('home.endDateError', { defaultValue: 'End date cannot be before start date' }));
         return;
       }
       setEndDate(selectedDate);
@@ -339,9 +341,9 @@ const HomeScreen = () => {
               />
             </View>
           )}
-          <View style={styles.transactionDetails}>
+            <View style={styles.transactionDetails}>
             <Text style={styles.transactionNote} numberOfLines={1}>
-              {item.note || (isCashWithdrawal ? 'Cash Withdrawal' : (isCashDeposit ? 'Cash Deposit' : (isBalanceAdjustment ? 'Balance Adjustment' : (item.type === 'expense' ? 'Expense' : 'Income'))))}
+              {item.note || (isCashWithdrawal ? t('home.cashWithdrawal') : (isCashDeposit ? t('home.cashDeposit') : (isBalanceAdjustment ? t('home.balanceAdjustment') : (item.type === 'expense' ? t('common.expense') : t('common.income')))))}
             </Text>
             <View style={styles.transactionMeta}>
               <View style={styles.transactionMetaLeft}>
@@ -470,16 +472,22 @@ const HomeScreen = () => {
                   <View style={styles.achievementModalIconContainer}>
                     <Ionicons name="trophy" size={48} color="#FFFFFF" />
                   </View>
-                  <Text style={styles.achievementModalTitle}>Achievement Unlocked! 🎉</Text>
+                  <Text style={styles.achievementModalTitle}>{t('home.achievementUnlocked')}</Text>
                 </View>
                 
                 <View style={styles.achievementModalBody}>
-                  {newAchievements.map((achievement, index) => (
-                    <View key={index} style={styles.achievementModalItem}>
-                      <Text style={styles.achievementModalName}>{achievement.name}</Text>
-                      <Text style={styles.achievementModalDescription}>{achievement.description}</Text>
-                    </View>
-                  ))}
+                  {newAchievements.map((achievement, index) => {
+                    const params = { ...achievement.descriptionParams };
+                    if (params.amount) {
+                      params.amount = `${currency.symbol}${params.amount}`;
+                    }
+                    return (
+                      <View key={index} style={styles.achievementModalItem}>
+                        <Text style={styles.achievementModalName}>{t(achievement.nameKey)}</Text>
+                        <Text style={styles.achievementModalDescription}>{t(achievement.descriptionKey, params)}</Text>
+                      </View>
+                    );
+                  })}
                 </View>
 
                 <TouchableOpacity 
@@ -487,7 +495,7 @@ const HomeScreen = () => {
                   onPress={() => setShowAchievementNotification(false)}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.achievementModalButtonText}>Awesome! 🎊</Text>
+                  <Text style={styles.achievementModalButtonText}>{t('home.awesome')}</Text>
                 </TouchableOpacity>
               </LinearGradient>
             </View>
@@ -504,7 +512,7 @@ const HomeScreen = () => {
                 <Ionicons name="arrow-down" size={14} color="#FF6B6B" />
               </View>
               <View style={styles.stickyHeaderTextContainer}>
-                <Text style={styles.stickyHeaderLabel}>Expense</Text>
+                <Text style={styles.stickyHeaderLabel}>{t('common.expense')}</Text>
                 <Text 
                   style={styles.stickyHeaderValue}
                   numberOfLines={1}
@@ -521,7 +529,7 @@ const HomeScreen = () => {
                 <Ionicons name="arrow-up" size={14} color="#51CF66" />
               </View>
               <View style={styles.stickyHeaderTextContainer}>
-                <Text style={styles.stickyHeaderLabel}>Income</Text>
+                <Text style={styles.stickyHeaderLabel}>{t('common.income')}</Text>
                 <Text 
                   style={[styles.stickyHeaderValue, styles.stickyHeaderValueIncome]}
                   numberOfLines={1}
@@ -557,10 +565,10 @@ const HomeScreen = () => {
             <View style={styles.headerTop}>
             <View>
               <Text style={styles.headerGreeting}>
-                Hello {userName || 'User'} 👋
+                {t('home.greeting')} {userName || t('common.user')} 👋
               </Text>
               <Text style={styles.headerTitle}>
-                {isCustomDateRange ? 'Filtered Summary' : "Today's Summary"}
+                {isCustomDateRange ? t('home.filteredSummary') : t('home.todaySummary')}
               </Text>
             </View>
               <View style={styles.headerActions}>
@@ -602,7 +610,7 @@ const HomeScreen = () => {
             <Ionicons name="search-outline" size={20} color={Colors.text.secondary} style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search by note, amount, or date..."
+              placeholder={t('home.searchPlaceholder')}
               placeholderTextColor={Colors.text.tertiary}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -756,7 +764,7 @@ const HomeScreen = () => {
             style={styles.balanceCard}
           >
             <View style={styles.balanceCardHeader}>
-              <Text style={styles.balanceCardTitle}>Net Balance</Text>
+              <Text style={styles.balanceCardTitle}>{t('home.netBalance')}</Text>
               <View style={styles.balanceCardChip}>
                 <View style={styles.chipPattern} />
               </View>
@@ -773,7 +781,7 @@ const HomeScreen = () => {
               <View style={styles.balanceCardStat}>
                 <Ionicons name="arrow-down" size={16} color="rgba(255,255,255,0.8)" />
                 <View style={styles.balanceCardStatContent}>
-                  <Text style={styles.balanceCardStatLabel}>Expense</Text>
+                  <Text style={styles.balanceCardStatLabel}>{t('common.expense')}</Text>
                   <Text 
                     style={styles.balanceCardStatValue}
                     numberOfLines={1}
@@ -788,7 +796,7 @@ const HomeScreen = () => {
               <View style={styles.balanceCardStat}>
                 <Ionicons name="arrow-up" size={16} color="rgba(255,255,255,0.8)" />
                 <View style={styles.balanceCardStatContent}>
-                  <Text style={styles.balanceCardStatLabel}>Income</Text>
+                  <Text style={styles.balanceCardStatLabel}>{t('common.income')}</Text>
                   <Text 
                     style={styles.balanceCardStatValue}
                     numberOfLines={1}
@@ -811,7 +819,7 @@ const HomeScreen = () => {
               <View style={[styles.balanceCardSmallIcon, { backgroundColor: 'rgba(77, 171, 247, 0.15)' }]}>
                 <Ionicons name="phone-portrait" size={20} color="#4DABF7" />
               </View>
-              <Text style={styles.balanceCardSmallLabel}>UPI Balance</Text>
+              <Text style={styles.balanceCardSmallLabel}>{t('home.upiBalance')}</Text>
             </View>
             <Text 
               style={[
@@ -834,7 +842,7 @@ const HomeScreen = () => {
               <View style={[styles.balanceCardSmallIcon, { backgroundColor: 'rgba(255, 212, 59, 0.15)' }]}>
                 <Ionicons name="cash" size={20} color="#FFD43B" />
               </View>
-              <Text style={styles.balanceCardSmallLabel}>Cash Balance</Text>
+              <Text style={styles.balanceCardSmallLabel}>{t('home.cashBalance')}</Text>
             </View>
             <Text 
               style={[
@@ -857,7 +865,7 @@ const HomeScreen = () => {
         <View style={styles.transactionsSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>
-              {isCustomDateRange ? 'Filtered Entries' : "Today's Transactions"}
+              {isCustomDateRange ? t('home.filteredEntries') : t('home.todayTransactions')}
             </Text>
             <View style={styles.sectionBadge}>
               <Text style={styles.sectionBadgeText}>{todayEntries.length}</Text>
@@ -878,10 +886,10 @@ const HomeScreen = () => {
                 <Ionicons name="wallet-outline" size={56} color="#3a3a3a" />
               </View>
               <Text style={styles.emptyTitle}>
-                {isCustomDateRange ? 'No entries found' : 'No transactions today'}
+                {isCustomDateRange ? t('home.noEntries') : t('home.noTransactions')}
               </Text>
               <Text style={styles.emptySubtitle}>
-                {isCustomDateRange ? 'Try a different date range' : 'Start tracking your expenses and income'}
+                {isCustomDateRange ? t('home.tryDifferentDate') : t('home.startTracking')}
               </Text>
             </View>
           )}
@@ -913,7 +921,7 @@ const HomeScreen = () => {
         <View style={styles.filterModalOverlay}>
           <View style={styles.filterModalContent}>
             <View style={styles.filterModalHeader}>
-              <Text style={styles.filterModalTitle}>Filter Entries</Text>
+              <Text style={styles.filterModalTitle}>{t('home.filterEntries')}</Text>
               <TouchableOpacity 
                 onPress={() => setShowFilterModal(false)}
                 style={styles.filterCloseButton}
@@ -939,12 +947,12 @@ const HomeScreen = () => {
                   styles.filterOptionText,
                   !isCustomDateRange && styles.filterOptionTextActive
                 ]}>
-                  Today
+                  {t('common.today')}
                 </Text>
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.filterSectionTitle}>Custom Date Range</Text>
+            <Text style={styles.filterSectionTitle}>{t('home.customDateRange')}</Text>
             
             <View style={styles.datePickerRow}>
               <TouchableOpacity
@@ -953,7 +961,7 @@ const HomeScreen = () => {
               >
                 <Ionicons name="calendar-outline" size={18} color="#1976d2" />
                 <View style={styles.datePickerTextContainer}>
-                  <Text style={styles.datePickerLabel}>Start Date</Text>
+                  <Text style={styles.datePickerLabel}>{t('common.startDate')}</Text>
                   <Text style={styles.datePickerValue}>
                     {formatDateWithMonthName(formatDate(startDate))}
                   </Text>
@@ -965,7 +973,7 @@ const HomeScreen = () => {
               >
                 <Ionicons name="calendar-outline" size={18} color="#1976d2" />
                 <View style={styles.datePickerTextContainer}>
-                  <Text style={styles.datePickerLabel}>End Date</Text>
+                  <Text style={styles.datePickerLabel}>{t('common.endDate')}</Text>
                   <Text style={styles.datePickerValue}>
                     {formatDateWithMonthName(formatDate(endDate))}
                   </Text>
@@ -1002,13 +1010,13 @@ const HomeScreen = () => {
                 style={styles.filterResetButton}
                 onPress={handleResetFilter}
               >
-                <Text style={styles.filterResetText}>Reset to Today</Text>
+                <Text style={styles.filterResetText}>{t('home.resetToToday')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.filterApplyButton}
                 onPress={handleApplyFilter}
               >
-                <Text style={styles.filterApplyText}>Apply Filter</Text>
+                <Text style={styles.filterApplyText}>{t('home.applyFilter')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1051,7 +1059,7 @@ const HomeScreen = () => {
                 activeOpacity={0.7}
               >
                 <Ionicons name="create-outline" size={20} color={Colors.text.primary} />
-                <Text style={styles.longPressMenuText}>Edit</Text>
+                <Text style={styles.longPressMenuText}>{t('common.edit')}</Text>
               </TouchableOpacity>
             )}
             {selectedEntryForMenu && 
@@ -1069,7 +1077,7 @@ const HomeScreen = () => {
                 activeOpacity={0.7}
               >
                 <Ionicons name="copy-outline" size={20} color={Colors.text.primary} />
-                <Text style={styles.longPressMenuText}>Duplicate</Text>
+                <Text style={styles.longPressMenuText}>{t('common.duplicate', { defaultValue: 'Duplicate' })}</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
@@ -1083,7 +1091,7 @@ const HomeScreen = () => {
               activeOpacity={0.7}
             >
               <Ionicons name="trash-outline" size={20} color={Colors.status.expense} />
-              <Text style={[styles.longPressMenuText, styles.longPressMenuTextDanger]}>Delete</Text>
+              <Text style={[styles.longPressMenuText, styles.longPressMenuTextDanger]}>{t('common.delete')}</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>

@@ -178,85 +178,90 @@ export const checkAchievements = async () => {
     const achievementChecks = [
       {
         id: 'first_entry',
-        name: 'First Step',
-        description: 'Added your first entry',
+        nameKey: 'achievements.firstStep.name',
+        descriptionKey: 'achievements.firstStep.description',
         icon: 'star',
         unlocked: entries.length >= 1 && !unlockedAchievements.includes('first_entry'),
       },
       {
         id: 'ten_entries',
-        name: 'Getting Started',
-        description: 'Added 10 entries',
+        nameKey: 'achievements.tenEntries.name',
+        descriptionKey: 'achievements.tenEntries.description',
         icon: 'trophy',
         unlocked: entries.length >= 10 && !unlockedAchievements.includes('ten_entries'),
       },
       {
         id: 'fifty_entries',
-        name: 'Consistent Tracker',
-        description: 'Added 50 entries',
+        nameKey: 'achievements.fiftyEntries.name',
+        descriptionKey: 'achievements.fiftyEntries.description',
         icon: 'medal',
         unlocked: entries.length >= 50 && !unlockedAchievements.includes('fifty_entries'),
       },
       {
         id: 'hundred_entries',
-        name: 'Dedicated Tracker',
-        description: 'Added 100 entries',
+        nameKey: 'achievements.hundredEntries.name',
+        descriptionKey: 'achievements.hundredEntries.description',
         icon: 'ribbon',
         unlocked: entries.length >= 100 && !unlockedAchievements.includes('hundred_entries'),
       },
       {
         id: 'streak_7',
-        name: 'Week Warrior',
-        description: '7 day streak',
+        nameKey: 'achievements.streak7.name',
+        descriptionKey: 'achievements.streak7.description',
         icon: 'flame',
         unlocked: streakData.currentStreak >= 7 && !unlockedAchievements.includes('streak_7'),
       },
       {
         id: 'streak_30',
-        name: 'Monthly Master',
-        description: '30 day streak',
+        nameKey: 'achievements.streak30.name',
+        descriptionKey: 'achievements.streak30.description',
         icon: 'flame',
         unlocked: streakData.currentStreak >= 30 && !unlockedAchievements.includes('streak_30'),
       },
       {
         id: 'savings_10k',
-        name: 'Saver',
-        description: 'Saved ₹10,000',
+        nameKey: 'achievements.savings10k.name',
+        descriptionKey: 'achievements.savings10k.description',
+        descriptionParams: { amount: '10,000' },
         icon: 'wallet',
         unlocked: totals.balance >= 10000 && !unlockedAchievements.includes('savings_10k'),
       },
       {
         id: 'savings_1lakh',
-        name: 'Big Saver',
-        description: 'Saved ₹1,00,000',
+        nameKey: 'achievements.savings1lakh.name',
+        descriptionKey: 'achievements.savings1lakh.description',
+        descriptionParams: { amount: '1,00,000' },
         icon: 'cash',
         unlocked: totals.balance >= 100000 && !unlockedAchievements.includes('savings_1lakh'),
       },
       {
         id: 'positive_balance',
-        name: 'In the Green',
-        description: 'Positive net balance',
+        nameKey: 'achievements.positiveBalance.name',
+        descriptionKey: 'achievements.positiveBalance.description',
         icon: 'trending-up',
         unlocked: totals.balance > 0 && !unlockedAchievements.includes('positive_balance'),
       },
       {
         id: 'monthly_goal_completed',
-        name: 'Monthly Goal Achiever 🎯',
-        description: `Reached your monthly savings goal of ₹${monthlyProgress.targetGoal > 0 ? monthlyProgress.targetGoal.toLocaleString('en-IN') : '0'}!`,
+        nameKey: 'achievements.monthlyGoalCompleted.name',
+        descriptionKey: 'achievements.monthlyGoalCompleted.description',
+        descriptionParams: { amount: monthlyProgress.targetGoal > 0 ? monthlyProgress.targetGoal.toLocaleString('en-IN') : '0' },
         icon: 'trophy',
         unlocked: monthlyProgress.isCompleted && !unlockedAchievements.includes('monthly_goal_completed') && monthlyProgress.targetGoal > 0,
       },
       {
         id: 'yearly_goal_completed',
-        name: 'Yearly Goal Achiever 🎯',
-        description: `Reached your yearly savings goal of ₹${yearlyProgress.targetGoal.toLocaleString('en-IN')}!`,
+        nameKey: 'achievements.yearlyGoalCompleted.name',
+        descriptionKey: 'achievements.yearlyGoalCompleted.description',
+        descriptionParams: { amount: yearlyProgress.targetGoal.toLocaleString('en-IN') },
         icon: 'medal',
         unlocked: yearlyProgress.isCompleted && !unlockedAchievements.includes('yearly_goal_completed') && yearlyProgress.targetGoal > 0,
       },
       {
         id: 'custom_goal_completed',
-        name: 'Goal Crusher 🎯',
-        description: `Achieved your custom savings goal of ₹${customProgress.targetGoal.toLocaleString('en-IN')}!`,
+        nameKey: 'achievements.customGoalCompleted.name',
+        descriptionKey: 'achievements.customGoalCompleted.description',
+        descriptionParams: { amount: customProgress.targetGoal.toLocaleString('en-IN') },
         icon: 'ribbon',
         unlocked: customProgress.isCompleted && !unlockedAchievements.includes('custom_goal_completed') && customProgress.targetGoal > 0,
       },
@@ -503,34 +508,34 @@ export const getMotivationalMessage = async () => {
 
     if (streakData.currentStreak > 0) {
       if (streakData.currentStreak >= 30) {
-        messages.push(`🔥 Amazing! ${streakData.currentStreak} day streak! You're unstoppable!`);
+        messages.push({ key: 'motivation.streakAmazing', params: { streak: streakData.currentStreak } });
       } else if (streakData.currentStreak >= 7) {
-        messages.push(`🔥 Great job! ${streakData.currentStreak} days in a row! Keep it up!`);
+        messages.push({ key: 'motivation.streakGreat', params: { streak: streakData.currentStreak } });
       } else {
-        messages.push(`🔥 ${streakData.currentStreak} day streak! You're doing great!`);
+        messages.push({ key: 'motivation.streakGood', params: { streak: streakData.currentStreak } });
       }
     }
 
     if (monthlyProgress.isCompleted) {
-      messages.push(`🎉 Congratulations! You've achieved your monthly goal!`);
+      messages.push({ key: 'motivation.monthlyGoalAchieved', params: {} });
     } else if (monthlyProgress.progress >= 75) {
-      messages.push(`💪 You're ${Math.round(monthlyProgress.progress)}% to your monthly goal! Almost there!`);
+      messages.push({ key: 'motivation.monthlyGoalAlmost', params: { percent: Math.round(monthlyProgress.progress) } });
     } else if (monthlyProgress.progress >= 50) {
-      messages.push(`📈 You're halfway to your monthly goal! Keep going!`);
+      messages.push({ key: 'motivation.monthlyGoalHalfway', params: {} });
     }
 
     if (totals.balance > 0) {
-      messages.push(`💰 Your net balance is positive! Great financial management!`);
+      messages.push({ key: 'motivation.positiveBalance', params: {} });
     }
 
     if (entries.length >= 100) {
-      messages.push(`🏆 Wow! You've tracked ${entries.length} entries! That's dedication!`);
+      messages.push({ key: 'motivation.entries100', params: { count: entries.length } });
     } else if (entries.length >= 50) {
-      messages.push(`⭐ You've tracked ${entries.length} entries! Keep building that habit!`);
+      messages.push({ key: 'motivation.entries50', params: { count: entries.length } });
     }
 
-    return messages.length > 0 ? messages[Math.floor(Math.random() * messages.length)] : 'Keep tracking to see your progress! 💪';
+    return messages.length > 0 ? messages[Math.floor(Math.random() * messages.length)] : { key: 'motivation.default', params: {} };
   } catch (error) {
-    return 'Keep tracking your expenses! Every entry counts! 💪';
+    return { key: 'motivation.defaultShort', params: {} };
   }
 };

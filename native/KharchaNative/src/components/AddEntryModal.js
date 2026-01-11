@@ -21,11 +21,13 @@ import { loadTemplates, addTemplate, deleteTemplate } from '../utils/templateSto
 import { loadCategories, getCategoriesByType } from '../utils/categoryStorage';
 import Colors from '../constants/colors';
 import { useCurrency } from '../context/CurrencyContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
   const { currency } = useCurrency();
+  const { t } = useLanguage();
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [type, setType] = useState('expense');
@@ -176,7 +178,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
   const handleSaveAsTemplate = async () => {
     const parsedAmount = parseFloat(amount);
     if (!amount || isNaN(parsedAmount) || parsedAmount <= 0 || !note.trim()) {
-      Alert.alert('Invalid Template', 'Please enter both amount and note to save as template');
+      Alert.alert(t('addEntry.invalidTemplate'), t('addEntry.invalidTemplateMessage'));
       return;
     }
 
@@ -193,7 +195,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
 
     await addTemplate(templateData);
     await loadTemplatesData();
-    Alert.alert('Success', 'Template saved successfully!');
+    Alert.alert(t('common.success'), t('addEntry.saveTemplateSuccess'));
   };
 
   const handleUseTemplate = (template) => {
@@ -247,8 +249,8 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <View>
-              <Text style={styles.modalTitle}>{editEntry ? 'Edit Entry' : 'Add Entry'}</Text>
-              <Text style={styles.modalSubtitle}>{editEntry ? 'Update transaction details' : 'Record a new transaction'}</Text>
+              <Text style={styles.modalTitle}>{editEntry ? t('addEntry.editTitle') : t('addEntry.title')}</Text>
+              <Text style={styles.modalSubtitle}>{editEntry ? t('addEntry.editSubtitle') : t('addEntry.subtitle')}</Text>
             </View>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={Colors.text.secondary} />
@@ -266,7 +268,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
             {!editEntry && templates.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.templateHeader}>
-                  <Text style={styles.sectionLabel}>Quick Templates</Text>
+                  <Text style={styles.sectionLabel}>{t('addEntry.quickTemplates')}</Text>
                   <TouchableOpacity
                     onPress={() => setShowTemplates(!showTemplates)}
                     activeOpacity={0.7}
@@ -287,12 +289,12 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
                         onPress={() => handleUseTemplate(template)}
                         onLongPress={() => {
                           Alert.alert(
-                            'Delete Template',
-                            `Delete "${template.note}" template?`,
+                            t('addEntry.deleteTemplateTitle'),
+                            t('addEntry.deleteTemplateMessage', { note: template.note }),
                             [
-                              { text: 'Cancel', style: 'cancel' },
+                              { text: t('common.cancel'), style: 'cancel' },
                               {
-                                text: 'Delete',
+                                text: t('common.delete'),
                                 style: 'destructive',
                                 onPress: () => handleDeleteTemplate(template.id),
                               },
@@ -333,7 +335,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
 
             {/* Type Toggle */}
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Transaction Type</Text>
+              <Text style={styles.sectionLabel}>{t('addEntry.transactionType')}</Text>
               <View style={styles.typeContainer}>
                 <TouchableOpacity
                   style={[
@@ -354,7 +356,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
                       type === 'expense' && styles.typeButtonTextActive,
                     ]}
                   >
-                    Expense
+                    {t('common.expense')}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -376,7 +378,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
                       type === 'income' && styles.typeButtonTextActive,
                     ]}
                   >
-                    Income
+                    {t('common.income')}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -398,7 +400,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
                       type === 'balance_adjustment' && styles.typeButtonTextActive,
                     ]}
                   >
-                    Adjust
+                    {t('addEntry.adjust')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -407,7 +409,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
             {/* Adjustment Type Toggle */}
             {type === 'balance_adjustment' && (
               <View style={styles.section}>
-                <Text style={styles.sectionLabel}>Adjustment Type</Text>
+                <Text style={styles.sectionLabel}>{t('addEntry.adjustmentType')}</Text>
                 <View style={styles.adjustmentContainer}>
                   <TouchableOpacity
                     style={[
@@ -428,7 +430,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
                         adjustmentType === 'add' && styles.adjustmentButtonTextActive,
                       ]}
                     >
-                      Add
+                      {t('addEntry.add')}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -450,7 +452,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
                         adjustmentType === 'subtract' && styles.adjustmentButtonTextActive,
                       ]}
                     >
-                      Subtract
+                      {t('addEntry.subtract')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -459,14 +461,14 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
 
             {/* Amount Input */}
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Amount *</Text>
+              <Text style={styles.sectionLabel}>{t('common.amount')} *</Text>
               <View style={styles.inputContainer}>
                 <View style={styles.inputIconContainer}>
                   <Ionicons name="cash-outline" size={20} color={Colors.text.secondary} />
                 </View>
                 <TextInput
                   style={styles.input}
-                  placeholder="0.00"
+                  placeholder={t('addEntry.placeholderAmount')}
                   placeholderTextColor={Colors.text.tertiary}
                   value={amount}
                   onChangeText={setAmount}
@@ -478,14 +480,14 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
 
             {/* Note Input */}
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Note (Optional)</Text>
+              <Text style={styles.sectionLabel}>{t('common.note')} {t('common.optional')}</Text>
               <View style={styles.inputContainer}>
                 <View style={styles.inputIconContainer}>
                   <Ionicons name="document-text-outline" size={20} color={Colors.text.secondary} />
                 </View>
                 <TextInput
                   style={styles.input}
-                  placeholder="Add a note..."
+                  placeholder={t('addEntry.placeholderNote')}
                   placeholderTextColor={Colors.text.tertiary}
                   value={note}
                   onChangeText={setNote}
@@ -497,7 +499,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
             {/* Category Selection */}
             {type !== 'balance_adjustment' && (
               <View style={styles.section}>
-                <Text style={styles.sectionLabel}>Category (Optional)</Text>
+                <Text style={styles.sectionLabel}>{t('common.category')} {t('common.optional')}</Text>
                 <ScrollView 
                   horizontal 
                   showsHorizontalScrollIndicator={false}
@@ -541,7 +543,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
 
             {/* Payment Method Toggle */}
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Payment Method</Text>
+              <Text style={styles.sectionLabel}>{t('common.paymentMethod')}</Text>
               <View style={styles.modeContainer}>
                 <TouchableOpacity
                   style={[
@@ -562,7 +564,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
                       mode === 'upi' && styles.modeButtonTextActive,
                     ]}
                   >
-                    UPI
+                    {t('common.upi')}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -584,7 +586,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
                       mode === 'cash' && styles.modeButtonTextActive,
                     ]}
                   >
-                    Cash
+                    {t('common.cash')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -592,7 +594,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
 
             {/* Date Input */}
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Date</Text>
+              <Text style={styles.sectionLabel}>{t('common.date')}</Text>
               <TouchableOpacity
                 style={styles.inputContainer}
                 onPress={() => setShowDatePicker(true)}
@@ -629,7 +631,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
               activeOpacity={0.8}
             >
               <Ionicons name="bookmark-outline" size={18} color={Colors.accent.primary} />
-              <Text style={styles.saveTemplateButtonText}>Save as Template</Text>
+              <Text style={styles.saveTemplateButtonText}>{t('addEntry.saveAsTemplate')}</Text>
             </TouchableOpacity>
           )}
 
@@ -642,7 +644,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
           >
             {(!amount || parseFloat(amount) <= 0) ? (
               <View style={[styles.saveButton, styles.saveButtonDisabled]}>
-                <Text style={styles.saveButtonTextDisabled}>{editEntry ? 'Update Entry' : 'Save Entry'}</Text>
+                <Text style={styles.saveButtonTextDisabled}>{editEntry ? t('addEntry.updateEntry') : t('addEntry.saveEntry')}</Text>
               </View>
             ) : (
               <LinearGradient
@@ -652,7 +654,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
                 style={styles.saveButton}
               >
                 <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
-                <Text style={styles.saveButtonText}>{editEntry ? 'Update Entry' : 'Save Entry'}</Text>
+                <Text style={styles.saveButtonText}>{editEntry ? t('addEntry.updateEntry') : t('addEntry.saveEntry')}</Text>
               </LinearGradient>
             )}
           </TouchableOpacity>

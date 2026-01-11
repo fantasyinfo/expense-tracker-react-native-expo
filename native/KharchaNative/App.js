@@ -14,6 +14,8 @@ import CurrencySelectionScreen from './src/screens/CurrencySelectionScreen';
 import CustomTabBar from './src/components/CustomTabBar';
 import { ModalProvider } from './src/context/ModalContext';
 import { CurrencyProvider, useCurrency } from './src/context/CurrencyContext';
+import { LanguageProvider, useLanguage } from './src/context/LanguageContext';
+import LanguageSelectionScreen from './src/screens/LanguageSelectionScreen';
 import Colors from './src/constants/colors';
 
 const Tab = createBottomTabNavigator();
@@ -21,13 +23,18 @@ const Tab = createBottomTabNavigator();
 function MainApp() {
   const [isSplashLoading, setIsSplashLoading] = useState(true);
   const { isCurrencySet, isLoading: isCurrencyLoading } = useCurrency();
+  const { isLanguageSet, isLoading: isLanguageLoading } = useLanguage();
 
   const handleLoadingFinish = () => {
     setIsSplashLoading(false);
   };
 
-  if (isSplashLoading || isCurrencyLoading) {
+  if (isSplashLoading || isCurrencyLoading || isLanguageLoading) {
     return <LoadingScreen onFinish={handleLoadingFinish} />;
+  }
+
+  if (!isLanguageSet) {
+    return <LanguageSelectionScreen route={{ params: { mode: 'onboarding' } }} />;
   }
 
   if (!isCurrencySet) {
@@ -91,18 +98,20 @@ function MainApp() {
 
 export default function App() {
   return (
-    <CurrencyProvider>
-      <ModalProvider>
-        <SafeAreaProvider>
-          <StatusBar 
-            barStyle="light-content" 
-            backgroundColor={Colors.background.primary}
-            translucent={false}
-          />
-          <MainApp />
-        </SafeAreaProvider>
-      </ModalProvider>
-    </CurrencyProvider>
+    <LanguageProvider>
+      <CurrencyProvider>
+        <ModalProvider>
+          <SafeAreaProvider>
+            <StatusBar 
+              barStyle="light-content" 
+              backgroundColor={Colors.background.primary}
+              translucent={false}
+            />
+            <MainApp />
+          </SafeAreaProvider>
+        </ModalProvider>
+      </CurrencyProvider>
+    </LanguageProvider>
   );
 }
 

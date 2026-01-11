@@ -13,11 +13,13 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { LinearGradient } from 'react-native-linear-gradient';
 import Colors from '../constants/colors';
 import { useCurrency } from '../context/CurrencyContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const UserGuideScreen = ({ visible, onClose }) => {
   const { currency } = useCurrency();
+  const { t } = useLanguage();
   const [expandedSections, setExpandedSections] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
   const scrollViewRef = useRef(null);
@@ -49,539 +51,57 @@ const UserGuideScreen = ({ visible, onClose }) => {
     }
   };
 
-  const sections = [
-    {
-      id: 'getting-started',
-      title: '🚀 Getting Started',
-      icon: 'rocket-outline',
-      content: [
-        {
-          type: 'subtitle',
-          text: 'What is Kharcha?',
-        },
-        {
-          type: 'text',
-          text: 'Kharcha is a powerful expense and income tracking app designed specifically for Indian users. It helps you track every rupee you spend and earn, monitor your UPI and Cash balances separately, set savings goals, analyze spending patterns, and export your data.',
-        },
-        {
-          type: 'subtitle',
-          text: 'Why Use Kharcha?',
-        },
-        {
-          type: 'list',
-          items: [
-            '100% Offline - Works without internet connection',
-            'Dual Balance Tracking - Separate UPI and Cash balances',
-            'Smart Categories - Organize expenses by category',
-            'Goal Tracking - Set and achieve savings goals',
-            'Visual Analytics - Beautiful charts and reports',
-            'Data Export - Backup your data anytime',
-            'Quick Templates - Save time with recurring expenses',
-          ],
-        },
-      ],
-    },
-    {
-      id: 'first-day-setup',
-      title: '📅 First Day Setup',
-      icon: 'calendar-outline',
-      content: [
-        {
-          type: 'subtitle',
-          text: 'Step 1: Set Your Initial Balances',
-        },
-        {
-          type: 'text',
-          text: 'Why it\'s important: Setting accurate initial balances ensures your app shows the correct amount of money you have.',
-        },
-        {
-          type: 'steps',
-          items: [
-            'Open the app',
-            'Tap the Settings icon (⚙️) at the bottom',
-            'Scroll to Balance Management section',
-            'Tap "Set Bank / UPI Balance"',
-            `Enter your current UPI/Bank balance (e.g., ${currency.symbol}50,000)`,
-            'Tap "Set Cash Balance"',
-            `Enter your current cash balance (e.g., ${currency.symbol}5,000)`,
-            'Tap Save',
-          ],
-        },
-        {
-          type: 'tip',
-          text: 'Pro Tip: If you\'ve been tracking expenses elsewhere, use "Auto Calculate from Entries" to automatically calculate your balances from existing entries.',
-        },
-        {
-          type: 'subtitle',
-          text: 'Step 2: Set Up Your Profile',
-        },
-        {
-          type: 'text',
-          text: 'Why it\'s important: Personalizing your profile makes the app feel more yours and helps with motivation.',
-        },
-        {
-          type: 'steps',
-          items: [
-            'Tap the Profile icon (👤) at the bottom',
-            'Enter your name',
-            'Optionally add a profile picture',
-            'Save your changes',
-          ],
-        },
-        {
-          type: 'subtitle',
-          text: 'Step 3: Set Your First Savings Goal',
-        },
-        {
-          type: 'text',
-          text: 'Why it\'s important: Goals give you a target to work towards and help you stay motivated.',
-        },
-        {
-          type: 'steps',
-          items: [
-            'Go to Settings → Savings Goals',
-            'Tap "Set Monthly Savings Goal"',
-            `Enter your target (e.g., ${currency.symbol}10,000 per month)`,
-            'Save',
-          ],
-        },
-        {
-          type: 'tip',
-          text: 'Pro Tip: Start with a realistic goal. You can always increase it later!',
-        },
-        {
-          type: 'subtitle',
-          text: 'Step 4: Add Your First Entry',
-        },
-        {
-          type: 'text',
-          text: 'Why it\'s important: This gets you familiar with the entry process.',
-        },
-        {
-          type: 'steps',
-          items: [
-            'Tap the big + button in the center of the bottom navigation',
-            'Select Expense or Income',
-            `Enter the amount (e.g., ${currency.symbol}500)`,
-            'Add a note (e.g., "Lunch at restaurant")',
-            'Select a category (e.g., "Food & Dining")',
-            'Choose payment method (UPI or Cash)',
-            'Select the date',
-            'Tap Save',
-          ],
-        },
-        {
-          type: 'success',
-          text: '🎉 Congratulations! You\'ve completed your first day setup.',
-        },
-      ],
-    },
-    {
-      id: 'daily-usage',
-      title: '📖 Daily Usage Guide',
-      icon: 'today-outline',
-      content: [
-        {
-          type: 'subtitle',
-          text: 'Morning Routine (5 minutes)',
-        },
-        {
-          type: 'text',
-          text: '1. Check Today\'s Budget',
-        },
-        {
-          type: 'list',
-          items: [
-            'Open the app',
-            'Look at the Home screen',
-            'Check your daily expense limit (if set)',
-            'See how much you\'ve spent today',
-          ],
-        },
-        {
-          type: 'text',
-          text: '2. Review Yesterday\'s Expenses',
-        },
-        {
-          type: 'list',
-          items: [
-            'Scroll down on the Home screen',
-            'Review yesterday\'s transactions',
-            'Identify any unnecessary spending',
-          ],
-        },
-        {
-          type: 'subtitle',
-          text: 'During the Day',
-        },
-        {
-          type: 'text',
-          text: 'Add Expenses Immediately - Don\'t wait until the end of the day. Add expenses as they happen. Use the Quick Templates for common expenses.',
-        },
-        {
-          type: 'subtitle',
-          text: 'Evening Routine (5 minutes)',
-        },
-        {
-          type: 'text',
-          text: '1. Review Today\'s Spending',
-        },
-        {
-          type: 'list',
-          items: [
-            'Check the Home screen',
-            'See total expenses vs. income',
-            'Review your balance',
-          ],
-        },
-        {
-          type: 'text',
-          text: '2. Check Goal Progress',
-        },
-        {
-          type: 'list',
-          items: [
-            'Go to Goals tab',
-            'See how close you are to your savings goal',
-            'Check if you\'re within your expense limit',
-          ],
-        },
-      ],
-    },
-    {
-      id: 'home-screen',
-      title: '🏠 Home Screen',
-      icon: 'home-outline',
-      content: [
-        {
-          type: 'text',
-          text: 'The Home screen shows today\'s total expenses and income, current UPI and Cash balances, list of today\'s transactions, and quick access to add new entries.',
-        },
-        {
-          type: 'subtitle',
-          text: 'Key Features:',
-        },
-        {
-          type: 'feature',
-          title: 'Today\'s Summary Cards',
-          description: 'Shows total expenses for today, total income for today, and your current UPI and Cash balances. Benefits: Quick overview of your financial day, instant balance check, visual representation of your money.',
-        },
-        {
-          type: 'feature',
-          title: 'Transaction List',
-          description: 'Shows all transactions for today. Each transaction shows category icon and name, amount (color-coded), payment method icon, date and note. Actions: Tap three dots (⋮) for Edit, Duplicate, or Delete. Benefits: Easy transaction review, quick corrections, duplicate recurring expenses.',
-        },
-        {
-          type: 'feature',
-          title: 'Search & Filter',
-          description: 'Search Bar: Search by note, amount, or date. Category Filter: Filter by category (All, Food & Dining, Transportation, etc.). Benefits: Find transactions quickly, analyze spending by category, review specific time periods.',
-        },
-      ],
-    },
-    {
-      id: 'summary-screen',
-      title: '📊 Summary Screen',
-      icon: 'stats-chart-outline',
-      content: [
-        {
-          type: 'text',
-          text: 'The Summary screen shows financial summaries for different time periods, beautiful charts and visualizations, and detailed transaction reports.',
-        },
-        {
-          type: 'subtitle',
-          text: 'Key Features:',
-        },
-        {
-          type: 'feature',
-          title: 'Period Selection',
-          description: 'Today, Weekly, Monthly, Quarterly, Yearly, or Custom Range. Benefits: Analyze spending patterns, compare different time periods, plan future expenses.',
-        },
-        {
-          type: 'feature',
-          title: 'Charts & Visualizations',
-          description: 'Expense vs Income Chart: Bar chart comparing expenses and income. Monthly Breakdown Chart: Shows expenses and income over the last 6 months. Payment Method Chart: Shows UPI vs Cash usage. Category Breakdown Chart: Pie/Bar chart showing expenses by category. Benefits: Visual understanding of finances, identify spending trends, make informed decisions.',
-        },
-        {
-          type: 'feature',
-          title: 'Category Filtering',
-          description: 'Filter transactions by category. See category-wise spending. Analyze specific expense types. Benefits: Focus on specific spending areas, category-wise analysis, better budget planning.',
-        },
-      ],
-    },
-    {
-      id: 'goals-screen',
-      title: '🎯 Goals Screen',
-      icon: 'flag-outline',
-      content: [
-        {
-          type: 'text',
-          text: 'The Goals screen shows your savings goals progress, expense limits and tracking, and achievement notifications.',
-        },
-        {
-          type: 'subtitle',
-          text: 'Savings Goals',
-          description: 'Types: Daily, Weekly, Monthly, Yearly, Custom. How it works: App calculates your actual savings (Income - Expenses), shows progress percentage, sends notifications when you achieve goals. Benefits: Stay motivated to save, track progress visually, achieve financial targets.',
-        },
-        {
-          type: 'subtitle',
-          text: 'Expense Limits',
-          description: 'Types: Daily, Weekly, Monthly, Yearly, Custom. How it works: App tracks your expenses, shows how much you\'ve spent vs. your limit, warns you when approaching the limit. Benefits: Control spending, stay within budget, avoid overspending.',
-        },
-      ],
-    },
-    {
-      id: 'adding-entries',
-      title: '➕ Adding Entries',
-      icon: 'add-circle-outline',
-      content: [
-        {
-          type: 'text',
-          text: 'Entry Types: Expense (money you spend), Income (money you earn), Balance Adjustment (manually adjust balance - rarely used).',
-        },
-        {
-          type: 'subtitle',
-          text: 'How to add an entry:',
-        },
-        {
-          type: 'steps',
-          items: [
-            'Tap the + button (center of bottom navigation)',
-            'Select Entry Type: Tap Expense for spending or Income for earnings',
-            'Enter Amount: Type the amount (e.g., 500)',
-            'Add Note (Optional but Recommended): Describe the transaction',
-            'Select Category: Scroll through categories and tap to select',
-            'Choose Payment Method: UPI for digital payments or Cash for cash transactions',
-            'Select Date: Default is today\'s date, tap date to change',
-            'Save: Tap Save button and entry is added immediately',
-          ],
-        },
-        {
-          type: 'subtitle',
-          text: 'Quick Templates',
-          description: 'Save frequently used transactions as templates for one-tap entry. How to create: Add an entry, tap "Save as Template", enter template name, save. How to use: Tap + button, scroll to "Quick Templates" section, tap a template, adjust if needed and save. Benefits: Save time, consistent entries, faster data entry.',
-        },
-      ],
-    },
-    {
-      id: 'categories',
-      title: '📈 Categories',
-      icon: 'grid-outline',
-      content: [
-        {
-          type: 'text',
-          text: 'Categories help you organize expenses and income by type. Each category has a unique icon, color code, and name.',
-        },
-        {
-          type: 'subtitle',
-          text: 'Default Categories:',
-        },
-        {
-          type: 'text',
-          text: 'Expense Categories: Food & Dining, Transportation, Shopping, Bills & Utilities, Entertainment, Health & Fitness, Education, Personal Care, Travel, General',
-        },
-        {
-          type: 'text',
-          text: 'Income Categories: Salary, Business, Other Income',
-        },
-        {
-          type: 'text',
-          text: 'Benefits: Organized tracking, category-wise analysis, better budgeting, visual identification.',
-        },
-      ],
-    },
-    {
-      id: 'export-import',
-      title: '📤 Export & Import',
-      icon: 'download-outline',
-      content: [
-        {
-          type: 'subtitle',
-          text: 'Export Formats:',
-        },
-        {
-          type: 'feature',
-          title: 'Excel (CSV)',
-          description: 'Spreadsheet format, opens in Excel/Google Sheets. Contains all transaction data, summary, payment breakdown. Best for: Analysis, sharing with accountant, backup.',
-        },
-        {
-          type: 'feature',
-          title: 'JSON',
-          description: 'Structured data format. Contains all transaction data with metadata. Best for: Developers, data migration, backup.',
-        },
-        {
-          type: 'feature',
-          title: 'PDF (HTML)',
-          description: 'Printable report format. Contains formatted report with charts. Best for: Printing, sharing reports, presentations.',
-        },
-        {
-          type: 'subtitle',
-          text: 'How to Export:',
-        },
-        {
-          type: 'steps',
-          items: [
-            'Go to Settings → Data Export',
-            'Choose format (Excel, JSON, or PDF)',
-            'Select entry type (optional)',
-            'Select date range (optional)',
-            'Choose export action (Share or Save)',
-            'Tap Export',
-          ],
-        },
-        {
-          type: 'subtitle',
-          text: 'How to Import:',
-        },
-        {
-          type: 'steps',
-          items: [
-            'Go to Settings → Data Import',
-            'Tap "Import from CSV/JSON"',
-            'Choose import option (Replace All or Merge)',
-            'Select file from your device',
-            'Confirm import',
-          ],
-        },
-        {
-          type: 'warning',
-          text: 'Important: Always backup before importing. CSV files must match the export format. Date format: YYYY-MM-DD (e.g., 2025-12-21)',
-        },
-      ],
-    },
-    {
-      id: 'backup-restore',
-      title: '💾 Backup & Restore',
-      icon: 'cloud-upload-outline',
-      content: [
-        {
-          type: 'text',
-          text: 'Why Backup is Important: Protect your data, recover from device loss, transfer to new device, peace of mind.',
-        },
-        {
-          type: 'subtitle',
-          text: 'How to Create Backup:',
-        },
-        {
-          type: 'steps',
-          items: [
-            'Go to Settings → Backup & Restore',
-            'Tap "Create Backup"',
-            'Choose where to save the file',
-            'Backup file is created',
-          ],
-        },
-        {
-          type: 'subtitle',
-          text: 'How to Restore:',
-        },
-        {
-          type: 'steps',
-          items: [
-            'Go to Settings → Backup & Restore',
-            'Tap "Restore from Backup"',
-            'Select backup file',
-            'Confirm restore',
-          ],
-        },
-        {
-          type: 'warning',
-          text: 'Warning: Restore replaces current data. Always backup before restoring!',
-        },
-      ],
-    },
-    {
-      id: 'tips-practices',
-      title: '💡 Tips & Best Practices',
-      icon: 'bulb-outline',
-      content: [
-        {
-          type: 'subtitle',
-          text: 'Daily Habits:',
-        },
-        {
-          type: 'list',
-          items: [
-            'Add Expenses Immediately - Don\'t wait until end of day',
-            'Use Categories Consistently - Always select a category',
-            'Add Descriptive Notes - Write clear notes',
-            'Review Daily - Check spending at end of day',
-          ],
-        },
-        {
-          type: 'subtitle',
-          text: 'Weekly Habits:',
-        },
-        {
-          type: 'list',
-          items: [
-            'Review Weekly Summary - Check weekly totals',
-            'Check Goal Progress - Review savings goals',
-            'Export Data - Create weekly backup',
-          ],
-        },
-        {
-          type: 'subtitle',
-          text: 'Monthly Habits:',
-        },
-        {
-          type: 'list',
-          items: [
-            'Monthly Review - Analyze monthly spending',
-            'Set New Goals - Review and adjust goals',
-            'Category Analysis - Check category-wise spending',
-          ],
-        },
-      ],
-    },
-    {
-      id: 'troubleshooting',
-      title: '🔧 Troubleshooting',
-      icon: 'construct-outline',
-      content: [
-        {
-          type: 'subtitle',
-          text: 'Common Issues:',
-        },
-        {
-          type: 'issue',
-          title: 'Balance Not Updating',
-          solution: 'Check if you set initial balance correctly. Verify all entries are added. Use "Auto Calculate from Entries".',
-        },
-        {
-          type: 'issue',
-          title: 'Can\'t Find a Transaction',
-          solution: 'Use search bar. Check date range. Try different search terms.',
-        },
-        {
-          type: 'issue',
-          title: 'Export Not Working',
-          solution: 'Check if you have entries. Verify date range selection. Try different export format.',
-        },
-        {
-          type: 'issue',
-          title: 'Import Not Working',
-          solution: 'Check file format (CSV or JSON). Verify date format (YYYY-MM-DD). Ensure file matches export format.',
-        },
-        {
-          type: 'subtitle',
-          text: 'Getting Help:',
-        },
-        {
-          type: 'text',
-          text: 'If you encounter issues:',
-        },
-        {
-          type: 'list',
-          items: [
-            'Check this guide first',
-            'Review the app\'s "How to Use" section in Settings',
-            'Contact developer: Phone: +91 6397520221, Email: gs27349@gmail.com',
-          ],
-        },
-      ],
-    },
+  // Helper to interpolate content with currency symbol
+  const interpolateContent = (content) => {
+    if (!content) return [];
+    return content.map(item => {
+      const newItem = { ...item };
+      // Interpolate 'text'
+      if (typeof newItem.text === 'string') {
+        newItem.text = newItem.text.replace(/{{symbol}}/g, currency.symbol);
+      }
+      // Interpolate 'items' (array of strings) - e.g. steps or list
+      if (Array.isArray(newItem.items)) {
+        newItem.items = newItem.items.map(s => s.replace(/{{symbol}}/g, currency.symbol));
+      }
+      // Interpolate 'description' - e.g. features
+      if (typeof newItem.description === 'string') {
+        newItem.description = newItem.description.replace(/{{symbol}}/g, currency.symbol);
+      }
+      // Interpolate 'solution' - e.g. troubleshooting
+      if (typeof newItem.solution === 'string') {
+        newItem.solution = newItem.solution.replace(/{{symbol}}/g, currency.symbol);
+      }
+      return newItem;
+    });
+  };
+
+  const rawSections = t('userGuide.sections') || {};
+  
+  const sectionConfig = [
+    { id: 'getting-started', icon: 'rocket-outline' },
+    { id: 'first-day-setup', icon: 'calendar-outline' },
+    { id: 'daily-usage', icon: 'today-outline' },
+    { id: 'home-screen', icon: 'home-outline' },
+    { id: 'summary-screen', icon: 'stats-chart-outline' },
+    { id: 'goals-screen', icon: 'flag-outline' },
+    { id: 'adding-entries', icon: 'add-circle-outline' },
+    { id: 'categories', icon: 'grid-outline' },
+    { id: 'export-import', icon: 'download-outline' },
+    { id: 'backup-restore', icon: 'cloud-upload-outline' },
+    { id: 'tips-practices', icon: 'bulb-outline' },
+    { id: 'troubleshooting', icon: 'construct-outline' }
   ];
 
+  const sections = sectionConfig.map(config => {
+     const sectionData = rawSections[config.id] || {};
+     return {
+       id: config.id,
+       title: sectionData.title || config.id, 
+       icon: config.icon,
+       content: interpolateContent(sectionData.content || [])
+     };
+  });
   // Auto-expand all sections when searching
   useEffect(() => {
     if (searchQuery) {
@@ -694,8 +214,8 @@ const UserGuideScreen = ({ visible, onClose }) => {
           <View style={styles.headerContent}>
             <Ionicons name="book" size={28} color={Colors.accent.primary} />
             <View style={styles.headerText}>
-              <Text style={styles.headerTitle}>User Guide</Text>
-              <Text style={styles.headerSubtitle}>Complete app documentation</Text>
+              <Text style={styles.headerTitle}>{t('userGuide.headerTitle')}</Text>
+              <Text style={styles.headerSubtitle}>{t('userGuide.headerSubtitle')}</Text>
             </View>
           </View>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -709,7 +229,7 @@ const UserGuideScreen = ({ visible, onClose }) => {
             <Ionicons name="search-outline" size={20} color={Colors.text.secondary} style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search guide..."
+              placeholder={t('userGuide.searchPlaceholder')}
               placeholderTextColor={Colors.text.tertiary}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -737,7 +257,7 @@ const UserGuideScreen = ({ visible, onClose }) => {
         >
           {/* Table of Contents */}
           <View style={styles.tocContainer}>
-            <Text style={styles.tocTitle}>📋 Table of Contents</Text>
+            <Text style={styles.tocTitle}>{t('userGuide.tocTitle')}</Text>
             <View style={styles.tocGrid}>
               {sections.map((section) => (
                 <TouchableOpacity
@@ -785,9 +305,9 @@ const UserGuideScreen = ({ visible, onClose }) => {
 
             {/* Contact Section */}
             <View style={styles.contactSection}>
-              <Text style={styles.contactTitle}>📞 Need Help?</Text>
+              <Text style={styles.contactTitle}>{t('userGuide.contactTitle')}</Text>
               <Text style={styles.contactText}>
-                If you have questions or need support, please contact:
+                {t('userGuide.contactText')}
               </Text>
               <View style={styles.contactInfo}>
                 <View style={styles.contactItem}>

@@ -27,6 +27,7 @@ import EntriesReportModal from '../components/EntriesReportModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import Colors from '../constants/colors';
 import { useCurrency } from '../context/CurrencyContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const PERIODS = ['today', 'weekly', 'monthly', 'quarterly', 'yearly'];
 const screenWidth = Dimensions.get('window').width;
@@ -38,6 +39,7 @@ const SummaryScreen = () => {
     closeAddEntryModal,
   } = useModal();
   const { currency } = useCurrency();
+  const { t } = useLanguage();
   const [entries, setEntries] = useState([]);
   const [selectedPeriod, setSelectedPeriod] = useState('monthly');
   const [filteredEntries, setFilteredEntries] = useState([]);
@@ -237,7 +239,7 @@ const SummaryScreen = () => {
     setShowStartDatePicker(Platform.OS === 'ios');
     if (selectedDate) {
       if (selectedDate > endDate) {
-        Alert.alert('Invalid Date', 'Start date cannot be after end date');
+        Alert.alert(t('common.error'), t('home.startDateError', { defaultValue: 'Start date cannot be after end date' }));
         return;
       }
       setStartDate(selectedDate);
@@ -248,7 +250,7 @@ const SummaryScreen = () => {
     setShowEndDatePicker(Platform.OS === 'ios');
     if (selectedDate) {
       if (selectedDate < startDate) {
-        Alert.alert('Invalid Date', 'End date cannot be before start date');
+        Alert.alert(t('common.error'), t('home.endDateError', { defaultValue: 'End date cannot be before start date' }));
         return;
       }
       setEndDate(selectedDate);
@@ -257,11 +259,11 @@ const SummaryScreen = () => {
 
   const getPeriodLabel = (period) => {
     const labels = {
-      today: 'Today',
-      weekly: 'Week',
-      monthly: 'Month',
-      quarterly: 'Quarter',
-      yearly: 'Year',
+      today: t('common.today'),
+      weekly: t('common.weekly'),
+      monthly: t('common.monthly'),
+      quarterly: t('common.quarterly'),
+      yearly: t('common.yearly'),
     };
     return labels[period] || period;
   };
@@ -320,14 +322,14 @@ const SummaryScreen = () => {
             onPress={handleCustomDateRange}
             activeOpacity={0.7}
           >
-            <Text
-              style={[
-                styles.periodButtonText,
-                isCustomDateRange && styles.periodButtonTextActive,
-              ]}
-            >
-              Custom
-            </Text>
+              <Text
+                style={[
+                  styles.periodButtonText,
+                  isCustomDateRange && styles.periodButtonTextActive,
+                ]}
+              >
+                {t('common.custom')}
+              </Text>
           </TouchableOpacity>
         </ScrollView>
       </View>
@@ -342,7 +344,7 @@ const SummaryScreen = () => {
             >
               <Ionicons name="calendar-outline" size={18} color="#1976d2" />
               <View style={styles.datePickerTextContainer}>
-                <Text style={styles.datePickerLabel}>Start Date</Text>
+                <Text style={styles.datePickerLabel}>{t('common.startDate')}</Text>
                 <Text style={styles.datePickerValue}>{formatDateWithMonthName(formatDate(startDate))}</Text>
               </View>
             </TouchableOpacity>
@@ -352,7 +354,7 @@ const SummaryScreen = () => {
             >
               <Ionicons name="calendar-outline" size={18} color="#1976d2" />
               <View style={styles.datePickerTextContainer}>
-                <Text style={styles.datePickerLabel}>End Date</Text>
+                <Text style={styles.datePickerLabel}>{t('common.endDate')}</Text>
                 <Text style={styles.datePickerValue}>{formatDateWithMonthName(formatDate(endDate))}</Text>
               </View>
             </TouchableOpacity>
@@ -389,7 +391,7 @@ const SummaryScreen = () => {
           <Ionicons name="search-outline" size={20} color={Colors.text.secondary} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search by note, amount, or date..."
+            placeholder={t('home.searchPlaceholder')}
             placeholderTextColor={Colors.text.tertiary}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -411,9 +413,9 @@ const SummaryScreen = () => {
       {/* Totals Display */}
       <View style={styles.totalsSection}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Summary</Text>
+          <Text style={styles.sectionTitle}>{t('summary.title')}</Text>
           <TouchableOpacity onPress={() => setShowEntriesModal(true)} activeOpacity={0.7}>
-            <Text style={styles.viewAllLink}>View All Entries</Text>
+            <Text style={styles.viewAllLink}>{t('summary.viewAll')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -427,7 +429,7 @@ const SummaryScreen = () => {
             <View style={styles.summaryCardInfo}>
               <View style={styles.summaryCardHeader}>
                 <Text style={styles.summaryCardName} numberOfLines={1}>
-                  Total Expense
+                  {t('summary.totalExpense')}
                 </Text>
                 <Text style={[styles.summaryCardAmount, { color: '#FF6B6B' }]}>
                   {currency.symbol}{formatCurrency(totals.expense)}
@@ -449,8 +451,8 @@ const SummaryScreen = () => {
                 </View>
                 <Text style={styles.summaryCardMeta}>
                   {totals.expense + totals.income > 0 
-                    ? `${((totals.expense / (totals.expense + totals.income)) * 100).toFixed(1)}% of total`
-                    : '0% of total'}
+                    ? `${((totals.expense / (totals.expense + totals.income)) * 100).toFixed(1)}% ${t('summary.ofTotal')}`
+                    : `0% ${t('summary.ofTotal')}`}
                 </Text>
               </View>
             </View>
@@ -464,7 +466,7 @@ const SummaryScreen = () => {
             <View style={styles.summaryCardInfo}>
               <View style={styles.summaryCardHeader}>
                 <Text style={styles.summaryCardName} numberOfLines={1}>
-                  Total Income
+                  {t('summary.totalIncome')}
                 </Text>
                 <Text style={[styles.summaryCardAmount, { color: '#51CF66' }]}>
                   {currency.symbol}{formatCurrency(totals.income)}
@@ -486,8 +488,8 @@ const SummaryScreen = () => {
                 </View>
                 <Text style={styles.summaryCardMeta}>
                   {totals.expense + totals.income > 0 
-                    ? `${((totals.income / (totals.expense + totals.income)) * 100).toFixed(1)}% of total`
-                    : '0% of total'}
+                    ? `${((totals.income / (totals.expense + totals.income)) * 100).toFixed(1)}% ${t('summary.ofTotal')}`
+                    : `0% ${t('summary.ofTotal')}`}
                 </Text>
               </View>
             </View>
@@ -508,7 +510,7 @@ const SummaryScreen = () => {
             <View style={styles.summaryCardInfo}>
               <View style={styles.summaryCardHeader}>
                 <Text style={styles.summaryCardName} numberOfLines={1}>
-                  Net Balance
+                  {t('home.netBalance')}
                 </Text>
                 <Text style={[
                   styles.summaryCardAmount, 
@@ -532,7 +534,7 @@ const SummaryScreen = () => {
                   />
                 </View>
                 <Text style={styles.summaryCardMeta}>
-                  {totals.balance >= 0 ? 'Positive' : 'Negative'} balance
+                  {totals.balance >= 0 ? t('summary.positiveBalance') : t('summary.negativeBalance')}
                 </Text>
               </View>
             </View>
@@ -541,7 +543,7 @@ const SummaryScreen = () => {
 
         {/* Payment Method Breakdown */}
         <View style={styles.paymentBreakdownSection}>
-          <Text style={styles.breakdownTitle}>PAYMENT METHOD BREAKDOWN</Text>
+          <Text style={styles.breakdownTitle}>{t('summary.paymentBreakdown')}</Text>
           
           <View style={styles.paymentCardsContainer}>
             {/* Expense UPI Card */}
@@ -552,7 +554,7 @@ const SummaryScreen = () => {
               <View style={styles.paymentCardInfo}>
                 <View style={styles.paymentCardHeader}>
                   <Text style={styles.paymentCardName} numberOfLines={1}>
-                    Expense - UPI
+                    {t('summary.expenseUpi')}
                   </Text>
                   <Text style={[styles.paymentCardAmount, { color: '#FF6B6B' }]}>
                     {currency.symbol}{formatCurrency(totals.expenseUpi || 0)}
@@ -574,8 +576,8 @@ const SummaryScreen = () => {
                   </View>
                   <Text style={styles.paymentCardMeta}>
                     {totals.expense > 0 
-                      ? `${(((totals.expenseUpi || 0) / totals.expense) * 100).toFixed(1)}% of expenses`
-                      : '0% of expenses'}
+                      ? `${(((totals.expenseUpi || 0) / totals.expense) * 100).toFixed(1)}% ${t('summary.ofExpenses')}`
+                      : `0% ${t('summary.ofExpenses')}`}
                   </Text>
                 </View>
               </View>
@@ -589,7 +591,7 @@ const SummaryScreen = () => {
               <View style={styles.paymentCardInfo}>
                 <View style={styles.paymentCardHeader}>
                   <Text style={styles.paymentCardName} numberOfLines={1}>
-                    Expense - Cash
+                    {t('summary.expenseCash')}
                   </Text>
                   <Text style={[styles.paymentCardAmount, { color: '#FF6B6B' }]}>
                     {currency.symbol}{formatCurrency(totals.expenseCash || 0)}
@@ -610,9 +612,9 @@ const SummaryScreen = () => {
                     />
                   </View>
                   <Text style={styles.paymentCardMeta}>
-                    {totals.expense > 0 
-                      ? `${(((totals.expenseCash || 0) / totals.expense) * 100).toFixed(1)}% of expenses`
-                      : '0% of expenses'}
+                     {totals.expense > 0 
+                      ? `${(((totals.expenseCash || 0) / totals.expense) * 100).toFixed(1)}% ${t('summary.ofExpenses')}`
+                      : `0% ${t('summary.ofExpenses')}`}
                   </Text>
                 </View>
               </View>
@@ -626,7 +628,7 @@ const SummaryScreen = () => {
               <View style={styles.paymentCardInfo}>
                 <View style={styles.paymentCardHeader}>
                   <Text style={styles.paymentCardName} numberOfLines={1}>
-                    Income - UPI
+                    {t('summary.incomeUpi')}
                   </Text>
                   <Text style={[styles.paymentCardAmount, { color: '#51CF66' }]}>
                     {currency.symbol}{formatCurrency(totals.incomeUpi || 0)}
@@ -648,8 +650,8 @@ const SummaryScreen = () => {
                   </View>
                   <Text style={styles.paymentCardMeta}>
                     {totals.income > 0 
-                      ? `${(((totals.incomeUpi || 0) / totals.income) * 100).toFixed(1)}% of income`
-                      : '0% of income'}
+                      ? `${(((totals.incomeUpi || 0) / totals.income) * 100).toFixed(1)}% ${t('summary.ofIncome')}`
+                      : `0% ${t('summary.ofIncome')}`}
                   </Text>
                 </View>
               </View>
@@ -663,7 +665,7 @@ const SummaryScreen = () => {
               <View style={styles.paymentCardInfo}>
                 <View style={styles.paymentCardHeader}>
                   <Text style={styles.paymentCardName} numberOfLines={1}>
-                    Income - Cash
+                    {t('summary.incomeCash')}
                   </Text>
                   <Text style={[styles.paymentCardAmount, { color: '#51CF66' }]}>
                     {currency.symbol}{formatCurrency(totals.incomeCash || 0)}
@@ -685,8 +687,8 @@ const SummaryScreen = () => {
                   </View>
                   <Text style={styles.paymentCardMeta}>
                     {totals.income > 0 
-                      ? `${(((totals.incomeCash || 0) / totals.income) * 100).toFixed(1)}% of income`
-                      : '0% of income'}
+                      ? `${(((totals.incomeCash || 0) / totals.income) * 100).toFixed(1)}% ${t('summary.ofIncome')}`
+                      : `0% ${t('summary.ofIncome')}`}
                   </Text>
                 </View>
               </View>
@@ -699,7 +701,7 @@ const SummaryScreen = () => {
       {categoryChartData && categoryChartData.labels.length > 0 && (
         <View style={styles.chartsSection}>
           <View style={styles.chartHeader}>
-            <Text style={styles.sectionTitle}>Category Breakdown</Text>
+            <Text style={styles.sectionTitle}>{t('summary.categoryBreakdown')}</Text>
             <TouchableOpacity
               onPress={() => setShowCategoryChart(!showCategoryChart)}
               activeOpacity={0.7}
@@ -745,7 +747,7 @@ const SummaryScreen = () => {
                             />
                           </View>
                           <Text style={styles.categoryListMeta}>
-                            {percentage}% • {item.count} {item.count === 1 ? 'entry' : 'entries'}
+                            {percentage}% • {item.count} {item.count === 1 ? t('common.entry') : t('common.entries').toLowerCase()}
                           </Text>
                         </View>
                       </View>
@@ -762,13 +764,13 @@ const SummaryScreen = () => {
       {entries.length > 0 && (
         <View style={styles.chartsSection}>
           <View style={styles.chartHeader}>
-            <Text style={styles.sectionTitle}>Visualizations</Text>
+            <Text style={styles.sectionTitle}>{t('summary.visualizations')}</Text>
           </View>
 
           {/* Expense vs Income Cards */}
           {expenseIncomeData && expenseIncomeData.datasets && expenseIncomeData.datasets[0] && (
             <View style={styles.chartCard}>
-              <Text style={styles.chartTitle}>Expense vs Income</Text>
+              <Text style={styles.chartTitle}>{t('summary.expenseVsIncome')}</Text>
               <View style={styles.cardListContainer}>
                 {(() => {
                   const expense = expenseIncomeData.datasets[0].data[0] || 0;
@@ -785,7 +787,7 @@ const SummaryScreen = () => {
                         </View>
                         <View style={styles.cardListInfo}>
                           <View style={styles.cardListHeader}>
-                            <Text style={styles.cardListName}>Expense</Text>
+                            <Text style={styles.cardListName}>{t('common.expense')}</Text>
                             <Text style={[styles.cardListAmount, { color: Colors.status.expense }]}>
                               {currency.symbol}{formatCurrency(expense)}
                             </Text>
@@ -803,7 +805,7 @@ const SummaryScreen = () => {
                               />
                             </View>
                             <Text style={styles.cardListMeta}>
-                              {expensePercentage}% of total
+                              {expensePercentage}% {t('summary.ofTotal')}
                             </Text>
                           </View>
                         </View>
@@ -814,7 +816,7 @@ const SummaryScreen = () => {
                         </View>
                         <View style={styles.cardListInfo}>
                           <View style={styles.cardListHeader}>
-                            <Text style={styles.cardListName}>Income</Text>
+                            <Text style={styles.cardListName}>{t('common.income')}</Text>
                             <Text style={[styles.cardListAmount, { color: Colors.status.income }]}>
                               {currency.symbol}{formatCurrency(income)}
                             </Text>
@@ -832,7 +834,7 @@ const SummaryScreen = () => {
                               />
                             </View>
                             <Text style={styles.cardListMeta}>
-                              {incomePercentage}% of total
+                              {incomePercentage}% {t('summary.ofTotal')}
                             </Text>
                           </View>
                         </View>
@@ -847,7 +849,7 @@ const SummaryScreen = () => {
           {/* Monthly Trend Cards */}
           {monthlyData.labels.length > 0 && (
             <View style={styles.chartCard}>
-              <Text style={styles.chartTitle}>Monthly Trend (Last 6 Months)</Text>
+              <Text style={styles.chartTitle}>{t('summary.monthlyTrend')}</Text>
               <View style={styles.cardListContainer}>
                 {(() => {
                   const months = monthlyData.labels;
@@ -903,7 +905,7 @@ const SummaryScreen = () => {
           {/* Payment Method Cards */}
           {paymentMethodData && paymentMethodData.datasets && paymentMethodData.datasets[0] && (
             <View style={styles.chartCard}>
-              <Text style={styles.chartTitle}>UPI vs Cash</Text>
+              <Text style={styles.chartTitle}>{t('summary.upiVsCash')}</Text>
               <View style={styles.cardListContainer}>
                 {(() => {
                   const upi = paymentMethodData.datasets[0].data[0] || 0;
@@ -938,7 +940,7 @@ const SummaryScreen = () => {
                               />
                             </View>
                             <Text style={styles.cardListMeta}>
-                              {upiPercentage}% of total transactions
+                              {upiPercentage}% {t('summary.totalTransactions')}
                             </Text>
                           </View>
                         </View>
@@ -967,7 +969,7 @@ const SummaryScreen = () => {
                               />
                             </View>
                             <Text style={styles.cardListMeta}>
-                              {cashPercentage}% of total transactions
+                              {cashPercentage}% {t('summary.totalTransactions')}
                             </Text>
                           </View>
                         </View>
@@ -991,7 +993,7 @@ const SummaryScreen = () => {
           <View style={styles.countContent}>
             <Text style={styles.countNumber}>{filteredEntries.length}</Text>
             <Text style={styles.countLabel}>
-              {filteredEntries.length === 1 ? 'Entry' : 'Entries'} Found
+              {filteredEntries.length === 1 ? t('common.entry') : t('common.entries')} {t('summary.found')}
             </Text>
           </View>
         </TouchableOpacity>
@@ -1001,7 +1003,7 @@ const SummaryScreen = () => {
       {filteredEntries.length > 0 && (
         <View style={styles.entriesSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Entries</Text>
+            <Text style={styles.sectionTitle}>{t('summary.recentEntries')}</Text>
           </View>
           <View style={styles.entriesListContainer}>
             {filteredEntries.slice(0, 5).map((entry) => {
@@ -1056,7 +1058,7 @@ const SummaryScreen = () => {
                     )}
                     <View style={styles.transactionDetails}>
                       <Text style={styles.transactionNote} numberOfLines={1}>
-                        {entry.note || (isCashWithdrawal ? 'Cash Withdrawal' : (isCashDeposit ? 'Cash Deposit' : (isBalanceAdjustment ? 'Balance Adjustment' : (entry.type === 'expense' ? 'Expense' : 'Income'))))}
+                        {entry.note || (isCashWithdrawal ? t('home.cashWithdrawal') : (isCashDeposit ? t('home.cashDeposit') : (isBalanceAdjustment ? t('home.balanceAdjustment') : (entry.type === 'expense' ? t('common.expense') : t('common.income')))))}
                       </Text>
                       <View style={styles.transactionMeta}>
                         <View style={styles.transactionMetaLeft}>
@@ -1137,7 +1139,7 @@ const SummaryScreen = () => {
                 activeOpacity={0.7}
               >
                 <Text style={styles.viewAllText}>
-                  View all {filteredEntries.length} entries
+                  {t('summary.viewAllEntries', { count: filteredEntries.length, defaultValue: `View all ${filteredEntries.length} entries` })}
                 </Text>
                 <Ionicons name="chevron-forward" size={18} color="#007AFF" />
               </TouchableOpacity>
@@ -1170,12 +1172,12 @@ const SummaryScreen = () => {
         onDelete={(entry) => {
           // Handle delete in SummaryScreen if needed
           Alert.alert(
-            'Delete Entry',
-            'Are you sure you want to delete this entry?',
+            t('common.deleteEntryTitle'),
+            t('common.deleteEntryMessage'),
             [
-              { text: 'Cancel', style: 'cancel' },
+              { text: t('common.cancel'), style: 'cancel' },
               {
-                text: 'Delete',
+                text: t('common.delete'),
                 style: 'destructive',
                 onPress: async () => {
                   await deleteEntry(entry.id);
@@ -1185,10 +1187,9 @@ const SummaryScreen = () => {
             ]
           );
         }}
-        title={`Entries Report - ${isCustomDateRange 
+        title={`${t('summary.entriesReportTitle', { period: isCustomDateRange 
           ? `${formatDateWithMonthName(formatDate(startDate))} to ${formatDateWithMonthName(formatDate(endDate))}`
-          : getPeriodLabel(selectedPeriod || 'monthly')
-        }`}
+          : getPeriodLabel(selectedPeriod || 'monthly').toLowerCase() })}`}
       />
 
       {/* Long Press Menu Modal */}
@@ -1219,7 +1220,7 @@ const SummaryScreen = () => {
                 activeOpacity={0.7}
               >
                 <Ionicons name="create-outline" size={20} color={Colors.text.primary} />
-                <Text style={styles.longPressMenuText}>Edit</Text>
+                <Text style={styles.longPressMenuText}>{t('common.edit')}</Text>
               </TouchableOpacity>
             )}
             {selectedEntryForMenu &&
@@ -1237,7 +1238,7 @@ const SummaryScreen = () => {
                 activeOpacity={0.7}
               >
                 <Ionicons name="copy-outline" size={20} color={Colors.text.primary} />
-                <Text style={styles.longPressMenuText}>Duplicate</Text>
+                <Text style={styles.longPressMenuText}>{t('common.duplicate')}</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
@@ -1251,7 +1252,7 @@ const SummaryScreen = () => {
               activeOpacity={0.7}
             >
               <Ionicons name="trash-outline" size={20} color={Colors.status.expense} />
-              <Text style={[styles.longPressMenuText, styles.longPressMenuTextDanger]}>Delete</Text>
+              <Text style={[styles.longPressMenuText, styles.longPressMenuTextDanger]}>{t('common.delete')}</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>

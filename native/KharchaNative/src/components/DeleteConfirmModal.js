@@ -11,12 +11,24 @@ import { LinearGradient } from 'react-native-linear-gradient';
 import Colors from '../constants/colors';
 import { formatCurrency } from '../utils/dateUtils';
 import { useCurrency } from '../context/CurrencyContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const DeleteConfirmModal = ({ visible, entry, onConfirm, onCancel }) => {
   const { currency } = useCurrency();
+  const { t } = useLanguage();
+  
   if (!entry) return null;
 
-  const entryType = entry.type === 'expense' ? 'Expense' : entry.type === 'income' ? 'Income' : 'Balance Adjustment';
+  const getEntryTypeLabel = (type) => {
+    switch(type) {
+      case 'expense': return t('common.expense');
+      case 'income': return t('common.income');
+      case 'balance_adjustment': return t('home.balanceAdjustment');
+      default: return type;
+    }
+  };
+
+  const entryType = getEntryTypeLabel(entry.type);
   const isBalanceAdjustment = entry.type === 'balance_adjustment';
   const adjustmentIsAdd = isBalanceAdjustment ? (entry.adjustment_type === 'add' || !entry.adjustment_type) : false;
 
@@ -35,19 +47,19 @@ const DeleteConfirmModal = ({ visible, entry, onConfirm, onCancel }) => {
             </View>
           </View>
           
-          <Text style={styles.modalTitle}>Delete Entry</Text>
+          <Text style={styles.modalTitle}>{t('common.deleteEntryTitle')}</Text>
           
           <Text style={styles.modalMessage}>
-            Are you sure you want to delete this {entryType.toLowerCase()} entry? This action cannot be undone.
+            {t('common.deleteEntryMessage')}
           </Text>
           
           <View style={styles.entryDetails}>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Type</Text>
+              <Text style={styles.detailLabel}>{t('common.type')}</Text>
               <Text style={styles.detailValue}>{entryType}</Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Amount</Text>
+              <Text style={styles.detailLabel}>{t('common.amount')}</Text>
               <Text style={[
                 styles.detailValue,
                 isBalanceAdjustment 
@@ -62,12 +74,12 @@ const DeleteConfirmModal = ({ visible, entry, onConfirm, onCancel }) => {
             </View>
             {entry.note && (
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Note</Text>
+                <Text style={styles.detailLabel}>{t('common.note')}</Text>
                 <Text style={styles.detailValue} numberOfLines={2}>{entry.note}</Text>
               </View>
             )}
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Payment</Text>
+              <Text style={styles.detailLabel}>{t('common.payment')}</Text>
               <View style={styles.modeRow}>
                 <Ionicons
                   name={(entry.mode || 'upi') === 'upi' ? 'phone-portrait' : 'cash'}
@@ -75,7 +87,7 @@ const DeleteConfirmModal = ({ visible, entry, onConfirm, onCancel }) => {
                   color={(entry.mode || 'upi') === 'upi' ? Colors.payment.upi : Colors.payment.cash}
                 />
                 <Text style={styles.detailValue}>
-                  {(entry.mode || 'upi') === 'upi' ? 'UPI' : 'Cash'}
+                  {(entry.mode || 'upi') === 'upi' ? t('common.upi') : t('common.cash')}
                 </Text>
               </View>
             </View>
@@ -87,7 +99,7 @@ const DeleteConfirmModal = ({ visible, entry, onConfirm, onCancel }) => {
               onPress={onCancel}
               activeOpacity={0.7}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity
@@ -102,7 +114,7 @@ const DeleteConfirmModal = ({ visible, entry, onConfirm, onCancel }) => {
                 style={styles.deleteButtonGradient}
               >
                 <Ionicons name="trash" size={18} color="#FFFFFF" />
-                <Text style={styles.deleteButtonText}>Delete</Text>
+                <Text style={styles.deleteButtonText}>{t('common.delete')}</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
