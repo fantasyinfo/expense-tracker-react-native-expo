@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,15 +8,33 @@ import {
   TextInput,
   SafeAreaView,
   StatusBar,
+  Modal,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Colors from '../constants/colors';
 import { commonCurrencies } from '../constants/currencies';
 import { useCurrency } from '../context/CurrencyContext';
+import { getCustomCurrencies, saveCustomCurrency } from '../utils/storage';
 
 const CurrencySelectionScreen = ({ navigation, route }) => {
   const { updateCurrency, currency: currentCurrency } = useCurrency();
   const [searchQuery, setSearchQuery] = useState('');
+  const [customCurrencies, setCustomCurrencies] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [newCurrency, setNewCurrency] = useState({ code: '', symbol: '', name: '' });
+  
+  // Load custom currencies
+  useEffect(() => {
+    loadCustomCurrencies();
+  }, []);
+
+  const loadCustomCurrencies = async () => {
+    const custom = await getCustomCurrencies();
+    setCustomCurrencies(custom);
+  };
   
   // Determine if we are in onboarding mode or settings mode
   // If navigated from Settings, route.params will might have { mode: 'settings' }
@@ -25,20 +43,44 @@ const CurrencySelectionScreen = ({ navigation, route }) => {
   const isSettingsMode = route?.params?.mode === 'settings';
 
   const filteredCurrencies = useMemo(() => {
-    if (!searchQuery) return commonCurrencies;
+    const allCurrencies = [...customCurrencies, ...commonCurrencies];
+    if (!searchQuery) return allCurrencies;
     const lowerQuery = searchQuery.toLowerCase();
-    return commonCurrencies.filter(
+    return allCurrencies.filter(
       (c) =>
         c.name.toLowerCase().includes(lowerQuery) ||
-        c.country.toLowerCase().includes(lowerQuery) ||
+        (c.country && c.country.toLowerCase().includes(lowerQuery)) ||
         c.code.toLowerCase().includes(lowerQuery)
     );
-  }, [searchQuery]);
+  }, [searchQuery, customCurrencies]);
 
   const handleSelectCurrency = (currency) => {
     updateCurrency(currency);
     if (isSettingsMode && navigation.canGoBack()) {
       navigation.goBack();
+    }
+  };
+
+  const handleAddCurrency = async () => {
+    if (!newCurrency.code || !newCurrency.symbol || !newCurrency.name) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+    
+    try {
+      const currencyToAdd = {
+        ...newCurrency,
+        code: newCurrency.code.toUpperCase(),
+        country: 'Custom',
+      };
+      
+      await saveCustomCurrency(currencyToAdd);
+      await loadCustomCurrencies();
+      setModalVisible(false);
+      setNewCurrency({ code: '', symbol: '', name: '' });
+      Alert.alert('Success', 'Currency added successfully');
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Failed to add currency');
     }
   };
 
@@ -97,6 +139,12 @@ const CurrencySelectionScreen = ({ navigation, route }) => {
           <Text style={styles.title}>Select Currency</Text>
           <Text style={styles.subtitle}>Choose your preferred currency</Text>
         </View>
+        <TouchableOpacity 
+          style={styles.addButton}
+          onPress={() => setModalVisible(true)}
+        >
+          <Ionicons name="add" size={24} color={Colors.primary} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.searchContainer}>
@@ -122,6 +170,69 @@ const CurrencySelectionScreen = ({ navigation, route }) => {
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
       />
+
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalContainer}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add Custom Currency</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Ionicons name="close" size={24} color={Colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Currency Code (e.g., USD)</Text>
+              <TextInput
+                style={styles.input}
+                value={newCurrency.code}
+                onChangeText={(text) => setNewCurrency({...newCurrency, code: text})}
+                placeholder="USD"
+                placeholderTextColor={Colors.text.tertiary}
+                autoCapitalize="characters"
+                maxLength={3}
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Symbol (e.g., $)</Text>
+              <TextInput
+                style={styles.input}
+                value={newCurrency.symbol}
+                onChangeText={(text) => setNewCurrency({...newCurrency, symbol: text})}
+                placeholder="$"
+                placeholderTextColor={Colors.text.tertiary}
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Currency Name</Text>
+              <TextInput
+                style={styles.input}
+                value={newCurrency.name}
+                onChangeText={(text) => setNewCurrency({...newCurrency, name: text})}
+                placeholder="US Dollar"
+                placeholderTextColor={Colors.text.tertiary}
+              />
+            </View>
+
+            <TouchableOpacity 
+              style={styles.saveButton}
+              onPress={handleAddCurrency}
+            >
+              <Text style={styles.saveButtonText}>Add Currency</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -226,6 +337,62 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.primary || '#0A84FF',
     fontWeight: '600',
+  },
+  addButton: {
+    padding: 8,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 20,
+    marginLeft: 10,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#1C1C1E',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  inputContainer: {
+    marginBottom: 15,
+  },
+  inputLabel: {
+    color: '#A0A0A0',
+    marginBottom: 8,
+    fontSize: 14,
+  },
+  input: {
+    backgroundColor: '#2C2C2E',
+    borderRadius: 10,
+    padding: 12,
+    color: '#FFFFFF',
+    fontSize: 16,
+  },
+  saveButton: {
+    backgroundColor: Colors.primary || '#0A84FF',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

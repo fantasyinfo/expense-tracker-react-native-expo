@@ -128,3 +128,35 @@ export const saveCurrencySettings = async (settings) => {
     // Error saving currency settings
   }
 };
+
+const CUSTOM_CURRENCIES_KEY = '@expense_tracker_custom_currencies';
+
+/**
+ * Get stored custom currencies
+ */
+export const getCustomCurrencies = async () => {
+  try {
+    const data = await AsyncStorage.getItem(CUSTOM_CURRENCIES_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch (error) {
+    return [];
+  }
+};
+
+/**
+ * Save a new custom currency
+ */
+export const saveCustomCurrency = async (currency) => {
+  try {
+    const current = await getCustomCurrencies();
+    // Check if code already exists
+    if (current.some(c => c.code === currency.code)) {
+      throw new Error('Currency code already exists');
+    }
+    const updated = [...current, currency];
+    await AsyncStorage.setItem(CUSTOM_CURRENCIES_KEY, JSON.stringify(updated));
+    return updated;
+  } catch (error) {
+    throw error;
+  }
+};
