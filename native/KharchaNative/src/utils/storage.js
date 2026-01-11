@@ -103,3 +103,28 @@ export const deleteEntry = async (id) => {
   await saveEntries(filtered);
 };
 
+
+const CURRENCY_STORAGE_KEY = '@expense_tracker_currency';
+
+/**
+ * Get stored currency settings
+ */
+export const getCurrencySettings = async () => {
+  try {
+    const data = await AsyncStorage.getItem(CURRENCY_STORAGE_KEY);
+    return data ? JSON.parse(data) : null;
+  } catch (error) {
+    return null;
+  }
+};
+
+/**
+ * Save currency settings
+ */
+export const saveCurrencySettings = async (settings) => {
+  try {
+    await AsyncStorage.setItem(CURRENCY_STORAGE_KEY, JSON.stringify(settings));
+  } catch (error) {
+    // Error saving currency settings
+  }
+};

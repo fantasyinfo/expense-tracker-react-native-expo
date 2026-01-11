@@ -26,6 +26,7 @@ import { loadProfile } from '../utils/profileStorage';
 import { getStreak, checkAchievements, getMotivationalMessage, calculateGoalProgress } from '../utils/engagementUtils';
 import { useModal } from '../context/ModalContext';
 import Colors from '../constants/colors';
+import { useCurrency } from '../context/CurrencyContext';
 import AddEntryModal from '../components/AddEntryModal';
 import AppFooter from '../components/AppFooter';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
@@ -38,6 +39,7 @@ const HomeScreen = () => {
     openAddEntryModal, 
     closeAddEntryModal,
   } = useModal();
+  const { currency } = useCurrency();
   const navigation = useNavigation();
   const [entries, setEntries] = useState([]);
   const [todayEntries, setTodayEntries] = useState([]);
@@ -396,7 +398,7 @@ const HomeScreen = () => {
               {isCashWithdrawal || isCashDeposit || isBalanceAdjustment
                 ? (isCashWithdrawal || isCashDeposit ? '' : (adjustmentIsAdd ? '+' : '-'))
                 : (item.type === 'expense' ? '-' : '+')
-              }₹{formatCurrency(item.amount)}
+              }{currency.symbol}{formatCurrency(item.amount)}
             </Text>
           </View>
           <TouchableOpacity
@@ -509,7 +511,7 @@ const HomeScreen = () => {
                   adjustsFontSizeToFit={true}
                   minimumFontScale={0.8}
                 >
-                  ₹{formatCurrency(totals.expense)}
+                  {currency.symbol}{formatCurrency(totals.expense)}
                 </Text>
               </View>
             </View>
@@ -526,7 +528,7 @@ const HomeScreen = () => {
                   adjustsFontSizeToFit={true}
                   minimumFontScale={0.8}
                 >
-                  ₹{formatCurrency(totals.income)}
+                  {currency.symbol}{formatCurrency(totals.income)}
                 </Text>
               </View>
             </View>
@@ -765,7 +767,7 @@ const HomeScreen = () => {
               adjustsFontSizeToFit={true}
               minimumFontScale={0.6}
             >
-              ₹{formatCurrency(totals.balance)}
+              {currency.symbol}{formatCurrency(totals.balance)}
             </Text>
             <View style={styles.balanceCardFooter}>
               <View style={styles.balanceCardStat}>
@@ -778,7 +780,7 @@ const HomeScreen = () => {
                     adjustsFontSizeToFit={true}
                     minimumFontScale={0.8}
                   >
-                    ₹{formatCurrency(totals.expense)}
+                    {currency.symbol}{formatCurrency(totals.expense)}
                   </Text>
                 </View>
               </View>
@@ -793,7 +795,7 @@ const HomeScreen = () => {
                     adjustsFontSizeToFit={true}
                     minimumFontScale={0.8}
                   >
-                    ₹{formatCurrency(totals.income)}
+                    {currency.symbol}{formatCurrency(totals.income)}
                   </Text>
                 </View>
               </View>
@@ -821,8 +823,8 @@ const HomeScreen = () => {
               minimumFontScale={0.7}
             >
               {bankBalance !== null 
-                ? `₹${formatCurrency(Math.abs(bankBalance))}`
-                : '₹0.00'
+                ? `${currency.symbol}${formatCurrency(Math.abs(bankBalance))}`
+                : `${currency.symbol}0.00`
               }
             </Text>
           </View>
@@ -844,8 +846,8 @@ const HomeScreen = () => {
               minimumFontScale={0.7}
             >
               {cashBalance !== null 
-                ? `₹${formatCurrency(Math.abs(cashBalance))}`
-                : '₹0.00'
+                ? `${currency.symbol}${formatCurrency(Math.abs(cashBalance))}`
+                : `${currency.symbol}0.00`
               }
             </Text>
           </View>

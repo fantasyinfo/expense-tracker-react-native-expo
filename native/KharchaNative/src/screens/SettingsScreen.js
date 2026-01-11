@@ -34,11 +34,13 @@ import CashDepositModal from '../components/CashDepositModal';
 import Colors from '../constants/colors';
 import { formatCurrency } from '../utils/dateUtils';
 import { useModal } from '../context/ModalContext';
+import { useCurrency } from '../context/CurrencyContext';
 import ImportModal from '../components/ImportModal';
 import BackupSettingsModal from '../components/BackupSettingsModal';
 import ExportFilterModal from '../components/ExportFilterModal';
 import UserGuideScreen from './UserGuideScreen';
 import CategoryManagementModal from '../components/CategoryManagementModal';
+import CurrencySelectionScreen from './CurrencySelectionScreen';
 import { createManualBackup, getLastBackupTime, formatBackupDate } from '../utils/backupUtils';
 
 const CollapsibleSection = ({ title, children, defaultExpanded = false }) => {
@@ -72,6 +74,7 @@ const SettingsScreen = () => {
     openCashDepositModal,
     closeCashDepositModal,
   } = useModal();
+  const { currency } = useCurrency();
   const [entries, setEntries] = useState([]);
   const [exporting, setExporting] = useState(false);
   const [entryCount, setEntryCount] = useState(0);
@@ -108,6 +111,7 @@ const SettingsScreen = () => {
   const [backupCreating, setBackupCreating] = useState(false);
   const [showUserGuide, setShowUserGuide] = useState(false);
   const [showCategoryManagement, setShowCategoryManagement] = useState(false);
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
 
   const loadData = useCallback(async () => {
     const allEntries = await loadEntries();
@@ -149,6 +153,7 @@ const SettingsScreen = () => {
         setShowBalanceModal(false);
         setShowGoalsModal(false);
         setShowCategoryManagement(false);
+        setShowCurrencyModal(false);
       };
     }, [])
   );
@@ -343,6 +348,22 @@ const SettingsScreen = () => {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Settings</Text>
       </View>
+      
+      {/* Currency Modal */}
+      <Modal
+        visible={showCurrencyModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowCurrencyModal(false)}
+      >
+        <CurrencySelectionScreen
+          navigation={{
+            goBack: () => setShowCurrencyModal(false),
+            canGoBack: () => true,
+          }}
+          route={{ params: { mode: 'settings' } }}
+        />
+      </Modal>
 
       {/* Balance Management Section */}
       <CollapsibleSection title="Balance Management" defaultExpanded={true}>
@@ -356,7 +377,7 @@ const SettingsScreen = () => {
                   styles.balanceDisplayAmount,
                   bankBalance < 0 && styles.balanceDisplayAmountNegative
                 ]}>
-                  ₹{formatCurrency(bankBalance)}
+                  {currency.symbol}{formatCurrency(bankBalance)}
                 </Text>
               </View>
             )}
@@ -367,11 +388,17 @@ const SettingsScreen = () => {
                   styles.balanceDisplayAmount,
                   cashBalance < 0 && styles.balanceDisplayAmountNegative
                 ]}>
-                  ₹{formatCurrency(cashBalance)}
+                  {currency.symbol}{formatCurrency(cashBalance)}
                 </Text>
               </View>
             )}
           </View>
+          
+          <SettingCard
+            title="Currency"
+            description={`${currency.name} (${currency.symbol})`}
+            onPress={() => setShowCurrencyModal(true)}
+          />
 
           <SettingCard
             title="Set Bank / UPI Balance"
@@ -407,7 +434,7 @@ const SettingsScreen = () => {
         <View style={styles.sectionContent}>
           <SettingCard
             title="Set Daily Savings Goal"
-            description={goals.dailySavingsGoal > 0 ? `Current: ₹${formatCurrency(goals.dailySavingsGoal)}` : 'Set your daily savings target'}
+            description={goals.dailySavingsGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.dailySavingsGoal)}` : 'Set your daily savings target'}
             onPress={() => {
               setGoalCategory('savings');
               setGoalType('daily');
@@ -417,7 +444,7 @@ const SettingsScreen = () => {
           />
           <SettingCard
             title="Set Weekly Savings Goal"
-            description={goals.weeklySavingsGoal > 0 ? `Current: ₹${formatCurrency(goals.weeklySavingsGoal)}` : 'Set your weekly savings target'}
+            description={goals.weeklySavingsGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.weeklySavingsGoal)}` : 'Set your weekly savings target'}
             onPress={() => {
               setGoalCategory('savings');
               setGoalType('weekly');
@@ -427,7 +454,7 @@ const SettingsScreen = () => {
           />
           <SettingCard
             title="Set Monthly Savings Goal"
-            description={goals.monthlySavingsGoal > 0 ? `Current: ₹${formatCurrency(goals.monthlySavingsGoal)}` : 'Set your monthly savings target'}
+            description={goals.monthlySavingsGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.monthlySavingsGoal)}` : 'Set your monthly savings target'}
             onPress={() => {
               setGoalCategory('savings');
               setGoalType('monthly');
@@ -437,7 +464,7 @@ const SettingsScreen = () => {
           />
           <SettingCard
             title="Set Yearly Savings Goal"
-            description={goals.yearlySavingsGoal > 0 ? `Current: ₹${formatCurrency(goals.yearlySavingsGoal)}` : 'Set your yearly savings target'}
+            description={goals.yearlySavingsGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.yearlySavingsGoal)}` : 'Set your yearly savings target'}
             onPress={() => {
               setGoalCategory('savings');
               setGoalType('yearly');
@@ -447,7 +474,7 @@ const SettingsScreen = () => {
           />
           <SettingCard
             title="Set Custom Savings Goal"
-            description={goals.customSavingsGoal > 0 ? `${goals.customSavingsGoalName || 'Custom'}: ₹${formatCurrency(goals.customSavingsGoal)}` : 'Set a custom savings goal'}
+            description={goals.customSavingsGoal > 0 ? `${goals.customSavingsGoalName || 'Custom'}: ${currency.symbol}${formatCurrency(goals.customSavingsGoal)}` : 'Set a custom savings goal'}
             onPress={() => {
               setGoalCategory('savings');
               setGoalType('custom');
@@ -464,7 +491,7 @@ const SettingsScreen = () => {
         <View style={styles.sectionContent}>
           <SettingCard
             title="Set Daily Expense Limit"
-            description={goals.dailyExpenseGoal > 0 ? `Current: ₹${formatCurrency(goals.dailyExpenseGoal)}` : 'Set your daily expense limit'}
+            description={goals.dailyExpenseGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.dailyExpenseGoal)}` : 'Set your daily expense limit'}
             onPress={() => {
               setGoalCategory('expense');
               setGoalType('daily');
@@ -474,7 +501,7 @@ const SettingsScreen = () => {
           />
           <SettingCard
             title="Set Weekly Expense Limit"
-            description={goals.weeklyExpenseGoal > 0 ? `Current: ₹${formatCurrency(goals.weeklyExpenseGoal)}` : 'Set your weekly expense limit'}
+            description={goals.weeklyExpenseGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.weeklyExpenseGoal)}` : 'Set your weekly expense limit'}
             onPress={() => {
               setGoalCategory('expense');
               setGoalType('weekly');
@@ -484,7 +511,7 @@ const SettingsScreen = () => {
           />
           <SettingCard
             title="Set Monthly Expense Limit"
-            description={goals.monthlyExpenseGoal > 0 ? `Current: ₹${formatCurrency(goals.monthlyExpenseGoal)}` : 'Set your monthly expense limit'}
+            description={goals.monthlyExpenseGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.monthlyExpenseGoal)}` : 'Set your monthly expense limit'}
             onPress={() => {
               setGoalCategory('expense');
               setGoalType('monthly');
@@ -494,7 +521,7 @@ const SettingsScreen = () => {
           />
           <SettingCard
             title="Set Yearly Expense Limit"
-            description={goals.yearlyExpenseGoal > 0 ? `Current: ₹${formatCurrency(goals.yearlyExpenseGoal)}` : 'Set your yearly expense limit'}
+            description={goals.yearlyExpenseGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.yearlyExpenseGoal)}` : 'Set your yearly expense limit'}
             onPress={() => {
               setGoalCategory('expense');
               setGoalType('yearly');
@@ -504,7 +531,7 @@ const SettingsScreen = () => {
           />
           <SettingCard
             title="Set Custom Expense Limit"
-            description={goals.customExpenseGoal > 0 ? `${goals.customExpenseGoalName || 'Custom'}: ₹${formatCurrency(goals.customExpenseGoal)}` : 'Set a custom expense limit'}
+            description={goals.customExpenseGoal > 0 ? `${goals.customExpenseGoalName || 'Custom'}: ${currency.symbol}${formatCurrency(goals.customExpenseGoal)}` : 'Set a custom expense limit'}
             onPress={() => {
               setGoalCategory('expense');
               setGoalType('custom');

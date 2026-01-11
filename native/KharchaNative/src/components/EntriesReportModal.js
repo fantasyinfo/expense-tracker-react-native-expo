@@ -12,8 +12,10 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { formatDateWithMonthName, formatDateShort, calculateTotals, formatCurrency } from '../utils/dateUtils';
 import { loadCategories } from '../utils/categoryStorage';
 import Colors from '../constants/colors';
+import { useCurrency } from '../context/CurrencyContext';
 
 const EntriesReportModal = ({ visible, entries, onClose, onEdit, onDuplicate, onDelete, title = 'Entries Report' }) => {
+  const { currency } = useCurrency();
   const [categories, setCategories] = useState([]);
   const [actionMenuVisible, setActionMenuVisible] = useState(false);
   const [selectedEntryForMenu, setSelectedEntryForMenu] = useState(null);
@@ -160,7 +162,7 @@ const EntriesReportModal = ({ visible, entries, onClose, onEdit, onDuplicate, on
               {isCashWithdrawal || isCashDeposit || isBalanceAdjustment
                 ? (isCashWithdrawal || isCashDeposit ? '' : (adjustmentIsAdd ? '+' : '-'))
                 : (entry.type === 'expense' ? '-' : '+')
-              }₹{formatCurrency(entry.amount)}
+              }{currency.symbol}{formatCurrency(entry.amount)}
             </Text>
           </View>
           {(onEdit || onDuplicate || onDelete) && (
@@ -225,7 +227,7 @@ const EntriesReportModal = ({ visible, entries, onClose, onEdit, onDuplicate, on
                       adjustsFontSizeToFit={true}
                       minimumFontScale={0.8}
                     >
-                      ₹{formatCurrency(overallTotals.expense)}
+                      {currency.symbol}{formatCurrency(overallTotals.expense)}
                     </Text>
                   </View>
                   <View style={styles.summaryItem}>
@@ -239,7 +241,7 @@ const EntriesReportModal = ({ visible, entries, onClose, onEdit, onDuplicate, on
                       adjustsFontSizeToFit={true}
                       minimumFontScale={0.8}
                     >
-                      ₹{formatCurrency(overallTotals.income)}
+                      {currency.symbol}{formatCurrency(overallTotals.income)}
                     </Text>
                   </View>
                   <View style={styles.summaryItem}>
@@ -264,7 +266,7 @@ const EntriesReportModal = ({ visible, entries, onClose, onEdit, onDuplicate, on
                       adjustsFontSizeToFit={true}
                       minimumFontScale={0.8}
                     >
-                      ₹{formatCurrency(overallTotals.balance)}
+                      {currency.symbol}{formatCurrency(overallTotals.balance)}
                     </Text>
                   </View>
                 </View>
@@ -286,7 +288,7 @@ const EntriesReportModal = ({ visible, entries, onClose, onEdit, onDuplicate, on
                           adjustsFontSizeToFit={true}
                           minimumFontScale={0.8}
                         >
-                          ₹{formatCurrency(overallTotals.expenseUpi || 0)}
+                          {currency.symbol}{formatCurrency(overallTotals.expenseUpi || 0)}
                         </Text>
                       </View>
                       <View style={styles.breakdownItem}>
@@ -300,7 +302,7 @@ const EntriesReportModal = ({ visible, entries, onClose, onEdit, onDuplicate, on
                           adjustsFontSizeToFit={true}
                           minimumFontScale={0.8}
                         >
-                          ₹{formatCurrency(overallTotals.expenseCash || 0)}
+                          {currency.symbol}{formatCurrency(overallTotals.expenseCash || 0)}
                         </Text>
                       </View>
                     </View>
@@ -320,7 +322,7 @@ const EntriesReportModal = ({ visible, entries, onClose, onEdit, onDuplicate, on
                           adjustsFontSizeToFit={true}
                           minimumFontScale={0.8}
                         >
-                          ₹{formatCurrency(overallTotals.incomeUpi || 0)}
+                          {currency.symbol}{formatCurrency(overallTotals.incomeUpi || 0)}
                         </Text>
                       </View>
                       <View style={styles.breakdownItem}>
@@ -334,7 +336,7 @@ const EntriesReportModal = ({ visible, entries, onClose, onEdit, onDuplicate, on
                           adjustsFontSizeToFit={true}
                           minimumFontScale={0.8}
                         >
-                          ₹{formatCurrency(overallTotals.incomeCash || 0)}
+                          {currency.symbol}{formatCurrency(overallTotals.incomeCash || 0)}
                         </Text>
                       </View>
                     </View>
@@ -358,13 +360,13 @@ const EntriesReportModal = ({ visible, entries, onClose, onEdit, onDuplicate, on
                         <View style={styles.dateTotalBadge}>
                           <Ionicons name="arrow-down" size={12} color={Colors.status.expense} />
                           <Text style={[styles.dateTotalText, { color: Colors.status.expense }]}>
-                            ₹{formatCurrency(item.totals.expense)}
+                            {currency.symbol}{formatCurrency(item.totals.expense)}
                           </Text>
                         </View>
                         <View style={styles.dateTotalBadge}>
                           <Ionicons name="arrow-up" size={12} color={Colors.status.income} />
                           <Text style={[styles.dateTotalText, { color: Colors.status.income }]}>
-                            ₹{formatCurrency(item.totals.income)}
+                            {currency.symbol}{formatCurrency(item.totals.income)}
                           </Text>
                         </View>
                       </View>

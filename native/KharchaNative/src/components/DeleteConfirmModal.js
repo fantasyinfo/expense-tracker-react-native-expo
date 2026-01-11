@@ -10,8 +10,10 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { LinearGradient } from 'react-native-linear-gradient';
 import Colors from '../constants/colors';
 import { formatCurrency } from '../utils/dateUtils';
+import { useCurrency } from '../context/CurrencyContext';
 
 const DeleteConfirmModal = ({ visible, entry, onConfirm, onCancel }) => {
+  const { currency } = useCurrency();
   if (!entry) return null;
 
   const entryType = entry.type === 'expense' ? 'Expense' : entry.type === 'income' ? 'Income' : 'Balance Adjustment';
@@ -55,7 +57,7 @@ const DeleteConfirmModal = ({ visible, entry, onConfirm, onCancel }) => {
                 {isBalanceAdjustment 
                   ? (adjustmentIsAdd ? '+' : '-')
                   : (entry.type === 'expense' ? '-' : '+')
-                }₹{formatCurrency(entry.amount)}
+                }{currency.symbol}{formatCurrency(entry.amount)}
               </Text>
             </View>
             {entry.note && (

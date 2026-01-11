@@ -10,6 +10,7 @@ import { loadCategories } from './categoryStorage';
 const generatePDFHTML = async (entries, options = {}) => {
   const categories = await loadCategories();
   const categoryMap = new Map(categories.map(cat => [cat.id, cat.name]));
+  const currencySymbol = options.currencySymbol || '₹';
   
   // Calculate totals
   const totalExpense = entries
@@ -151,15 +152,15 @@ const generatePDFHTML = async (entries, options = {}) => {
       <div class="summary">
         <div class="summary-card">
           <div class="summary-label">Total Expense</div>
-          <div class="summary-value expense">₹${totalExpense.toFixed(2)}</div>
+          <div class="summary-value expense">${currencySymbol}${totalExpense.toFixed(2)}</div>
         </div>
         <div class="summary-card">
           <div class="summary-label">Total Income</div>
-          <div class="summary-value income">₹${totalIncome.toFixed(2)}</div>
+          <div class="summary-value income">${currencySymbol}${totalIncome.toFixed(2)}</div>
         </div>
         <div class="summary-card">
           <div class="summary-label">Net Balance</div>
-          <div class="summary-value ${balance >= 0 ? 'income' : 'expense'}">₹${balance.toFixed(2)}</div>
+          <div class="summary-value ${balance >= 0 ? 'income' : 'expense'}">${currencySymbol}${balance.toFixed(2)}</div>
         </div>
         <div class="summary-card">
           <div class="summary-label">Total Entries</div>
@@ -170,19 +171,19 @@ const generatePDFHTML = async (entries, options = {}) => {
       <div class="summary">
         <div class="summary-card">
           <div class="summary-label">Expense - UPI</div>
-          <div class="summary-value expense">₹${expenseUpi.toFixed(2)}</div>
+          <div class="summary-value expense">${currencySymbol}${expenseUpi.toFixed(2)}</div>
         </div>
         <div class="summary-card">
           <div class="summary-label">Expense - Cash</div>
-          <div class="summary-value expense">₹${expenseCash.toFixed(2)}</div>
+          <div class="summary-value expense">${currencySymbol}${expenseCash.toFixed(2)}</div>
         </div>
         <div class="summary-card">
           <div class="summary-label">Income - UPI</div>
-          <div class="summary-value income">₹${incomeUpi.toFixed(2)}</div>
+          <div class="summary-value income">${currencySymbol}${incomeUpi.toFixed(2)}</div>
         </div>
         <div class="summary-card">
           <div class="summary-label">Income - Cash</div>
-          <div class="summary-value income">₹${incomeCash.toFixed(2)}</div>
+          <div class="summary-value income">${currencySymbol}${incomeCash.toFixed(2)}</div>
         </div>
       </div>
       
@@ -233,7 +234,7 @@ const generatePDFHTML = async (entries, options = {}) => {
           <tr>
             <td>${date}</td>
             <td>${type}</td>
-            <td class="${amountClass}">₹${amount}</td>
+            <td class="${amountClass}">${currencySymbol}${amount}</td>
             <td>${paymentMethod}</td>
             <td>${category}</td>
             <td>${note}</td>

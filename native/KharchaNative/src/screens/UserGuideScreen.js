@@ -12,10 +12,12 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { LinearGradient } from 'react-native-linear-gradient';
 import Colors from '../constants/colors';
+import { useCurrency } from '../context/CurrencyContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const UserGuideScreen = ({ visible, onClose }) => {
+  const { currency } = useCurrency();
   const [expandedSections, setExpandedSections] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
   const scrollViewRef = useRef(null);
@@ -99,9 +101,9 @@ const UserGuideScreen = ({ visible, onClose }) => {
             'Tap the Settings icon (⚙️) at the bottom',
             'Scroll to Balance Management section',
             'Tap "Set Bank / UPI Balance"',
-            'Enter your current UPI/Bank balance (e.g., ₹50,000)',
+            `Enter your current UPI/Bank balance (e.g., ${currency.symbol}50,000)`,
             'Tap "Set Cash Balance"',
-            'Enter your current cash balance (e.g., ₹5,000)',
+            `Enter your current cash balance (e.g., ${currency.symbol}5,000)`,
             'Tap Save',
           ],
         },
@@ -139,7 +141,7 @@ const UserGuideScreen = ({ visible, onClose }) => {
           items: [
             'Go to Settings → Savings Goals',
             'Tap "Set Monthly Savings Goal"',
-            'Enter your target (e.g., ₹10,000 per month)',
+            `Enter your target (e.g., ${currency.symbol}10,000 per month)`,
             'Save',
           ],
         },
@@ -160,7 +162,7 @@ const UserGuideScreen = ({ visible, onClose }) => {
           items: [
             'Tap the big + button in the center of the bottom navigation',
             'Select Expense or Income',
-            'Enter the amount (e.g., ₹500)',
+            `Enter the amount (e.g., ${currency.symbol}500)`,
             'Add a note (e.g., "Lunch at restaurant")',
             'Select a category (e.g., "Food & Dining")',
             'Choose payment method (UPI or Cash)',
