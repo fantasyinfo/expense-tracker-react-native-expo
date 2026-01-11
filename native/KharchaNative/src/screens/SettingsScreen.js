@@ -852,33 +852,7 @@ const SettingsScreen = () => {
         </View>
       </CollapsibleSection>
 
-      {/* Developer Contact Section */}
-      <CollapsibleSection title="Developer">
-        <View style={styles.sectionContent}>
-          <View style={styles.developerCard}>
-            <Text style={styles.developerName}>Gaurav Sharma</Text>
-            <Text style={styles.madeByText}>Made in India</Text>
-            <View style={styles.contactSection}>
-              <Text style={styles.contactTitle}>Need a similar app or custom solution?</Text>
-              <TouchableOpacity 
-                style={styles.contactButton}
-                onPress={() => {
-                  Alert.alert(
-                    'Contact Developer',
-                    'WhatsApp/Call: +91 6397520221\n\nWant to create a similar app or have a custom idea? Feel free to reach out!',
-                    [{ text: 'OK' }]
-                  );
-                }}
-              >
-                <Text style={styles.contactButtonText}>Contact</Text>
-              </TouchableOpacity>
-              <Text style={styles.contactNote}>
-                Custom mobile apps, web applications, and digital solutions tailored to your business needs.
-              </Text>
-            </View>
-          </View>
-        </View>
-      </CollapsibleSection>
+
 
       {/* Footer */}
       <AppFooter />

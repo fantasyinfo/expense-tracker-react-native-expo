@@ -303,23 +303,7 @@ const UserGuideScreen = ({ visible, onClose }) => {
               </View>
             ))}
 
-            {/* Contact Section */}
-            <View style={styles.contactSection}>
-              <Text style={styles.contactTitle}>{t('userGuide.contactTitle')}</Text>
-              <Text style={styles.contactText}>
-                {t('userGuide.contactText')}
-              </Text>
-              <View style={styles.contactInfo}>
-                <View style={styles.contactItem}>
-                  <Ionicons name="call-outline" size={20} color={Colors.accent.primary} />
-                  <Text style={styles.contactDetail}>+91 6397520221</Text>
-                </View>
-                <View style={styles.contactItem}>
-                  <Ionicons name="mail-outline" size={20} color={Colors.accent.primary} />
-                  <Text style={styles.contactDetail}>gs27349@gmail.com</Text>
-                </View>
-              </View>
-            </View>
+
           </ScrollView>
       </View>
     </Modal>

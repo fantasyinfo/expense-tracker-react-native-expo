@@ -278,7 +278,7 @@ export default {
     searchPlaceholder: 'Search guide...',
     tocTitle: '📋 Table of Contents',
     contactTitle: '📞 Need Help?',
-    contactText: 'If you have questions or need support, please contact:',
+    contactText: 'If you have questions or need support, please verify with the official documentation.',
     sections: {
       'getting-started': {
         title: '🚀 Getting Started',
@@ -419,7 +419,7 @@ export default {
           { type: 'issue', title: 'Import Not Working', solution: 'Check file format (CSV or JSON). Verify date format (YYYY-MM-DD). Ensure file matches export format.' },
           { type: 'subtitle', text: 'Getting Help:' },
           { type: 'text', text: 'If you encounter issues:' },
-          { type: 'list', items: ['Check this guide first', 'Review the app\'s "How to Use" section in Settings', 'Contact developer: Phone: +91 6397520221, Email: gs27349@gmail.com'] }
+          { type: 'list', items: ['Check this guide first', 'Review the app\'s "How to Use" section in Settings'] }
         ]
       }
     },
