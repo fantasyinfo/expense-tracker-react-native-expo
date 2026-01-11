@@ -1,13 +1,14 @@
 # KharchaNative
 
-KharchaNative is a modern, lightweight, and powerful expense tracker built with React Native and Expo. Designed for global usability, it supports multiple languages, custom currencies, and flexible payment method labels.
+KharchaNative is a modern, lightweight, and powerful expense tracker built with React Native and Expo. Designed for global usability, it supports multiple languages, custom currencies, and now features an **AI-powered OCR Receipt Scanner** and a **Subscription Management System**.
 
 ## 🚀 Features
 
-- **Multi-language Support**: Seamless switching between English and Hindi, with architecture ready for more languages.
+- **AI OCR Receipt Scanner** (NEW): Instantly extract amount, date, and merchant from receipts.
+- **Subscription Tracker** (NEW): Manage recurring bills and auto-generate transaction entries.
+- **Multi-language Support**: Seamless switching between English and Hindi.
 - **Custom Currency**: Support for any currency symbol and name (USD, EUR, INR, etc.).
-- **Global Payment Methods**: Generalize "UPI" to "Digital" or any label of your choice (Card, Bank, Pix, Zelle, etc.).
-- **Smart Tracking**: Categorize expenses and income with an intuitive UI.
+- **Global Payment Methods**: Customizable digital payment labels (UPI, Card, Zelle, etc.).
 - **Analytics**: Detailed breakdown of spending by category and payment method.
 - **Data Export**: Export your data to CSV, JSON, or PDF for external record-keeping.
 - **Backup & Restore**: Securely backup your data locally and restore when needed.
@@ -35,6 +36,23 @@ You can customize the following in the **Settings** screen:
 - **Currency**: Define your preferred currency symbol.
 - **Digital Payment Label**: Define what "Digital" payment means in your region (e.g., set it to "UPI" in India, "Pix" in Brazil, or "Card" globally).
 - **Initial Balances**: Set your starting bank and cash balances.
+
+## 🌍 Global Vision & Roadmap
+
+KharchaNative is evolving from an India-centric tracker to a universal financial companion. Here is how we address global differences:
+
+### 🗺 Regional Insights
+- **India**: Optimization for high-frequency UPI transactions and informal lending.
+- **USA & Europe**: Focus on **Subscription Management** and Credit Card tracking.
+- **Japan**: Precision tools for **Cash & IC Card** (Suica/Pasmo) users.
+- **UAE & Middle East**: Support for **RTL (Right-to-Left)** layouts and multi-currency remittances.
+
+### 🚀 Upcoming Features
+1.  **Recurring Expenses**: Automate tracking for monthly subscriptions (Netflix, Rent, Gym).
+2.  **RTL Support**: Full UI mirroring for Arabic and Hebrew languages.
+3.  **Locale-Aware Formatting**: Auto-switching date (MM/DD vs DD/MM) and number formats.
+4.  **Smart OCR**: Scan receipts to auto-populate entries.
+5.  **Multi-User Sync**: Securely share ledgers with family members.
 
 ## 💻 Development
 

@@ -10,12 +10,14 @@ import SummaryScreen from './src/screens/SummaryScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import GoalsScreen from './src/screens/GoalsScreen';
+import SubscriptionScreen from './src/screens/SubscriptionScreen';
 import CurrencySelectionScreen from './src/screens/CurrencySelectionScreen';
 import CustomTabBar from './src/components/CustomTabBar';
 import { ModalProvider } from './src/context/ModalContext';
 import { CurrencyProvider, useCurrency } from './src/context/CurrencyContext';
 import { PreferencesProvider } from './src/context/PreferencesContext';
 import { LanguageProvider, useLanguage } from './src/context/LanguageContext';
+import { SubscriptionProvider } from './src/context/SubscriptionContext';
 import LanguageSelectionScreen from './src/screens/LanguageSelectionScreen';
 import Colors from './src/constants/colors';
 
@@ -65,13 +67,6 @@ function MainApp() {
           }}
         />
         <Tab.Screen
-          name="Goals"
-          component={GoalsScreen}
-          options={{
-            tabBarLabel: 'Goals',
-          }}
-        />
-        <Tab.Screen
           name="AddEntry"
           component={View}
           options={{
@@ -92,6 +87,20 @@ function MainApp() {
             tabBarLabel: 'Settings',
           }}
         />
+        <Tab.Screen
+          name="Goals"
+          component={GoalsScreen}
+          options={{
+            tabBarButton: () => null,
+          }}
+        />
+        <Tab.Screen
+          name="Subscriptions"
+          component={SubscriptionScreen}
+          options={{
+            tabBarButton: () => null,
+          }}
+        />
       </Tab.Navigator>
     </NavigationContainer>
   );
@@ -100,20 +109,22 @@ function MainApp() {
 export default function App() {
   return (
     <PreferencesProvider>
-      <LanguageProvider>
-        <CurrencyProvider>
-          <ModalProvider>
-            <SafeAreaProvider>
-              <StatusBar 
-                barStyle="light-content" 
-                backgroundColor={Colors.background.primary}
-                translucent={false}
-              />
-              <MainApp />
-            </SafeAreaProvider>
-          </ModalProvider>
-        </CurrencyProvider>
-      </LanguageProvider>
+      <SubscriptionProvider>
+        <LanguageProvider>
+          <CurrencyProvider>
+            <ModalProvider>
+              <SafeAreaProvider>
+                <StatusBar 
+                  barStyle="light-content" 
+                  backgroundColor={Colors.background.primary}
+                  translucent={false}
+                />
+                <MainApp />
+              </SafeAreaProvider>
+            </ModalProvider>
+          </CurrencyProvider>
+        </LanguageProvider>
+      </SubscriptionProvider>
     </PreferencesProvider>
   );
 }

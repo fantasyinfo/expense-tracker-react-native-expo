@@ -201,6 +201,8 @@ export default {
     languageSubtitle: 'ऐप की भाषा बदलें',
     currency: 'मुद्रा',
     currencySubtitle: 'ऐप की मुद्रा बदलें',
+    subscriptions: 'सब्सक्रिप्शन',
+    subscriptionsDesc: 'आवर्ती बिलों और खर्चों का प्रबंधन करें',
     balanceManagement: 'बैलेंस प्रबंधन',
     bankUpiBalance: 'बैंक / यूपीआई बैलेंस', // Deprecated
     accountBalanceLabel: 'बैंक / {{label}} बैलेंस',

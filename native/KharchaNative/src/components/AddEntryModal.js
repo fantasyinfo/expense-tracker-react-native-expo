@@ -23,6 +23,7 @@ import Colors from '../constants/colors';
 import { useCurrency } from '../context/CurrencyContext';
 import { useLanguage } from '../context/LanguageContext';
 import { usePreferences } from '../context/PreferencesContext';
+import { pickReceiptAndScan } from '../utils/ocrUtils';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -41,6 +42,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
   const [showTemplates, setShowTemplates] = useState(false);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [isScanning, setIsScanning] = useState(false);
   const prevEditEntryRef = useRef(null);
 
   // Load templates and categories when modal opens
@@ -237,6 +239,26 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
     }
     if (selectedDate) {
       setDate(selectedDate);
+    }
+  };
+
+  const handleScanReceipt = async () => {
+    setIsScanning(true);
+    try {
+      const result = await pickReceiptAndScan();
+      if (result) {
+        if (result.amount) setAmount(result.amount.toString());
+        if (result.date) setDate(new Date(result.date));
+        if (result.note) setNote(result.note);
+        if (result.type) setType(result.type);
+        Alert.alert(t('common.success'), 'Receipt scanned successfully!');
+      }
+    } catch (error) {
+      if (error.message !== 'User cancelled') {
+        Alert.alert('Error', 'Failed to scan receipt. Please try manual entry.');
+      }
+    } finally {
+      setIsScanning(false);
     }
   };
 
@@ -477,6 +499,19 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
                   keyboardType="numeric"
                   autoFocus={true}
                 />
+                {/* Commented out for now as requested
+                <TouchableOpacity 
+                  style={styles.scanButton} 
+                  onPress={handleScanReceipt}
+                  disabled={isScanning}
+                >
+                  <Ionicons 
+                    name={isScanning ? "sync" : "scan-outline"} 
+                    size={22} 
+                    color={Colors.accent.primary} 
+                  />
+                </TouchableOpacity>
+                */}
               </View>
             </View>
 
@@ -812,6 +847,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.text.primary,
     fontWeight: '600',
+  },
+  scanButton: {
+    padding: 10,
+    marginLeft: 10,
+    backgroundColor: Colors.background.primary,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
   },
   dateText: {
     flex: 1,

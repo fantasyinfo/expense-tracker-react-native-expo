@@ -68,7 +68,7 @@ const CollapsibleSection = ({ title, children, defaultExpanded = false }) => {
   );
 };
 
-const SettingsScreen = () => {
+const SettingsScreen = ({ navigation }) => {
   const {
     cashWithdrawalModalVisible,
     openCashWithdrawalModal,
@@ -395,6 +395,11 @@ const SettingsScreen = () => {
             title={t('settings.currency')}
             description={`${currency.name} (${currency.symbol})`}
             onPress={() => setShowCurrencyModal(true)}
+          />
+          <SettingCard
+            title={t('settings.subscriptions')}
+            description={t('settings.subscriptionsDesc')}
+            onPress={() => navigation.navigate('Subscriptions')}
           />
         </View>
       </CollapsibleSection>

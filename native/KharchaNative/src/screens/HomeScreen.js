@@ -13,6 +13,7 @@ import {
   Animated,
   Dimensions,
   TextInput,
+  StatusBar,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -29,6 +30,7 @@ import Colors from '../constants/colors';
 import { useCurrency } from '../context/CurrencyContext';
 import { useLanguage } from '../context/LanguageContext';
 import { usePreferences } from '../context/PreferencesContext';
+import { useSubscriptions } from '../context/SubscriptionContext';
 import AddEntryModal from '../components/AddEntryModal';
 import AppFooter from '../components/AppFooter';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
@@ -44,6 +46,7 @@ const HomeScreen = () => {
   const { currency } = useCurrency();
   const { t } = useLanguage();
   const { paymentLabels } = usePreferences();
+  const { runRecurringProcessor } = useSubscriptions();
   const navigation = useNavigation();
   const [entries, setEntries] = useState([]);
   const [todayEntries, setTodayEntries] = useState([]);
@@ -161,9 +164,10 @@ const HomeScreen = () => {
   useFocusEffect(
     useCallback(() => {
       loadData();
+      runRecurringProcessor();
       // Also reload profile to update greeting
       loadProfile().then(profile => setUserName(profile.name || t('common.user')));
-    }, [loadData, t])
+    }, [loadData, t, runRecurringProcessor])
   );
 
   // Close local modals when screen loses focus
@@ -505,9 +509,23 @@ const HomeScreen = () => {
         </Modal>
       )}
 
+      <StatusBar 
+        barStyle="light-content" 
+        backgroundColor="#0A0A0A" 
+        translucent={false} 
+      />
       {/* Sticky Compact Header */}
       {showStickyHeader && (
-        <Animated.View style={[styles.stickyHeader, { opacity: stickyHeaderOpacity }]}>
+        <Animated.View style={[
+          styles.stickyHeader,
+          {
+            opacity: stickyHeaderOpacity,
+            transform: [{ translateY: stickyHeaderOpacity.interpolate({
+              inputRange: [0, 1],
+              outputRange: [-50, 0]
+            }) }]
+          }
+        ]}>
           <View style={styles.stickyHeaderContent}>
             <View style={styles.stickyHeaderItem}>
               <View style={styles.stickyHeaderIconExpense}>
@@ -1237,11 +1255,11 @@ const styles = StyleSheet.create({
     padding: 24,
     minHeight: 200,
     justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 12,
   },
   balanceCardHeader: {
     flexDirection: 'row',
@@ -1327,6 +1345,11 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#222',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   balanceCardSmallHeader: {
     flexDirection: 'row',
@@ -1398,6 +1421,11 @@ const styles = StyleSheet.create({
     borderColor: '#222',
     alignItems: 'center',
     minHeight: 80,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   transactionLeft: {
     flex: 1,

@@ -202,6 +202,8 @@ export default {
     languageSubtitle: 'Change app language',
     currency: 'Currency',
     currencySubtitle: 'Change app currency',
+    subscriptions: 'Subscriptions',
+    subscriptionsDesc: 'Manage recurring bills and expenses',
     balanceManagement: 'Balance Management',
     bankUpiBalance: 'Bank / UPI', // Deprecated
     accountBalanceLabel: 'Bank / {{label}} Balance',

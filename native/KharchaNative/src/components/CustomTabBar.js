@@ -82,8 +82,8 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
                 <View style={[styles.tabIndicator, isFocused && styles.tabIndicatorActive]} />
               </TouchableOpacity>
 
-              {/* Insert FAB after the third tab (between Goals and Profile) */}
-              {index === 2 && (
+              {/* Insert FAB after the second tab (center of 4 items) */}
+              {index === 1 && (
                 <TouchableOpacity
                   style={styles.fab}
                   onPress={openAddEntryModal}
@@ -95,7 +95,7 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
                     end={{ x: 1, y: 1 }}
                     style={styles.fabGradient}
                   >
-                    <Ionicons name="add" size={28} color="#FFFFFF" />
+                    <Ionicons name="add" size={32} color="#FFFFFF" />
                   </LinearGradient>
                 </TouchableOpacity>
               )}
