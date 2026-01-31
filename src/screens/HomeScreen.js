@@ -357,15 +357,17 @@ const HomeScreen = () => {
         <View style={styles.transactionRight}>
           <View style={styles.transactionRightTop}>
             {isCashWithdrawal ? (
-              <View style={styles.transactionModeContainer}>
-                <View style={styles.transactionMode}>
-                  <Ionicons name="phone-portrait" size={14} color="#4DABF7" />
-                </View>
-                <Text style={styles.transactionModeText}>→</Text>
-                <View style={styles.transactionMode}>
-                  <Ionicons name="cash" size={14} color="#FFD43B" />
-                </View>
+              <View style={styles.balanceRowItem}>
+              <View style={styles.balanceRowIconContainer}>
+                <Ionicons name="phone-portrait" size={18} color="#4DABF7" />
               </View>
+              <View>
+                <Text style={styles.balanceRowLabel}>Digital Balance</Text>
+                <Text style={styles.balanceRowValue}>
+                  ₹{formatCurrency(bankBalance || 0)}
+                </Text>
+              </View>
+            </View>
             ) : isCashDeposit ? (
               <View style={styles.transactionModeContainer}>
                 <View style={styles.transactionMode}>
@@ -555,7 +557,7 @@ const HomeScreen = () => {
             <View style={styles.headerTop}>
             <View>
               <Text style={styles.headerGreeting}>
-                Hello {userName || 'User'} 👋
+                Hello 👋
               </Text>
               <Text style={styles.headerTitle}>
                 {isCustomDateRange ? 'Filtered Summary' : "Today's Summary"}
@@ -809,7 +811,7 @@ const HomeScreen = () => {
               <View style={[styles.balanceCardSmallIcon, { backgroundColor: 'rgba(77, 171, 247, 0.15)' }]}>
                 <Ionicons name="phone-portrait" size={20} color="#4DABF7" />
               </View>
-              <Text style={styles.balanceCardSmallLabel}>UPI Balance</Text>
+              <Text style={styles.balanceCardSmallLabel}>Digital Balance</Text>
             </View>
             <Text 
               style={[

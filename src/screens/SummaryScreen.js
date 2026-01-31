@@ -550,7 +550,7 @@ const SummaryScreen = () => {
               <View style={styles.paymentCardInfo}>
                 <View style={styles.paymentCardHeader}>
                   <Text style={styles.paymentCardName} numberOfLines={1}>
-                    Expense - UPI
+                    Expense - Digital
                   </Text>
                   <Text style={[styles.paymentCardAmount, { color: '#FF6B6B' }]}>
                     ₹{formatCurrency(totals.expenseUpi || 0)}
@@ -624,7 +624,7 @@ const SummaryScreen = () => {
               <View style={styles.paymentCardInfo}>
                 <View style={styles.paymentCardHeader}>
                   <Text style={styles.paymentCardName} numberOfLines={1}>
-                    Income - UPI
+                    Income - Digital
                   </Text>
                   <Text style={[styles.paymentCardAmount, { color: '#51CF66' }]}>
                     ₹{formatCurrency(totals.incomeUpi || 0)}

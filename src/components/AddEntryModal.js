@@ -560,7 +560,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
                       mode === 'upi' && styles.modeButtonTextActive,
                     ]}
                   >
-                    UPI
+                    Digital
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity

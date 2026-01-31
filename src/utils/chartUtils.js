@@ -76,7 +76,7 @@ export const preparePaymentMethodChart = (entries) => {
   const totals = calculateTotals(entries);
   
   return {
-    labels: ['UPI', 'Cash'],
+    labels: ['Digital', 'Cash'],
     datasets: [
       {
         data: [
@@ -95,7 +95,7 @@ export const preparePaymentMethodBreakdownChart = (entries) => {
   const totals = calculateTotals(entries);
   
   return {
-    labels: ['Expense UPI', 'Expense Cash', 'Income UPI', 'Income Cash'],
+    labels: ['Expense Digital', 'Expense Cash', 'Income Digital', 'Income Cash'],
     datasets: [
       {
         data: [

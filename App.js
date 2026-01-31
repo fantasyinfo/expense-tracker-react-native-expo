@@ -70,13 +70,7 @@ export default function App() {
                 tabBarButton: () => null,
               }}
             />
-            <Tab.Screen
-              name="Profile"
-              component={ProfileScreen}
-              options={{
-                tabBarLabel: 'Profile',
-              }}
-            />
+
             <Tab.Screen
               name="Settings"
               component={SettingsScreen}

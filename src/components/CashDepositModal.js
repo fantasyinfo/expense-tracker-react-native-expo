@@ -80,7 +80,7 @@ const CashDepositModal = ({ visible, onClose, onSave }) => {
           <View style={styles.modalHeader}>
             <View>
               <Text style={styles.modalTitle}>Cash Deposit</Text>
-              <Text style={styles.modalSubtitle}>Deposit cash from Cash to UPI</Text>
+              <Text style={styles.modalSubtitle}>Deposit cash from Cash to Digital</Text>
             </View>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={Colors.text.secondary} />
@@ -98,7 +98,7 @@ const CashDepositModal = ({ visible, onClose, onSave }) => {
               <View style={styles.infoBanner}>
                 <Ionicons name="information-circle" size={20} color="#51CF66" />
                 <Text style={styles.infoText}>
-                  This will debit from your cash balance and credit to your UPI balance
+                  This will debit from your cash balance and credit to your Digital balance
                 </Text>
               </View>
 
