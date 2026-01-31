@@ -169,7 +169,7 @@ const generatePDFHTML = async (entries, options = {}) => {
       
       <div class="summary">
         <div class="summary-card">
-          <div class="summary-label">Expense - UPI</div>
+          <div class="summary-label">Expense - Digital</div>
           <div class="summary-value expense">₹${expenseUpi.toFixed(2)}</div>
         </div>
         <div class="summary-card">
@@ -177,7 +177,7 @@ const generatePDFHTML = async (entries, options = {}) => {
           <div class="summary-value expense">₹${expenseCash.toFixed(2)}</div>
         </div>
         <div class="summary-card">
-          <div class="summary-label">Income - UPI</div>
+          <div class="summary-label">Income - Digital</div>
           <div class="summary-value income">₹${incomeUpi.toFixed(2)}</div>
         </div>
         <div class="summary-card">
@@ -219,11 +219,11 @@ const generatePDFHTML = async (entries, options = {}) => {
     const amount = parseFloat(entry.amount).toFixed(2);
     let paymentMethod = '';
     if (entry.type === 'cash_withdrawal') {
-      paymentMethod = 'UPI → Cash';
+      paymentMethod = 'Digital → Cash';
     } else if (entry.type === 'cash_deposit') {
-      paymentMethod = 'Cash → UPI';
+      paymentMethod = 'Cash → Digital';
     } else {
-      paymentMethod = (entry.mode || 'upi') === 'upi' ? 'UPI' : 'Cash';
+      paymentMethod = (entry.mode || 'upi') === 'upi' ? 'Digital' : 'Cash';
     }
     const category = entry.category_id ? (categoryMap.get(entry.category_id) || '') : '';
     const note = (entry.note || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');

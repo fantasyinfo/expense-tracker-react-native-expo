@@ -351,7 +351,7 @@ const SettingsScreen = () => {
           <View style={styles.balanceDisplayRow}>
             {bankBalance !== null && (
               <View style={styles.balanceDisplayCard}>
-                <Text style={styles.balanceDisplayLabel}>Bank / UPI</Text>
+                <Text style={styles.balanceDisplayLabel}>Digital</Text>
                 <Text style={[
                   styles.balanceDisplayAmount,
                   bankBalance < 0 && styles.balanceDisplayAmountNegative
@@ -374,8 +374,8 @@ const SettingsScreen = () => {
           </View>
 
           <SettingCard
-            title="Set Bank / UPI Balance"
-            description="Set your initial bank or UPI balance"
+            title="Set Digital Balance"
+            description="Set your initial digitally tracked balance"
             onPress={() => handleSetBalance('bank')}
           />
           <SettingCard
@@ -391,12 +391,12 @@ const SettingsScreen = () => {
           />
           <SettingCard
             title="Cash Withdrawal"
-            description="Withdraw cash from UPI to Cash"
+            description="Withdraw cash from Digital to Cash"
             onPress={openCashWithdrawalModal}
           />
           <SettingCard
             title="Cash Deposit"
-            description="Deposit cash from Cash to UPI"
+            description="Deposit cash from Cash to Digital"
             onPress={openCashDepositModal}
           />
         </View>
@@ -654,7 +654,7 @@ const SettingsScreen = () => {
             </View>
             <View style={styles.featureItem}>
               <Ionicons name="checkmark-circle" size={20} color={Colors.status.income} />
-              <Text style={styles.featureText}>Real-time UPI and Cash balance tracking</Text>
+              <Text style={styles.featureText}>Real-time Digital and Cash balance tracking</Text>
             </View>
             <View style={styles.featureItem}>
               <Ionicons name="checkmark-circle" size={20} color={Colors.status.income} />
@@ -718,7 +718,7 @@ const SettingsScreen = () => {
             </View>
             <View style={styles.featureItem}>
               <Ionicons name="checkmark-circle" size={20} color={Colors.status.income} />
-              <Text style={styles.featureText}>Payment method tracking (UPI/Bank and Cash)</Text>
+              <Text style={styles.featureText}>Payment method tracking (Digital and Cash)</Text>
             </View>
             <View style={styles.featureItem}>
               <Ionicons name="checkmark-circle" size={20} color={Colors.status.income} />
@@ -794,32 +794,7 @@ const SettingsScreen = () => {
       </CollapsibleSection>
 
       {/* Developer Contact Section */}
-      <CollapsibleSection title="Developer">
-        <View style={styles.sectionContent}>
-          <View style={styles.developerCard}>
-            <Text style={styles.developerName}>Gaurav Sharma</Text>
-            <Text style={styles.madeByText}>Made in India</Text>
-            <View style={styles.contactSection}>
-              <Text style={styles.contactTitle}>Need a similar app or custom solution?</Text>
-              <TouchableOpacity 
-                style={styles.contactButton}
-                onPress={() => {
-                  Alert.alert(
-                    'Contact Developer',
-                    'WhatsApp/Call: +91 6397520221\n\nWant to create a similar app or have a custom idea? Feel free to reach out!',
-                    [{ text: 'OK' }]
-                  );
-                }}
-              >
-                <Text style={styles.contactButtonText}>Contact</Text>
-              </TouchableOpacity>
-              <Text style={styles.contactNote}>
-                Custom mobile apps, web applications, and digital solutions tailored to your business needs.
-              </Text>
-            </View>
-          </View>
-        </View>
-      </CollapsibleSection>
+
 
       {/* Footer */}
       <AppFooter />

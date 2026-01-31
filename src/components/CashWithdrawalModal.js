@@ -80,7 +80,7 @@ const CashWithdrawalModal = ({ visible, onClose, onSave }) => {
           <View style={styles.modalHeader}>
             <View>
               <Text style={styles.modalTitle}>Cash Withdrawal</Text>
-              <Text style={styles.modalSubtitle}>Withdraw cash from UPI to Cash</Text>
+              <Text style={styles.modalSubtitle}>Withdraw cash from Digital to Cash</Text>
             </View>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={Colors.text.secondary} />
@@ -98,7 +98,7 @@ const CashWithdrawalModal = ({ visible, onClose, onSave }) => {
               <View style={styles.infoBanner}>
                 <Ionicons name="information-circle" size={20} color="#4DABF7" />
                 <Text style={styles.infoText}>
-                  This will debit from your UPI balance and credit to your cash balance
+                  This will debit from your Digital balance and credit to your cash balance
                 </Text>
               </View>
 

@@ -55,13 +55,6 @@ const LoadingScreen = ({ onFinish }) => {
           <View style={styles.creditsContainer}>
             <View style={styles.divider} />
             <Text style={styles.madeByText}>Made with ❤️ for India</Text>
-            <Text style={styles.developerName}>Gaurav Sharma</Text>
-            <View style={styles.contactContainer}>
-              <Ionicons name="call-outline" size={16} color="#A0A0A0" />
-              <Text style={styles.contactText}>
-                Need a similar app? WhatsApp/Call: +91 6397520221
-              </Text>
-            </View>
             <View style={styles.flagContainer}>
               <Text style={styles.flag}>🇮🇳</Text>
             </View>

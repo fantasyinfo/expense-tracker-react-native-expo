@@ -12,10 +12,18 @@ import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { 
+  KeyboardAvoidingView,
+  Modal,
+  TextInput,
+  Alert,
+} from 'react-native';
+import { 
   getGoals,
   calculateGoalProgress,
   getMotivationalMessage,
   getStreak,
+  saveGoals,
+  resetGoalCompletion,
 } from '../utils/engagementUtils';
 import Colors from '../constants/colors';
 import { formatCurrency } from '../utils/dateUtils';
@@ -30,6 +38,12 @@ const GoalsScreen = () => {
   const [motivationalMessage, setMotivationalMessage] = useState('');
   const [streak, setStreak] = useState({ currentStreak: 0, longestStreak: 0 });
   const [activeTab, setActiveTab] = useState('savings'); // 'savings' or 'expense'
+  
+  // Modal State
+  const [showGoalsModal, setShowGoalsModal] = useState(false);
+  const [goalType, setGoalType] = useState('monthly');
+  const [goalInput, setGoalInput] = useState('');
+  const [customGoalNameInput, setCustomGoalNameInput] = useState('');
 
   const loadData = useCallback(async () => {
     const goalsData = await getGoals();
@@ -248,6 +262,35 @@ const GoalsScreen = () => {
             <Text style={styles.streakText}>{streak.currentStreak}d</Text>
           </View>
         )}
+        
+      </View>
+
+      {/* Set Goal Button */}
+      <View style={styles.actionContainer}>
+        <TouchableOpacity
+          style={styles.setGoalButton}
+          onPress={() => {
+             // Default to monthly if not set
+             setGoalType('monthly');
+             // Pre-fill if exists
+             const defaultKey = activeTab === 'savings' ? 'monthlySavingsGoal' : 'monthlyExpenseGoal';
+             setGoalInput(goals[defaultKey] > 0 ? goals[defaultKey].toString() : '');
+             setShowGoalsModal(true);
+          }}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={Colors.accent.gradient.positive}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.setGoalButtonGradient}
+          >
+            <Ionicons name="add-circle" size={20} color="#FFFFFF" />
+            <Text style={styles.setGoalButtonText}>
+              Set {activeTab === 'savings' ? 'Savings Goal' : 'Expense Limit'}
+            </Text>
+          </LinearGradient>
+        </TouchableOpacity>
       </View>
 
       {/* Motivational Message */}
@@ -342,6 +385,151 @@ const GoalsScreen = () => {
 
         <AppFooter />
       </ScrollView>
+
+      {/* Goal Setting Modal */}
+      <Modal
+        visible={showGoalsModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowGoalsModal(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                Set {activeTab === 'savings' ? 'Savings Goal' : 'Expense Limit'}
+              </Text>
+              <TouchableOpacity 
+                onPress={() => {
+                  setShowGoalsModal(false);
+                  setGoalInput('');
+                  setCustomGoalNameInput('');
+                }}
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close" size={24} color={Colors.text.secondary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Period Selector in Modal */}
+            <View style={styles.periodSelector}>
+              {['daily', 'weekly', 'monthly', 'yearly', 'custom'].map((period) => (
+                <TouchableOpacity
+                  key={period}
+                  style={[
+                    styles.periodOption,
+                    goalType === period && styles.periodOptionActive
+                  ]}
+                  onPress={() => {
+                    setGoalType(period);
+                    // Update input with existing value for this period
+                    const key = activeTab === 'savings' 
+                      ? `${period}SavingsGoal` 
+                      : `${period}ExpenseGoal`;
+                    setGoalInput(goals[key] > 0 ? goals[key].toString() : '');
+                    if (period === 'custom') {
+                       const nameKey = activeTab === 'savings' 
+                        ? 'customSavingsGoalName' 
+                        : 'customExpenseGoalName';
+                       setCustomGoalNameInput(goals[nameKey] || '');
+                    }
+                  }}
+                >
+                  <Text style={[
+                      styles.periodOptionText,
+                      goalType === period && styles.periodOptionTextActive
+                    ]}>
+                    {period.charAt(0).toUpperCase() + period.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {goalType === 'custom' && (
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Goal name (e.g., Vacation Fund)"
+                  placeholderTextColor={Colors.text.tertiary}
+                  value={customGoalNameInput}
+                  onChangeText={setCustomGoalNameInput}
+                />
+              </View>
+            )}
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.currencyPrefix}>₹</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter amount"
+                placeholderTextColor={Colors.text.tertiary}
+                value={goalInput}
+                onChangeText={setGoalInput}
+                keyboardType="numeric"
+                autoFocus={false}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={styles.modalSaveButton}
+              onPress={async () => {
+                const amount = parseFloat(goalInput);
+                if (isNaN(amount) || amount < 0) {
+                  Alert.alert('Invalid Input', 'Please enter a valid amount');
+                  return;
+                }
+
+                try {
+                  const updatedGoals = { ...goals };
+                  // Determine key based on activeTab and goalType
+                  let goalKey = '';
+                  if (activeTab === 'savings') {
+                    goalKey = goalType === 'custom' ? 'customSavingsGoal' : `${goalType}SavingsGoal`;
+                  } else {
+                    goalKey = goalType === 'custom' ? 'customExpenseGoal' : `${goalType}ExpenseGoal`;
+                  }
+                  
+                  updatedGoals[goalKey] = amount;
+                  
+                  if (goalType === 'custom') {
+                    if (activeTab === 'savings') {
+                      updatedGoals.customSavingsGoalName = customGoalNameInput.trim() || 'Custom Savings Goal';
+                    } else {
+                      updatedGoals.customExpenseGoalName = customGoalNameInput.trim() || 'Custom Expense Limit';
+                    }
+                  }
+                  
+                  // Reset completion status if goal is changing
+                  if (activeTab === 'savings') {
+                     if (goalType === 'monthly' && updatedGoals.monthlySavingsGoal !== goals.monthlySavingsGoal) {
+                       await resetGoalCompletion('monthly');
+                     } else if (goalType === 'yearly' && updatedGoals.yearlySavingsGoal !== goals.yearlySavingsGoal) {
+                       await resetGoalCompletion('yearly');
+                     } else if (goalType === 'custom' && updatedGoals.customSavingsGoal !== goals.customSavingsGoal) {
+                       await resetGoalCompletion('custom');
+                     }
+                  }
+                  
+                  await saveGoals(updatedGoals);
+                  setGoals(updatedGoals);
+                  Alert.alert('Success', 'Goal updated successfully!');
+                  setShowGoalsModal(false);
+                  setGoalInput('');
+                  setCustomGoalNameInput('');
+                  loadData(); // Refresh progress
+                } catch (error) {
+                  Alert.alert('Error', 'Failed to save goal. Please try again.');
+                }
+              }}
+            >
+              <Text style={styles.modalSaveText}>Save Goal</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 };
@@ -627,6 +815,121 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  actionContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  setGoalButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: Colors.accent.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  setGoalButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    gap: 8,
+  },
+  setGoalButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: Colors.background.overlay,
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: Colors.background.modal,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.text.primary,
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  periodSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 20,
+  },
+  periodOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+    backgroundColor: Colors.background.secondary,
+  },
+  periodOptionActive: {
+    backgroundColor: Colors.accent.primary,
+    borderColor: Colors.accent.primary,
+  },
+  periodOptionText: {
+    fontSize: 13,
+    color: Colors.text.secondary,
+    fontWeight: '600',
+  },
+  periodOptionTextActive: {
+    color: '#FFFFFF',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+  },
+  currencyPrefix: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: Colors.text.primary,
+    marginRight: 8,
+  },
+  input: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.text.primary,
+    padding: 0,
+  },
+  modalSaveButton: {
+    backgroundColor: Colors.accent.primary,
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  modalSaveText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
 

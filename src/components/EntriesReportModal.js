@@ -279,7 +279,7 @@ const EntriesReportModal = ({ visible, entries, onClose, onEdit, onDuplicate, on
                         <View style={[styles.breakdownIconContainer, { backgroundColor: Colors.iconBackground.upi }]}>
                           <Ionicons name="phone-portrait" size={16} color={Colors.payment.upi} />
                         </View>
-                        <Text style={styles.breakdownLabel}>UPI</Text>
+                        <Text style={styles.breakdownLabel}>Digital</Text>
                         <Text 
                           style={styles.breakdownValue}
                           numberOfLines={1}
@@ -313,7 +313,7 @@ const EntriesReportModal = ({ visible, entries, onClose, onEdit, onDuplicate, on
                         <View style={[styles.breakdownIconContainer, { backgroundColor: Colors.iconBackground.upi }]}>
                           <Ionicons name="phone-portrait" size={16} color={Colors.payment.upi} />
                         </View>
-                        <Text style={styles.breakdownLabel}>UPI</Text>
+                        <Text style={styles.breakdownLabel}>Digital</Text>
                         <Text 
                           style={styles.breakdownValue}
                           numberOfLines={1}
