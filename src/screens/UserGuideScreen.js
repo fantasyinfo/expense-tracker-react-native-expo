@@ -55,15 +55,15 @@ const UserGuideScreen = ({ visible, onClose }) => {
       content: [
         {
           type: 'subtitle',
-          text: 'What is Kharcha?',
+          text: 'What is SpendOrbit?',
         },
         {
           type: 'text',
-          text: 'Kharcha is a powerful expense and income tracking app designed specifically for Indian users. It helps you track every rupee you spend and earn, monitor your UPI and Cash balances separately, set savings goals, analyze spending patterns, and export your data.',
+          text: 'SpendOrbit is a powerful expense and income tracking app designed for global users. It helps you track every penny you spend and earn, monitor your Digital and Cash balances separately, set savings goals, analyze spending patterns, and export your data.',
         },
         {
           type: 'subtitle',
-          text: 'Why Use Kharcha?',
+          text: 'Why Use SpendOrbit?',
         },
         {
           type: 'list',

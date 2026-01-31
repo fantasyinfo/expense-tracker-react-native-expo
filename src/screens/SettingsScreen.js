@@ -11,8 +11,9 @@ import {
   TextInput,
   Platform,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { loadEntries } from '../utils/storage';
 import { exportToExcel, exportToJSON } from '../utils/exportUtils';
 import { exportToPDF } from '../utils/pdfUtils';
@@ -40,6 +41,9 @@ import ExportFilterModal from '../components/ExportFilterModal';
 import UserGuideScreen from './UserGuideScreen';
 import CategoryManagementModal from '../components/CategoryManagementModal';
 import { createManualBackup, getLastBackupTime, formatBackupDate } from '../utils/backupUtils';
+import { useCurrency } from '../context/CurrencyContext';
+import { usePremium } from '../context/PremiumContext';
+import { CURRENCIES } from '../constants/currencies';
 
 const CollapsibleSection = ({ title, children, defaultExpanded = false }) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
@@ -63,7 +67,10 @@ const CollapsibleSection = ({ title, children, defaultExpanded = false }) => {
   );
 };
 
+import { Linking } from 'react-native';
+
 const SettingsScreen = () => {
+  const navigation = useNavigation();
   const {
     cashWithdrawalModalVisible,
     openCashWithdrawalModal,
@@ -108,6 +115,9 @@ const SettingsScreen = () => {
   const [backupCreating, setBackupCreating] = useState(false);
   const [showUserGuide, setShowUserGuide] = useState(false);
   const [showCategoryManagement, setShowCategoryManagement] = useState(false);
+  const { currency, updateCurrency } = useCurrency();
+  const { isPremium } = usePremium();
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
 
   const loadData = useCallback(async () => {
     const allEntries = await loadEntries();
@@ -158,6 +168,17 @@ const SettingsScreen = () => {
   }, [loadData]);
 
   const handleExportExcel = () => {
+    if (!isPremium) {
+      Alert.alert(
+        'Premium Feature',
+        'Export to Excel is available for Premium users only.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Upgrade', onPress: () => navigation.navigate('Premium') }
+        ]
+      );
+      return;
+    }
     if (entries.length === 0) {
       Alert.alert('No Data', 'There are no entries to export.');
       return;
@@ -167,6 +188,17 @@ const SettingsScreen = () => {
   };
 
   const handleExportJSON = () => {
+    if (!isPremium) {
+      Alert.alert(
+        'Premium Feature',
+        'Export to JSON is available for Premium users only.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Upgrade', onPress: () => navigation.navigate('Premium') }
+        ]
+      );
+      return;
+    }
     if (entries.length === 0) {
       Alert.alert('No Data', 'There are no entries to export.');
       return;
@@ -176,6 +208,17 @@ const SettingsScreen = () => {
   };
 
   const handleExportPDF = () => {
+    if (!isPremium) {
+      Alert.alert(
+        'Premium Feature',
+        'Export to PDF is available for Premium users only.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Upgrade', onPress: () => navigation.navigate('Premium') }
+        ]
+      );
+      return;
+    }
     if (entries.length === 0) {
       Alert.alert('No Data', 'There are no entries to export.');
       return;
@@ -205,6 +248,7 @@ const SettingsScreen = () => {
           action: exportOptions.action,
           dateRange: exportOptions.dateRange,
           entryType: exportOptions.entryType,
+          currencySymbol: currency.symbol,
         });
       }
 
@@ -222,7 +266,7 @@ const SettingsScreen = () => {
 
   const handleShareApp = () => {
     Alert.alert(
-      'Share Kharcha',
+      'Share SpendOrbit',
       'Choose how you want to share the app',
       [
         { text: 'Cancel', style: 'cancel' },
@@ -344,6 +388,31 @@ const SettingsScreen = () => {
         <Text style={styles.headerTitle}>Settings</Text>
       </View>
 
+      {/* Premium Banner */}
+      {!isPremium && (
+        <TouchableOpacity
+          style={styles.premiumBanner}
+          onPress={() => navigation.navigate('Premium')}
+          activeOpacity={0.9}
+        >
+          <LinearGradient
+            colors={['#FFD700', '#FFA500']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.premiumBannerContent}
+          >
+            <View style={styles.premiumBannerTextContainer}>
+              <View style={styles.premiumBannerHeader}>
+                <Ionicons name="ribbon" size={20} color="#FFFFFF" />
+                <Text style={styles.premiumBannerTitle}>Upgrade to Premium</Text>
+              </View>
+              <Text style={styles.premiumBannerSubtitle}>Unlock Exports, Unlimited Categories & More</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color="#FFFFFF" />
+          </LinearGradient>
+        </TouchableOpacity>
+      )}
+
       {/* Balance Management Section */}
       <CollapsibleSection title="Balance Management" defaultExpanded={true}>
         <View style={styles.sectionContent}>
@@ -356,7 +425,7 @@ const SettingsScreen = () => {
                   styles.balanceDisplayAmount,
                   bankBalance < 0 && styles.balanceDisplayAmountNegative
                 ]}>
-                  ₹{formatCurrency(bankBalance)}
+                  {currency.symbol}{formatCurrency(bankBalance)}
                 </Text>
               </View>
             )}
@@ -367,7 +436,7 @@ const SettingsScreen = () => {
                   styles.balanceDisplayAmount,
                   cashBalance < 0 && styles.balanceDisplayAmountNegative
                 ]}>
-                  ₹{formatCurrency(cashBalance)}
+                  {currency.symbol}{formatCurrency(cashBalance)}
                 </Text>
               </View>
             )}
@@ -407,7 +476,7 @@ const SettingsScreen = () => {
         <View style={styles.sectionContent}>
           <SettingCard
             title="Set Daily Savings Goal"
-            description={goals.dailySavingsGoal > 0 ? `Current: ₹${formatCurrency(goals.dailySavingsGoal)}` : 'Set your daily savings target'}
+            description={goals.dailySavingsGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.dailySavingsGoal)}` : 'Set your daily savings target'}
             onPress={() => {
               setGoalCategory('savings');
               setGoalType('daily');
@@ -417,7 +486,7 @@ const SettingsScreen = () => {
           />
           <SettingCard
             title="Set Weekly Savings Goal"
-            description={goals.weeklySavingsGoal > 0 ? `Current: ₹${formatCurrency(goals.weeklySavingsGoal)}` : 'Set your weekly savings target'}
+            description={goals.weeklySavingsGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.weeklySavingsGoal)}` : 'Set your weekly savings target'}
             onPress={() => {
               setGoalCategory('savings');
               setGoalType('weekly');
@@ -427,7 +496,7 @@ const SettingsScreen = () => {
           />
           <SettingCard
             title="Set Monthly Savings Goal"
-            description={goals.monthlySavingsGoal > 0 ? `Current: ₹${formatCurrency(goals.monthlySavingsGoal)}` : 'Set your monthly savings target'}
+            description={goals.monthlySavingsGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.monthlySavingsGoal)}` : 'Set your monthly savings target'}
             onPress={() => {
               setGoalCategory('savings');
               setGoalType('monthly');
@@ -437,7 +506,7 @@ const SettingsScreen = () => {
           />
           <SettingCard
             title="Set Yearly Savings Goal"
-            description={goals.yearlySavingsGoal > 0 ? `Current: ₹${formatCurrency(goals.yearlySavingsGoal)}` : 'Set your yearly savings target'}
+            description={goals.yearlySavingsGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.yearlySavingsGoal)}` : 'Set your yearly savings target'}
             onPress={() => {
               setGoalCategory('savings');
               setGoalType('yearly');
@@ -447,7 +516,7 @@ const SettingsScreen = () => {
           />
           <SettingCard
             title="Set Custom Savings Goal"
-            description={goals.customSavingsGoal > 0 ? `${goals.customSavingsGoalName || 'Custom'}: ₹${formatCurrency(goals.customSavingsGoal)}` : 'Set a custom savings goal'}
+            description={goals.customSavingsGoal > 0 ? `${goals.customSavingsGoalName || 'Custom'}: ${currency.symbol}${formatCurrency(goals.customSavingsGoal)}` : 'Set a custom savings goal'}
             onPress={() => {
               setGoalCategory('savings');
               setGoalType('custom');
@@ -464,7 +533,7 @@ const SettingsScreen = () => {
         <View style={styles.sectionContent}>
           <SettingCard
             title="Set Daily Expense Limit"
-            description={goals.dailyExpenseGoal > 0 ? `Current: ₹${formatCurrency(goals.dailyExpenseGoal)}` : 'Set your daily expense limit'}
+            description={goals.dailyExpenseGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.dailyExpenseGoal)}` : 'Set your daily expense limit'}
             onPress={() => {
               setGoalCategory('expense');
               setGoalType('daily');
@@ -474,7 +543,7 @@ const SettingsScreen = () => {
           />
           <SettingCard
             title="Set Weekly Expense Limit"
-            description={goals.weeklyExpenseGoal > 0 ? `Current: ₹${formatCurrency(goals.weeklyExpenseGoal)}` : 'Set your weekly expense limit'}
+            description={goals.weeklyExpenseGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.weeklyExpenseGoal)}` : 'Set your weekly expense limit'}
             onPress={() => {
               setGoalCategory('expense');
               setGoalType('weekly');
@@ -484,7 +553,7 @@ const SettingsScreen = () => {
           />
           <SettingCard
             title="Set Monthly Expense Limit"
-            description={goals.monthlyExpenseGoal > 0 ? `Current: ₹${formatCurrency(goals.monthlyExpenseGoal)}` : 'Set your monthly expense limit'}
+            description={goals.monthlyExpenseGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.monthlyExpenseGoal)}` : 'Set your monthly expense limit'}
             onPress={() => {
               setGoalCategory('expense');
               setGoalType('monthly');
@@ -494,7 +563,7 @@ const SettingsScreen = () => {
           />
           <SettingCard
             title="Set Yearly Expense Limit"
-            description={goals.yearlyExpenseGoal > 0 ? `Current: ₹${formatCurrency(goals.yearlyExpenseGoal)}` : 'Set your yearly expense limit'}
+            description={goals.yearlyExpenseGoal > 0 ? `Current: ${currency.symbol}${formatCurrency(goals.yearlyExpenseGoal)}` : 'Set your yearly expense limit'}
             onPress={() => {
               setGoalCategory('expense');
               setGoalType('yearly');
@@ -504,7 +573,7 @@ const SettingsScreen = () => {
           />
           <SettingCard
             title="Set Custom Expense Limit"
-            description={goals.customExpenseGoal > 0 ? `${goals.customExpenseGoalName || 'Custom'}: ₹${formatCurrency(goals.customExpenseGoal)}` : 'Set a custom expense limit'}
+            description={goals.customExpenseGoal > 0 ? `${goals.customExpenseGoalName || 'Custom'}: ${currency.symbol}${formatCurrency(goals.customExpenseGoal)}` : 'Set a custom expense limit'}
             onPress={() => {
               setGoalCategory('expense');
               setGoalType('custom');
@@ -593,7 +662,7 @@ const SettingsScreen = () => {
         <View style={styles.sectionContent}>
           <SettingCard
             title="Share via WhatsApp"
-            description="Share Kharcha with friends and family"
+            description="Share SpendOrbit with friends and family"
             onPress={shareViaWhatsApp}
           />
           <SettingCard
@@ -629,7 +698,7 @@ const SettingsScreen = () => {
       <CollapsibleSection title="About App">
         <View style={styles.sectionContent}>
           <View style={styles.infoCard}>
-            <Text style={styles.appName}>Kharcha</Text>
+            <Text style={styles.appName}>SpendOrbit</Text>
             <Text style={styles.appVersion}>Version 2.0.0</Text>
             <Text style={styles.infoDescription}>
               A comprehensive, professional expense and income tracker designed to help you take complete control of your finances. Track every transaction, set savings goals and expense limits, monitor your progress, and achieve financial freedom - all in one beautiful, intuitive app.
@@ -793,11 +862,86 @@ const SettingsScreen = () => {
         </View>
       </CollapsibleSection>
 
+      {/* Support Section */}
+      <CollapsibleSection title="Support">
+        <View style={styles.sectionContent}>
+          <SettingCard
+            title="☕ Buy Me a Coffee"
+            description="Support the development of SpendOrbit"
+            onPress={() => Linking.openURL('https://www.buymeacoffee.com')}
+          />
+        </View>
+      </CollapsibleSection>
+
+      {/* Regional Settings */}
+      <CollapsibleSection title="Regional Settings">
+        <View style={styles.sectionContent}>
+          <SettingCard
+            title="Currency"
+            description={`Current: ${currency.code} (${currency.symbol})`}
+            onPress={() => setShowCurrencyModal(true)}
+          />
+        </View>
+      </CollapsibleSection>
+
       {/* Developer Contact Section */}
 
 
       {/* Footer */}
       <AppFooter />
+      
+      {/* Currency Modal */}
+      <Modal
+        visible={showCurrencyModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowCurrencyModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Currency</Text>
+              <TouchableOpacity 
+                onPress={() => setShowCurrencyModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close" size={24} color={Colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 400 }}>
+              {CURRENCIES.map((curr) => (
+                <TouchableOpacity
+                  key={curr.code}
+                  style={[
+                    styles.periodOption, 
+                    currency.code === curr.code && styles.periodOptionActive,
+                    { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, padding: 16 }
+                  ]}
+                  onPress={() => {
+                    updateCurrency(curr.code);
+                    setShowCurrencyModal(false);
+                  }}
+                >
+                  <Text style={[
+                    styles.periodOptionText, 
+                    currency.code === curr.code && styles.periodOptionTextActive,
+                    { fontSize: 16 }
+                  ]}>
+                    {curr.name} ({curr.code})
+                  </Text>
+                  <Text style={[
+                    styles.periodOptionText, 
+                    currency.code === curr.code && styles.periodOptionTextActive,
+                    { fontSize: 16, fontWeight: 'bold' }
+                  ]}>
+                    {curr.symbol}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {exporting && (
         <View style={styles.loadingOverlay}>
@@ -1364,6 +1508,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 16,
     marginBottom: 12,
+  },
+  premiumBanner: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 8,
+    borderRadius: 20,
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  premiumBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    borderRadius: 20,
+  },
+  premiumBannerTextContainer: {
+    flex: 1,
+    marginRight: 12,
+  },
+  premiumBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  premiumBannerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginLeft: 8,
+  },
+  premiumBannerSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '500',
   },
   contactButtonText: {
     fontSize: 15,

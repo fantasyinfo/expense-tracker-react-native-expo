@@ -42,7 +42,7 @@ const LoadingScreen = ({ onFinish }) => {
         </View>
 
         {/* App Name */}
-        <Text style={styles.appName}>Kharcha</Text>
+        <Text style={styles.appName}>SpendOrbit</Text>
         <Text style={styles.appTagline}>Track Your Finances</Text>
 
         {/* Loading Indicator */}

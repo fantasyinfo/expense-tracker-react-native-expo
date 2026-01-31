@@ -25,6 +25,8 @@ import { getCurrentBankBalance, getCurrentCashBalance } from '../utils/balanceUt
 import { loadProfile } from '../utils/profileStorage';
 import { getStreak, checkAchievements, getMotivationalMessage, calculateGoalProgress } from '../utils/engagementUtils';
 import { useModal } from '../context/ModalContext';
+import { useCurrency } from '../context/CurrencyContext';
+import { usePremium } from '../context/PremiumContext';
 import Colors from '../constants/colors';
 import AddEntryModal from '../components/AddEntryModal';
 import AppFooter from '../components/AppFooter';
@@ -38,6 +40,8 @@ const HomeScreen = () => {
     openAddEntryModal, 
     closeAddEntryModal,
   } = useModal();
+  const { currency } = useCurrency();
+  const { isPremium } = usePremium();
   const navigation = useNavigation();
   const [entries, setEntries] = useState([]);
   const [todayEntries, setTodayEntries] = useState([]);
@@ -147,9 +151,9 @@ const HomeScreen = () => {
     setDailyExpenseProgress(dailyExpense);
     
     // Load all achievements (but don't show notification on load - only on new entry)
-    const achievementData = await checkAchievements();
+    const achievementData = await checkAchievements(currency.symbol);
     setAchievements(achievementData.allAchievements);
-  }, [isCustomDateRange, startDate, endDate, searchQuery, selectedCategoryFilter]);
+  }, [isCustomDateRange, startDate, endDate, searchQuery, selectedCategoryFilter, currency.symbol]);
 
   // Reload data when screen comes into focus
   useFocusEffect(
@@ -195,7 +199,7 @@ const HomeScreen = () => {
     await new Promise(resolve => setTimeout(resolve, 100));
     
     // Check for new achievements AFTER data is reloaded
-    const achievementData = await checkAchievements();
+    const achievementData = await checkAchievements(currency.symbol);
     
     if (achievementData.newAchievements.length > 0) {
       setNewAchievements(achievementData.newAchievements);
@@ -364,7 +368,7 @@ const HomeScreen = () => {
               <View>
                 <Text style={styles.balanceRowLabel}>Digital Balance</Text>
                 <Text style={styles.balanceRowValue}>
-                  ₹{formatCurrency(bankBalance || 0)}
+                  {currency.symbol}{formatCurrency(bankBalance || 0)}
                 </Text>
               </View>
             </View>
@@ -398,7 +402,7 @@ const HomeScreen = () => {
               {isCashWithdrawal || isCashDeposit || isBalanceAdjustment
                 ? (isCashWithdrawal || isCashDeposit ? '' : (adjustmentIsAdd ? '+' : '-'))
                 : (item.type === 'expense' ? '-' : '+')
-              }₹{formatCurrency(item.amount)}
+              }{currency.symbol}{formatCurrency(item.amount)}
             </Text>
           </View>
           <TouchableOpacity
@@ -511,7 +515,7 @@ const HomeScreen = () => {
                   adjustsFontSizeToFit={true}
                   minimumFontScale={0.8}
                 >
-                  ₹{formatCurrency(totals.expense)}
+                  {currency.symbol}{formatCurrency(totals.expense)}
                 </Text>
               </View>
             </View>
@@ -528,7 +532,7 @@ const HomeScreen = () => {
                   adjustsFontSizeToFit={true}
                   minimumFontScale={0.8}
                 >
-                  ₹{formatCurrency(totals.income)}
+                  {currency.symbol}{formatCurrency(totals.income)}
                 </Text>
               </View>
             </View>
@@ -555,14 +559,28 @@ const HomeScreen = () => {
         <Animated.View style={[styles.headerContainer, { transform: [{ translateY: headerTranslateY }] }]}>
           <View style={styles.header}>
             <View style={styles.headerTop}>
-            <View>
-              <Text style={styles.headerGreeting}>
-                Hello 👋
-              </Text>
-              <Text style={styles.headerTitle}>
-                {isCustomDateRange ? 'Filtered Summary' : "Today's Summary"}
-              </Text>
-            </View>
+              <View style={styles.greetingContainer}>
+                {isPremium ? (
+                  <LinearGradient
+                    colors={['#4285F4', '#DB4437', '#F4B400', '#0F9D58']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.premiumBorder}
+                  >
+                    <View style={styles.premiumInner}>
+                       <Text style={styles.premiumLabel}>PRO</Text>
+                    </View>
+                  </LinearGradient>
+                ) : null}
+                <View>
+                  <Text style={styles.headerGreeting}>
+                    Hello 👋
+                  </Text>
+                  <Text style={styles.headerTitle}>
+                    {isCustomDateRange ? 'Filtered Summary' : "Today's Summary"}
+                  </Text>
+                </View>
+              </View>
               <View style={styles.headerActions}>
                 <TouchableOpacity 
                   style={styles.headerActionButton} 
@@ -767,7 +785,7 @@ const HomeScreen = () => {
               adjustsFontSizeToFit={true}
               minimumFontScale={0.6}
             >
-              ₹{formatCurrency(totals.balance)}
+              {currency.symbol}{formatCurrency(totals.balance)}
             </Text>
             <View style={styles.balanceCardFooter}>
               <View style={styles.balanceCardStat}>
@@ -780,7 +798,7 @@ const HomeScreen = () => {
                     adjustsFontSizeToFit={true}
                     minimumFontScale={0.8}
                   >
-                    ₹{formatCurrency(totals.expense)}
+                    {currency.symbol}{formatCurrency(totals.expense)}
                   </Text>
                 </View>
               </View>
@@ -795,7 +813,7 @@ const HomeScreen = () => {
                     adjustsFontSizeToFit={true}
                     minimumFontScale={0.8}
                   >
-                    ₹{formatCurrency(totals.income)}
+                    {currency.symbol}{formatCurrency(totals.income)}
                   </Text>
                 </View>
               </View>
@@ -823,8 +841,8 @@ const HomeScreen = () => {
               minimumFontScale={0.7}
             >
               {bankBalance !== null 
-                ? `₹${formatCurrency(Math.abs(bankBalance))}`
-                : '₹0.00'
+                ? `${currency.symbol}${formatCurrency(Math.abs(bankBalance))}`
+                : `${currency.symbol}0.00`
               }
             </Text>
           </View>
@@ -846,8 +864,8 @@ const HomeScreen = () => {
               minimumFontScale={0.7}
             >
               {cashBalance !== null 
-                ? `₹${formatCurrency(Math.abs(cashBalance))}`
-                : '₹0.00'
+                ? `${currency.symbol}${formatCurrency(Math.abs(cashBalance))}`
+                : `${currency.symbol}0.00`
               }
             </Text>
           </View>
@@ -1596,6 +1614,32 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 8,
+  },
+  greetingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  premiumBorder: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    padding: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  premiumInner: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
+    backgroundColor: '#0A0A0A',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  premiumLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#FFFFFF',
   },
   emptySubtitle: {
     fontSize: 14,

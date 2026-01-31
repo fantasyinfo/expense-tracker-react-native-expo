@@ -18,6 +18,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { filterEntriesByPeriod, filterEntriesByDateRange, calculateTotals, formatDateWithMonthName, formatDate, formatCurrency, formatDateDisplay, formatDateShort } from '../utils/dateUtils';
 import { loadEntries, deleteEntry } from '../utils/storage';
 import { useModal } from '../context/ModalContext';
+import { useCurrency } from '../context/CurrencyContext';
 import AddEntryModal from '../components/AddEntryModal';
 import { prepareExpenseIncomeChart, prepareMonthlyChart, preparePaymentMethodChart } from '../utils/chartUtils';
 import { prepareCategoryChart, getCategoryStats } from '../utils/categoryChartUtils';
@@ -36,6 +37,7 @@ const SummaryScreen = () => {
     openAddEntryModal, 
     closeAddEntryModal,
   } = useModal();
+  const { currency } = useCurrency();
   const [entries, setEntries] = useState([]);
   const [selectedPeriod, setSelectedPeriod] = useState('monthly');
   const [filteredEntries, setFilteredEntries] = useState([]);
@@ -428,7 +430,7 @@ const SummaryScreen = () => {
                   Total Expense
                 </Text>
                 <Text style={[styles.summaryCardAmount, { color: '#FF6B6B' }]}>
-                  ₹{formatCurrency(totals.expense)}
+                  {currency.symbol}{formatCurrency(totals.expense)}
                 </Text>
               </View>
               <View style={styles.summaryCardFooter}>
@@ -465,7 +467,7 @@ const SummaryScreen = () => {
                   Total Income
                 </Text>
                 <Text style={[styles.summaryCardAmount, { color: '#51CF66' }]}>
-                  ₹{formatCurrency(totals.income)}
+                  {currency.symbol}{formatCurrency(totals.income)}
                 </Text>
               </View>
               <View style={styles.summaryCardFooter}>
@@ -512,7 +514,7 @@ const SummaryScreen = () => {
                   styles.summaryCardAmount, 
                   { color: totals.balance >= 0 ? '#51CF66' : '#FF6B6B' }
                 ]}>
-                  ₹{formatCurrency(totals.balance)}
+                  {currency.symbol}{formatCurrency(totals.balance)}
                 </Text>
               </View>
               <View style={styles.summaryCardFooter}>
@@ -553,7 +555,7 @@ const SummaryScreen = () => {
                     Expense - Digital
                   </Text>
                   <Text style={[styles.paymentCardAmount, { color: '#FF6B6B' }]}>
-                    ₹{formatCurrency(totals.expenseUpi || 0)}
+                    {currency.symbol}{formatCurrency(totals.expenseUpi || 0)}
                   </Text>
                 </View>
                 <View style={styles.paymentCardFooter}>
@@ -590,7 +592,7 @@ const SummaryScreen = () => {
                     Expense - Cash
                   </Text>
                   <Text style={[styles.paymentCardAmount, { color: '#FF6B6B' }]}>
-                    ₹{formatCurrency(totals.expenseCash || 0)}
+                    {currency.symbol}{formatCurrency(totals.expenseCash || 0)}
                   </Text>
                 </View>
                 <View style={styles.paymentCardFooter}>
@@ -627,7 +629,7 @@ const SummaryScreen = () => {
                     Income - Digital
                   </Text>
                   <Text style={[styles.paymentCardAmount, { color: '#51CF66' }]}>
-                    ₹{formatCurrency(totals.incomeUpi || 0)}
+                    {currency.symbol}{formatCurrency(totals.incomeUpi || 0)}
                   </Text>
                 </View>
                 <View style={styles.paymentCardFooter}>
@@ -664,7 +666,7 @@ const SummaryScreen = () => {
                     Income - Cash
                   </Text>
                   <Text style={[styles.paymentCardAmount, { color: '#51CF66' }]}>
-                    ₹{formatCurrency(totals.incomeCash || 0)}
+                    {currency.symbol}{formatCurrency(totals.incomeCash || 0)}
                   </Text>
                 </View>
                 <View style={styles.paymentCardFooter}>
@@ -727,7 +729,7 @@ const SummaryScreen = () => {
                             {item.name}
                           </Text>
                           <Text style={styles.categoryListAmount}>
-                            ₹{formatCurrency(item.amount)}
+                            {currency.symbol}{formatCurrency(item.amount)}
                           </Text>
                         </View>
                         <View style={styles.categoryListFooter}>
@@ -785,7 +787,7 @@ const SummaryScreen = () => {
                           <View style={styles.cardListHeader}>
                             <Text style={styles.cardListName}>Expense</Text>
                             <Text style={[styles.cardListAmount, { color: Colors.status.expense }]}>
-                              ₹{formatCurrency(expense)}
+                              {currency.symbol}{formatCurrency(expense)}
                             </Text>
                           </View>
                           <View style={styles.cardListFooter}>

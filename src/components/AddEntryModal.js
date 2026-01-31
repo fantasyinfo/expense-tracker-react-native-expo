@@ -19,11 +19,13 @@ import { addEntry, updateEntry } from '../utils/storage';
 import { updateStreak, checkAchievements } from '../utils/engagementUtils';
 import { loadTemplates, addTemplate, deleteTemplate } from '../utils/templateStorage';
 import { loadCategories, getCategoriesByType } from '../utils/categoryStorage';
+import { useCurrency } from '../context/CurrencyContext';
 import Colors from '../constants/colors';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
+  const { currency } = useCurrency();
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [type, setType] = useState('expense');
@@ -311,7 +313,7 @@ const AddEntryModal = ({ visible, onClose, onSave, editEntry = null }) => {
                                 color={template.type === 'expense' ? Colors.status.expense : Colors.status.income}
                               />
                               <Text style={styles.templateAmount}>
-                                ₹{template.amount}
+                                {currency.symbol}{template.amount}
                               </Text>
                               <Ionicons
                                 name={template.mode === 'upi' ? 'phone-portrait' : 'cash'}

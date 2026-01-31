@@ -22,9 +22,11 @@ import {
 } from '../utils/engagementUtils';
 import Colors from '../constants/colors';
 import { formatCurrency } from '../utils/dateUtils';
+import { useCurrency } from '../context/CurrencyContext';
 import AppFooter from '../components/AppFooter';
 
 const EngagementScreen = () => {
+  const { currency } = useCurrency();
   const [streak, setStreak] = useState({ currentStreak: 0, longestStreak: 0 });
   const [achievements, setAchievements] = useState([]);
   const [goals, setGoals] = useState({ monthlyGoal: 0, yearlyGoal: 0, customGoal: 0, customGoalName: '' });
@@ -196,7 +198,7 @@ const EngagementScreen = () => {
             <View style={styles.goalHeader}>
               <Text style={styles.goalName}>Monthly Goal</Text>
               <Text style={styles.goalAmount}>
-                ₹{formatCurrency(monthlyProgress.currentBalance)} / ₹{formatCurrency(monthlyProgress.targetGoal)}
+                {currency.symbol}{formatCurrency(monthlyProgress.currentBalance)} / {currency.symbol}{formatCurrency(monthlyProgress.targetGoal)}
               </Text>
             </View>
             <View style={styles.progressBarContainer}>
@@ -219,7 +221,7 @@ const EngagementScreen = () => {
               </Text>
               {!monthlyProgress.isCompleted && (
                 <Text style={styles.remainingText}>
-                  ₹{formatCurrency(monthlyProgress.remaining)} remaining
+                  {currency.symbol}{formatCurrency(monthlyProgress.remaining)} remaining
                 </Text>
               )}
             </View>
@@ -232,7 +234,7 @@ const EngagementScreen = () => {
             <View style={styles.goalHeader}>
               <Text style={styles.goalName}>Yearly Goal</Text>
               <Text style={styles.goalAmount}>
-                ₹{formatCurrency(yearlyProgress.currentBalance)} / ₹{formatCurrency(yearlyProgress.targetGoal)}
+                {currency.symbol}{formatCurrency(yearlyProgress.currentBalance)} / {currency.symbol}{formatCurrency(yearlyProgress.targetGoal)}
               </Text>
             </View>
             <View style={styles.progressBarContainer}>
@@ -255,7 +257,7 @@ const EngagementScreen = () => {
               </Text>
               {!yearlyProgress.isCompleted && (
                 <Text style={styles.remainingText}>
-                  ₹{formatCurrency(yearlyProgress.remaining)} remaining
+                  {currency.symbol}{formatCurrency(yearlyProgress.remaining)} remaining
                 </Text>
               )}
             </View>
@@ -270,7 +272,7 @@ const EngagementScreen = () => {
                 {goals.customGoalName || 'Custom Goal'}
               </Text>
               <Text style={styles.goalAmount}>
-                ₹{formatCurrency(customProgress.currentBalance)} / ₹{formatCurrency(customProgress.targetGoal)}
+                {currency.symbol}{formatCurrency(customProgress.currentBalance)} / {currency.symbol}{formatCurrency(customProgress.targetGoal)}
               </Text>
             </View>
             <View style={styles.progressBarContainer}>
@@ -293,7 +295,7 @@ const EngagementScreen = () => {
               </Text>
               {!customProgress.isCompleted && (
                 <Text style={styles.remainingText}>
-                  ₹{formatCurrency(customProgress.remaining)} remaining
+                  {currency.symbol}{formatCurrency(customProgress.remaining)} remaining
                 </Text>
               )}
             </View>

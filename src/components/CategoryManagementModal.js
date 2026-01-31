@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '../constants/colors';
+import { usePremium } from '../context/PremiumContext';
 import { loadCategories, addCategory, deleteCategory, saveCategories, DEFAULT_CATEGORIES } from '../utils/categoryStorage';
 
 // Available icons for category selection
@@ -36,6 +37,7 @@ const AVAILABLE_COLORS = [
 ];
 
 const CategoryManagementModal = ({ visible, onClose }) => {
+  const { isPremium } = usePremium();
   const [categories, setCategories] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -56,6 +58,25 @@ const CategoryManagementModal = ({ visible, onClose }) => {
   };
 
   const handleAddCategory = () => {
+    // Premium Lock: Limit custom categories for free users
+    const defaultIds = new Set(DEFAULT_CATEGORIES.map(c => c.id));
+    const customCategoriesCount = categories.filter(c => !defaultIds.has(c.id)).length;
+    const FREE_LIMIT = 5;
+
+    if (!isPremium && customCategoriesCount >= FREE_LIMIT) {
+      Alert.alert(
+        'Premium Feature',
+        `Free users can only create up to ${FREE_LIMIT} custom categories. Upgrade to Premium for unlimited categories!`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Upgrade', onPress: onClose } // Verify if this navigates correctly; might need navigation prop
+        ]
+      );
+      // Ideally navigate to PremiumScreen, but we don't have navigation prop here easily unless passed.
+      // For now, simple alert.
+      return;
+    }
+
     setEditingCategory(null);
     setCategoryName('');
     setCategoryType('expense');

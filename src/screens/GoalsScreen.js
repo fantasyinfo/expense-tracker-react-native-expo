@@ -27,11 +27,13 @@ import {
 } from '../utils/engagementUtils';
 import Colors from '../constants/colors';
 import { formatCurrency } from '../utils/dateUtils';
+import { useCurrency } from '../context/CurrencyContext';
 import AppFooter from '../components/AppFooter';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const GoalsScreen = () => {
+  const { currency } = useCurrency();
   const [goals, setGoals] = useState({});
   const [savingsProgress, setSavingsProgress] = useState({});
   const [expenseProgress, setExpenseProgress] = useState({});
@@ -155,7 +157,7 @@ const GoalsScreen = () => {
                   {isExpense ? 'Spent' : 'Saved'}
                 </Text>
                 <Text style={styles.goalCardAmountValue}>
-                  ₹{formatCurrency(currentDisplay)}
+                  {currency.symbol}{formatCurrency(currentDisplay)}
                 </Text>
               </View>
               <View style={styles.goalCardDivider} />
@@ -164,7 +166,7 @@ const GoalsScreen = () => {
                   {isExpense ? 'Limit' : 'Target'}
                 </Text>
                 <Text style={styles.goalCardAmountValue}>
-                  ₹{formatCurrency(targetDisplay)}
+                  {currency.symbol}{formatCurrency(targetDisplay)}
                 </Text>
               </View>
             </View>
@@ -197,7 +199,7 @@ const GoalsScreen = () => {
                 <View style={styles.warningMessage}>
                   <Ionicons name="alert-circle" size={16} color="#FF6B6B" />
                   <Text style={styles.warningText}>
-                    Over by ₹{formatCurrency(currentDisplay - targetDisplay)}
+                    Over by {currency.symbol}{formatCurrency(currentDisplay - targetDisplay)}
                   </Text>
                 </View>
               ) : (
@@ -209,8 +211,8 @@ const GoalsScreen = () => {
                   />
                   <Text style={styles.remainingText}>
                     {isExpense 
-                      ? `₹${formatCurrency(remaining)} left to spend`
-                      : `₹${formatCurrency(remaining)} more to reach goal`
+                      ? `${currency.symbol}${formatCurrency(remaining)} left to spend`
+                      : `${currency.symbol}${formatCurrency(remaining)} more to reach goal`
                     }
                   </Text>
                 </View>
@@ -461,7 +463,7 @@ const GoalsScreen = () => {
             )}
 
             <View style={styles.inputContainer}>
-              <Text style={styles.currencyPrefix}>₹</Text>
+              <Text style={styles.currencyPrefix}>{currency.symbol}</Text>
               <TextInput
                 style={styles.input}
                 placeholder="Enter amount"

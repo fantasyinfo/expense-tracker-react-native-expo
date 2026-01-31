@@ -161,7 +161,7 @@ export const resetGoalCompletion = async (goalType) => {
 /**
  * Check and unlock achievements
  */
-export const checkAchievements = async () => {
+export const checkAchievements = async (symbol = '₹') => {
   try {
     const entries = await loadEntries();
     const totals = calculateTotals(entries);
@@ -221,14 +221,14 @@ export const checkAchievements = async () => {
       {
         id: 'savings_10k',
         name: 'Saver',
-        description: 'Saved ₹10,000',
+        description: `Saved ${symbol}10,000`,
         icon: 'wallet',
         unlocked: totals.balance >= 10000 && !unlockedAchievements.includes('savings_10k'),
       },
       {
         id: 'savings_1lakh',
         name: 'Big Saver',
-        description: 'Saved ₹1,00,000',
+        description: `Saved ${symbol}1,00,000`,
         icon: 'cash',
         unlocked: totals.balance >= 100000 && !unlockedAchievements.includes('savings_1lakh'),
       },
@@ -242,21 +242,27 @@ export const checkAchievements = async () => {
       {
         id: 'monthly_goal_completed',
         name: 'Monthly Goal Achiever 🎯',
-        description: `Reached your monthly savings goal of ₹${monthlyProgress.targetGoal > 0 ? monthlyProgress.targetGoal.toLocaleString('en-IN') : '0'}!`,
+        name: 'Monthly Goal Achiever 🎯',
+        description: `Reached your monthly savings goal of ${symbol}${monthlyProgress.targetGoal > 0 ? monthlyProgress.targetGoal.toLocaleString('en-IN') : '0'}!`,
+        icon: 'trophy',
         icon: 'trophy',
         unlocked: monthlyProgress.isCompleted && !unlockedAchievements.includes('monthly_goal_completed') && monthlyProgress.targetGoal > 0,
       },
       {
         id: 'yearly_goal_completed',
         name: 'Yearly Goal Achiever 🎯',
-        description: `Reached your yearly savings goal of ₹${yearlyProgress.targetGoal.toLocaleString('en-IN')}!`,
+        name: 'Yearly Goal Achiever 🎯',
+        description: `Reached your yearly savings goal of ${symbol}${yearlyProgress.targetGoal.toLocaleString('en-IN')}!`,
+        icon: 'medal',
         icon: 'medal',
         unlocked: yearlyProgress.isCompleted && !unlockedAchievements.includes('yearly_goal_completed') && yearlyProgress.targetGoal > 0,
       },
       {
         id: 'custom_goal_completed',
         name: 'Goal Crusher 🎯',
-        description: `Achieved your custom savings goal of ₹${customProgress.targetGoal.toLocaleString('en-IN')}!`,
+        name: 'Goal Crusher 🎯',
+        description: `Achieved your custom savings goal of ${symbol}${customProgress.targetGoal.toLocaleString('en-IN')}!`,
+        icon: 'ribbon',
         icon: 'ribbon',
         unlocked: customProgress.isCompleted && !unlockedAchievements.includes('custom_goal_completed') && customProgress.targetGoal > 0,
       },

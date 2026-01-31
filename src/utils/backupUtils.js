@@ -77,7 +77,7 @@ export const createManualBackup = async () => {
     // Create backup data with metadata
     const backupData = {
       version: '1.0',
-      appName: 'Kharcha',
+      appName: 'SpendOrbit',
       backupDate: new Date().toISOString(),
       entryCount: entries.length,
       entries: entries,
@@ -86,7 +86,7 @@ export const createManualBackup = async () => {
     // Generate filename with timestamp
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0] + '_' + 
                      new Date().toTimeString().split(' ')[0].replace(/:/g, '-');
-    const fileName = `kharcha_backup_${timestamp}.json`;
+    const fileName = `spendorbit_backup_${timestamp}.json`;
     
     // Save backup file
     const fileUri = FileSystem.documentDirectory + fileName;

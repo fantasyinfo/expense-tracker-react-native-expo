@@ -1,10 +1,10 @@
 module.exports = {
   expo: {
-    name: "Kharcha",
-    slug: "expensetracker",
+    name: "SpendOrbit",
+    slug: "spendorbit",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/icon.png",
+    icon: "./assets/512.png",
     userInterfaceStyle: "light",
     splash: {
       backgroundColor: "#ffffff"
@@ -13,10 +13,10 @@ module.exports = {
       "**/*"
     ],
     android: {
-      package: "com.gauravsharma.expensetracker",
+      package: "com.digitalfied.spendorbit",
       versionCode: 1,
       adaptiveIcon: {
-        foregroundImage: "./assets/adaptive-icon.png",
+        foregroundImage: "./assets/1024.png",
         backgroundColor: "#1C1C1E"
       },
       permissions: [],
